@@ -1,0 +1,15 @@
+.cache
+.vscode
+.ninja_deps
+.ninja_log
+cmake_install.cmake
+compile_commands.json
+build.ninja
+CMakeCache.txt
+**/CMakeFiles
+**/bin
+**/lib
+*.a
+*.o
+*.elf
+*.so
