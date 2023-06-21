@@ -119,7 +119,7 @@ bool runElf(Hijacker *hijacker, uint16_t port) {
 			return false;
 		}
 
-		__builtin_printf("elf size: %lld\n", size);
+		__builtin_printf("elf size: %lld\n", (long long)size);
 
 		buf = new uint8_t[size];
 
@@ -149,22 +149,30 @@ bool runElf(Hijacker *hijacker, uint16_t port) {
 
 int main() {
 	//clearFramePointer();
+	puts("main entered");
 	auto spawner = Spawner::getSpawner("SceRedisServer");
 	if (spawner == nullptr) {
+		puts("failed to get spawner for SceRedisServer");
 		return -1;
 	}
+	puts("jailbreaking original SceRedisServer process");
 	spawner->getHijacker()->jailbreak();
 
+	puts("spawning new SceRedisServer process");
 	auto redis = spawner->spawn();
 
 	if (redis == nullptr) {
+		puts("failed to spawn new redis server process");
 		return -1;
 	}
+	puts("getting saved stack pointer");
 	while (redis->getSavedRsp() == 0) {
 		usleep(1);
 	}
+	puts("setting process name");
 	redis->getProc()->setName("HomebrewDaemon"_sv);
 	__builtin_printf("new process %s pid %d\n", redis->getProc()->getSelfInfo()->name, redis->getPid());
+	puts("jailbreaking new process");
 	redis->jailbreak();
 
 	// listen on a port for now. in the future embed the daemon and load directly

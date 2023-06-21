@@ -38,11 +38,25 @@ int __attribute__ ((naked)) close(int fd) {
 	__asm__ volatile("jmp *f_close(%rip)");
 }
 
+static __attribute__ ((used)) void *f_puts = nullptr;\
+int __attribute__ ((naked)) puts(const char *msg) {\
+	__asm__ volatile("jmp *f_puts(%rip)");\
+}
+
+static __attribute__ ((used)) void *f_free = nullptr;\
+void __attribute__ ((naked)) free(void *msg) {\
+	__asm__ volatile("jmp *f_free(%rip)");\
+}
+static __attribute__ ((used)) void *f_malloc = nullptr;\
+void *__attribute__ ((naked)) malloc(size_t len) {\
+	__asm__ volatile("jmp *f_malloc(%rip)");\
+}
+
+
+
 STUB(getpid)
 STUB(memset)
 STUB(putchar)
-STUB(malloc)
-STUB(free)
 STUB(memcpy)
 STUB(memcmp)
 STUB(socket)
@@ -53,7 +67,6 @@ STUB(setsockopt)
 STUB(_write)
 STUB(_read)
 STUB(printf)
-STUB(puts)
 STUB(_ZdaPv)
 STUB(_Znam)
 STUB(_Znwm)
@@ -75,9 +88,11 @@ STUB(sceKernelPrintBacktraceWithModuleInfo)
 void _start(struct payload_args *args) {
 
 	f_sceKernelDlsym = args->dlsym;
-
-	LIBKERNEL_LINK(usleep);
 	LIBKERNEL_LINK(sceKernelLoadStartModule);
+	int libc = sceKernelLoadStartModule("libSceLibcInternal.sprx", 0, 0, 0, 0, 0);
+	LIBC_LINK(puts);
+	puts("_start entered");
+	LIBKERNEL_LINK(usleep);
 	LIBKERNEL_LINK(getpid);
 	LIBKERNEL_LINK(socket);
 	LIBKERNEL_LINK(bind);
@@ -91,7 +106,7 @@ void _start(struct payload_args *args) {
 	LIBKERNEL_LINK(__error);
 	LIBKERNEL_LINK(sceKernelPrintBacktraceWithModuleInfo);
 
-	int libc = sceKernelLoadStartModule("libSceLibcInternal.sprx", 0, 0, 0, 0, 0);
+
 
 	LIBC_LINK(_Znwm);
 	LIBC_LINK(_Znam);
@@ -104,7 +119,7 @@ void _start(struct payload_args *args) {
 	LIBC_LINK(memcpy);
 	LIBC_LINK(memcmp);
 	LIBC_LINK(printf);
-	LIBC_LINK(puts);
+
 	LIBC_LINK(strstr);
 	LIBC_LINK(strlen);
 	LIBC_LINK(strnlen);

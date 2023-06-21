@@ -147,7 +147,7 @@ UniquePtr<Hijacker> Spawner::spawn() {
 			} else if (res.state > 1) {
 				printf("spawn failed %lld\n", res.state);
 			} else {
-				printf("spawn failed state: %llx err: 0x%llx\n", (uint32_t) res.state, (uint32_t) res.err);
+				printf("spawn failed state: %llx err: 0x%llx\n", (unsigned long long) res.state, (unsigned long long) res.err);
 			}
 			return nullptr;
 		}

@@ -27,12 +27,12 @@ static uintptr_t __attribute__((naked, noinline)) getTextEnd() {
 void printBacktrace() {
 	const uintptr_t start = getTextStart();
 	const uintptr_t stop = getTextEnd();
-	__builtin_printf(".text: 0x%08llx\n", start);
+	__builtin_printf(".text: 0x%08llx\n", (unsigned long long)start);
 	puts("---backtrace start---");
 	for (const Frame *__restrict frame = getFramePointer(); frame != nullptr; frame = frame->next) {
 		if (frame->addr != 0) [[likely]] {
 			if (frame->addr >= start && frame->addr <= stop) {
-				__builtin_printf("0x%llx\n", frame->addr - start);
+				__builtin_printf("0x%llx\n", (unsigned long long)frame->addr - start);
 			}
 		}
 	}

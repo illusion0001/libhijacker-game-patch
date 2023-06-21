@@ -107,7 +107,7 @@ class SharedLib : public KernelObject<SharedLib, 0x200> {
 		}
 
 		StringView getPath() const {
-			__builtin_printf("SharedLib::getPath 0x%llx\n", get<uintptr_t, 8>());
+			__builtin_printf("SharedLib::getPath 0x%llx\n", (unsigned long long)get<uintptr_t, 8>());
 			if (path.length() == 0) [[unlikely]] {
 				path = getString<8>();
 			}

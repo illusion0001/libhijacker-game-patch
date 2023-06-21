@@ -291,7 +291,7 @@ bool Elf::parseDynamicTable() {
 	for (const Elf64_Dyn *lib : neededLibs) {
 		StringView filename = strtab + lib->d_un.d_val;
 		if (!filename.endswith(".so"_sv)) [[unlikely]] {
-			__builtin_printf("unexpected library 0x%llx %s\n", lib->d_un.d_val, filename.c_str());
+			__builtin_printf("unexpected library 0x%llx %s\n", (unsigned long long)lib->d_un.d_val, filename.c_str());
 			return false;
 		}
 		// I really do not want to implement a hashmap

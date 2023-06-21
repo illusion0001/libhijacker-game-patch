@@ -13,3 +13,4 @@ CMakeCache.txt
 *.o
 *.elf
 *.so
+log.txt
