@@ -17,7 +17,7 @@ set(CMAKE_CXX_EXTENSIONS ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if ("${CMAKE_CXX_STANDARD}" STREQUAL "")
-	set(CMAKE_CXX_STANDARD 23)
+	set(CMAKE_CXX_STANDARD 20)
 endif()
 
 # Check for sub-project as part of main build or external build
