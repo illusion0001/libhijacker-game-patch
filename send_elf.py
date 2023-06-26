@@ -7,7 +7,8 @@ from pathlib import Path
 import aiofiles
 
 SEM = asyncio.Semaphore(60)
-LOGGER_PORT = 9020
+ORIGINAL_ELF_PORT = 9020
+LOGGER_PORT = 9021
 ELF_PORT = 9027
 
 
@@ -110,9 +111,21 @@ async def logger_client(host: str, elf: Path, spawner: Path, log: Path | None, s
             await log_task(host, reader, elf, log, silent)
 
 
-async def run_loggers(*args):
+async def send_spawner(host: str, spawner: Path):
+    # waiting for connection
+    async with SEM:
+        async with open_connection(host, ORIGINAL_ELF_PORT) as (reader, writer):
+            reader._buffer = LineBuffer(reader._buffer)
+            writer.write(spawner.read_bytes())
+            writer.write_eof()
+            await writer.drain()
+
+
+async def run_loggers(host: str, elf: Path, spawner: Path, log: Path | None, silent: bool):
+    await send_spawner(host, spawner)
+
     # klogger code was left incase it's helpful for someone in the future
-    logger = asyncio.create_task(logger_client(*args))
+    logger = asyncio.create_task(logger_client(host, elf, spawner, log, silent))
     #klogger = asyncio.create_task(klog_client(host))
     tasks = (logger, ) #klogger)
     await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)

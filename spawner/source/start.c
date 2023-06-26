@@ -38,20 +38,30 @@ int __attribute__ ((naked)) close(int fd) {
 	__asm__ volatile("jmp *f_close(%rip)");
 }
 
-static __attribute__ ((used)) void *f_puts = nullptr;\
-int __attribute__ ((naked)) puts(const char *msg) {\
-	__asm__ volatile("jmp *f_puts(%rip)");\
+static __attribute__ ((used)) void *f_puts = nullptr;
+int __attribute__ ((naked)) puts(const char *msg) {
+	__asm__ volatile("jmp *f_puts(%rip)");
 }
 
-static __attribute__ ((used)) void *f_free = nullptr;\
-void __attribute__ ((naked)) free(void *msg) {\
-	__asm__ volatile("jmp *f_free(%rip)");\
-}
-static __attribute__ ((used)) void *f_malloc = nullptr;\
-void *__attribute__ ((naked)) malloc(size_t len) {\
-	__asm__ volatile("jmp *f_malloc(%rip)");\
+static __attribute__ ((used)) void *f_free = nullptr;
+void __attribute__ ((naked)) free(void *msg) {
+	__asm__ volatile("jmp *f_free(%rip)");
 }
 
+static __attribute__ ((used)) void *f_malloc = nullptr;
+void *__attribute__ ((naked)) malloc(size_t len) {
+	__asm__ volatile("jmp *f_malloc(%rip)");
+}
+
+static __attribute__ ((used)) void *f_dup = nullptr;
+int __attribute__ ((naked)) dup(int oldd) {
+	__asm__ volatile("jmp *f_dup(%rip)");
+}
+
+static __attribute__ ((used)) void *f_dup2 = nullptr;
+int __attribute__ ((naked)) dup2(int oldd, int newd) {
+	__asm__ volatile("jmp *f_dup2(%rip)");
+}
 
 
 STUB(getpid)
@@ -85,20 +95,25 @@ STUB(sceKernelPrintBacktraceWithModuleInfo)
 #define LIBKERNEL_LINK(fname) LINK(libkernel, fname)
 #define LIBC_LINK(fname) LINK(libc, fname)
 
+#define STDOUT 1
+#define STDERR 2
+
 void _start(struct payload_args *args) {
 
-	f_sceKernelDlsym = args->dlsym;
+	f_sceKernelDlsym = (void*)args->dlsym;
 	LIBKERNEL_LINK(sceKernelLoadStartModule);
 	int libc = sceKernelLoadStartModule("libSceLibcInternal.sprx", 0, 0, 0, 0, 0);
 	LIBC_LINK(puts);
-	puts("_start entered");
-	LIBKERNEL_LINK(usleep);
-	LIBKERNEL_LINK(getpid);
+	LIBKERNEL_LINK(dup);
+	LIBKERNEL_LINK(dup2);
 	LIBKERNEL_LINK(socket);
+	LIBKERNEL_LINK(setsockopt);
 	LIBKERNEL_LINK(bind);
 	LIBKERNEL_LINK(listen);
 	LIBKERNEL_LINK(accept);
-	LIBKERNEL_LINK(setsockopt);
+	LIBKERNEL_LINK(usleep);
+	LIBKERNEL_LINK(getpid);
+
 	LIBKERNEL_LINK(_write);
 	LIBKERNEL_LINK(_read);
 	LIBKERNEL_LINK(close);
@@ -129,5 +144,12 @@ void _start(struct payload_args *args) {
 
 	kernel_base = args->kdata_base_addr;
 	kernel_init_rw(args->rwpair[0], args->rwpair[1], args->rwpipe, args->kpipe_addr);
+
+	int origStdout = dup(STDOUT);
+	int origStderr = dup(STDERR);
+
+	// stdout/stderr is set in main
 	*args->payloadout = main(0, NULL);
+	dup2(origStdout, STDOUT);
+	dup2(origStderr, STDERR);
 }

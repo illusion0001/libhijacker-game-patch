@@ -24,7 +24,13 @@ extern "C" {
 	ssize_t _read(int, void *, size_t);
 }
 
-class Socket {
+static constexpr int LOGGER_PORT = 9021;
+static constexpr int ELF_PORT = 9027;
+
+static constexpr int STDOUT = 1;
+static constexpr int STDERR = 2;
+
+class FileDescriptor {
 	int fd = -1;
 
 	void close() {
@@ -36,27 +42,27 @@ class Socket {
 }
 
 	public:
-		Socket() = default;
-		Socket(int fd) : fd(fd) {}
-		Socket(const Socket&) = delete;
-		Socket(Socket &&rhs) : fd(rhs.fd) { rhs.fd = -1; }
-		Socket &operator=(int fd) {
+		FileDescriptor() = default;
+		FileDescriptor(int fd) : fd(fd) {}
+		FileDescriptor(const FileDescriptor&) = delete;
+		FileDescriptor(FileDescriptor &&rhs) : fd(rhs.fd) { rhs.fd = -1; }
+		FileDescriptor &operator=(int fd) {
 			close();
 			this->fd = fd;
 			return *this;
 		}
-		Socket &operator=(const Socket &rhs) = delete;
-		Socket &operator=(Socket &&rhs) {
+		FileDescriptor &operator=(const FileDescriptor &rhs) = delete;
+		FileDescriptor &operator=(FileDescriptor &&rhs) {
 			close();
 			fd = rhs.fd;
 			rhs.fd = -1;
 			return *this;
 		}
-		~Socket() {
+		~FileDescriptor() {
 			close();
 		}
 
-		int getFd() const { return fd; }
+		operator int() const { return fd; }
 		explicit operator bool() const { return fd != -1; }
 		bool read(uint8_t *buf, size_t size) const {
 			while (size > 0) {
@@ -70,13 +76,15 @@ class Socket {
 			}
 			return true;
 		}
+
+		void release() { fd = -1; }
 };
 
 bool runElf(Hijacker *hijacker, uint16_t port) {
 	socklen_t addr_len;
 	UniquePtr<uint8_t[]> buf = nullptr;
 	{
-		Socket sock = socket(AF_INET, SOCK_STREAM, 0);
+		FileDescriptor sock = socket(AF_INET, SOCK_STREAM, 0);
 
 		if (!sock) {
 			__builtin_printf("socket: %s", strerror(errno));
@@ -84,20 +92,19 @@ bool runElf(Hijacker *hijacker, uint16_t port) {
 		}
 
 		int value = 1;
-		if (setsockopt(sock.getFd(), SOL_SOCKET, SO_REUSEADDR, &value, sizeof(int)) < 0) {
+		if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &value, sizeof(int)) < 0) {
 			__builtin_printf("setsockopt: %s", strerror(errno));
 			return false;
 		}
 
-		//__builtin_memset(&server_addr, 0, sizeof(server_addr));
 		struct sockaddr_in server_addr{0, AF_INET, htons(port), {}, {}};
 
-		if (bind(sock.getFd(), (struct sockaddr*)&server_addr, sizeof(server_addr)) != 0) {
+		if (bind(sock, (struct sockaddr*)&server_addr, sizeof(server_addr)) != 0) {
 			__builtin_printf("bind: %s", strerror(errno));
 			return false;
 		}
 
-		if (listen(sock.getFd(), 1) != 0) {
+		if (listen(sock, 1) != 0) {
 			__builtin_printf("listen: %s", strerror(errno));
 			return false;
 		}
@@ -105,16 +112,16 @@ bool runElf(Hijacker *hijacker, uint16_t port) {
 		struct sockaddr client_addr{};
 		addr_len = sizeof(client_addr);
 		__builtin_printf("waiting for connection to load elf on port %d\n", port);
-		Socket conn = accept(sock.getFd(), &client_addr, &addr_len);
+		FileDescriptor conn = accept(sock, &client_addr, &addr_len);
 		if (!conn) {
 			__builtin_printf("accept: %s", strerror(errno));
 			return false;
 		}
 
-		__builtin_printf("connection accepted, connfd: %d\n", conn.getFd());
+		__builtin_printf("connection accepted, connfd: %d\n", (int)conn);
 
 		ssize_t size = 0;
-		if (_read(conn.getFd(), &size, sizeof(size)) == -1) {
+		if (_read(conn, &size, sizeof(size)) == -1) {
 			__builtin_printf("read size: %s", strerror(errno));
 			return false;
 		}
@@ -147,7 +154,44 @@ bool runElf(Hijacker *hijacker, uint16_t port) {
 	);
 }
 
+static bool initStdout() {
+	socklen_t addr_len;
+	{
+		FileDescriptor sock = socket(AF_INET, SOCK_STREAM, 0);
+
+		if (!sock) {
+			return false;
+		}
+
+		int value = 1;
+		if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &value, sizeof(int)) < 0) {
+			return false;
+		}
+
+		struct sockaddr_in server_addr{0, AF_INET, htons(LOGGER_PORT), {}, {}};
+
+		if (bind(sock, (struct sockaddr*)&server_addr, sizeof(server_addr)) != 0) {
+			return false;
+		}
+
+		if (listen(sock, 1) != 0) {
+			return false;
+		}
+
+		struct sockaddr client_addr{};
+		addr_len = sizeof(client_addr);
+		int conn = accept(sock, &client_addr, &addr_len);
+		if (conn == -1) {
+			return false;
+		}
+		dup2(conn, STDOUT);
+		dup2(conn, STDERR);
+	}
+	return true;
+}
+
 int main() {
+	initStdout();
 	//clearFramePointer();
 	puts("main entered");
 	auto spawner = Spawner::getSpawner("SceRedisServer");
@@ -177,8 +221,10 @@ int main() {
 
 	// listen on a port for now. in the future embed the daemon and load directly
 
-	if (runElf(redis.get(), 9027)) {
+	if (runElf(redis.get(), ELF_PORT)) {
 		__builtin_printf("process name %s pid %d\n", redis->getProc()->getSelfInfo()->name, redis->getPid());
+	} else {
+		// TODO kill spawned process on error
 	}
 
 	return 0;
