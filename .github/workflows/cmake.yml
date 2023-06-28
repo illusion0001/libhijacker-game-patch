@@ -1,0 +1,66 @@
+name: CMake
+
+on: [ push, pull_request, workflow_dispatch ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Setup environment
+      run: |
+        echo "PS5SDK=${{ github.workspace }}/ps5sdk" >> $GITHUB_ENV
+        echo "llvm_ver=16.0" >> $GITHUB_ENV
+        sudo apt install ninja-build
+
+    - name: Cache LLVM and Clang (${{ env.llvm_ver }})
+      id: cache-llvm
+      uses: actions/cache@v3
+      with:
+        path: ${{ runner.tool_cache }}/llvm-${{ env.llvm_ver }}
+        key: llvm1-${{ env.llvm_ver }}
+
+    - name: Install LLVM and Clang (${{ env.llvm_ver }})
+      uses: KyleMayes/install-llvm-action@master
+      with:
+        version: ${{ env.llvm_ver }}
+        directory: ${{ runner.tool_cache }}/llvm-${{ env.llvm_ver }}
+        cached: ${{ steps.cache-llvm.outputs.cache-hit }}
+
+    - name: Show Clang version
+      run: clang -v
+
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Checkout PS5SDK
+      uses: actions/checkout@v3
+      with:
+        repository: PS5Dev/PS5SDK
+        path: ${{ env.PS5SDK }}
+
+    - name: Build SDK
+      working-directory: ${{ env.PS5SDK }}
+      run: bash ./build.sh
+
+    - name: Build stubs
+      working-directory: stubber
+      run: |
+        curl -sL https://github.com/illusion0001/libhijacker/releases/download/stubber-lib/lib1.tar.gz | tar xz -C ./
+        cd PS5_Root
+        mkdir build
+        cd build
+        cmake -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ ..
+        ninja
+        cp -rv ${{ github.workspace }}/stubber/PS5_Root/build/system/common/lib/ ${{ github.workspace }}
+
+    - name: Build elf
+      run: bash ./build.sh
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: libhijacker
+        path: |
+          bin/*.elf
+          ${{ github.workspace }}/*.py
