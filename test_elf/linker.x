@@ -34,6 +34,7 @@ SECTIONS {
     } : phdr_text
 
 	.data : ALIGN(0x4000) {
+		QUAD(0xDEADBEEF)
         *(.data);
 		*(.data.*);
     } : phdr_data
@@ -44,6 +45,7 @@ SECTIONS {
     } : phdr_data
 
     .rodata : ALIGN(0x4000) {
+		QUAD(0xDEADBEEF)
         *(.rodata .rodata.*);
     } : phdr_rodata
 
@@ -56,6 +58,7 @@ SECTIONS {
     } : phdr_rodata
 
 	.eh_frame_hdr : ALIGN(0x4000) {
+		QUAD(0xDEADBEEF)
 		*(.eh_frame_hdr)
 	} : phdr_eh_frame
 
@@ -100,6 +103,7 @@ SECTIONS {
     PROVIDE (__payload_end = .);
 
     .dynamic : ALIGN(0x4000) {
+		QUAD(0xDEADBEEF)
         PROVIDE_HIDDEN (_DYNAMIC = .);
         *(.dynamic);
     } : phdr_dynamic
