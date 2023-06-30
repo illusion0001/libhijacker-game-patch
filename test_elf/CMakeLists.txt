@@ -72,4 +72,6 @@ target_sources(${PROJECT_NAME} PRIVATE ${SrcFiles})
 target_link_directories	(${PROJECT_NAME} PUBLIC ${D_CWD})
 
 target_link_libraries	(${PROJECT_NAME} PUBLIC SceLibcInternal kernel_sys)
+set(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=lld -v -Xlinker -pie -Xlinker --gc-sections -Xlinker -zmax-page-size=16384 -Xlinker -zcommon-page-size=16384 -Xlinker -T ${CMAKE_CURRENT_SOURCE_DIR}/linker.x -Wl,--build-id=none -Wl,-z,norelro")
+set (CMAKE_C_LINKER_WRAPPER_FLAG "-Xlinker" " ")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)

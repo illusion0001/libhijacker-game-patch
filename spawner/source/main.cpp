@@ -1,8 +1,10 @@
 #include "backtrace.hpp"
 #include "dbg.hpp"
+#include "dbg/dbg.hpp"
 #include "elf/elf.hpp"
 #include "kernel.hpp"
 #include "hijacker.hpp"
+#include "kernel/kernel.hpp"
 #include "util.hpp"
 #include <unistd.h>
 
@@ -35,7 +37,6 @@ class FileDescriptor {
 
 	void close() {
 		if (fd != -1) {
-			__builtin_printf("closing socket %d\n", fd);
 			::close(fd);
 			fd = -1;
 		}
@@ -194,6 +195,13 @@ int main() {
 	initStdout();
 	//clearFramePointer();
 	puts("main entered");
+
+	auto processes = dbg::getProcesses();
+	if (processes.length() == 0) {
+		puts("This kernel version is not yet supported :(");
+		return -1;
+	}
+
 	auto spawner = Spawner::getSpawner("SceRedisServer");
 	if (spawner == nullptr) {
 		puts("failed to get spawner for SceRedisServer");

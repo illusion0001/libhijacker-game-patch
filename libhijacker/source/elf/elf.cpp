@@ -255,34 +255,32 @@ bool Elf::parseDynamicTable() {
 
 	if (strtab == nullptr) [[unlikely]] {
 		puts("strtab not found");
-		return false;
 	}
 
-	if (strtabLength == 0) [[unlikely]] {
-		puts("strtab size not found");
+	if (strtabLength == 0 && strtab != nullptr) [[unlikely]] {
+		puts("strtab size not found but strtab exists");
 		return false;
 	}
 
 	if (symtabLength == 0) [[unlikely]] {
 		puts("symtab size not found");
-		return false;
 	}
 
 	if (symtab == nullptr) [[unlikely]] {
 		puts("symtab not found");
-		return false;
 	}
 
 	if (relatbl == nullptr) [[unlikely]] {
-		// should this be allowed?
 		puts("rela table not found");
-		return false;
 	}
 
 	if (plt == nullptr) [[unlikely]] {
-		// should this be allowed?
 		puts("plt table not found");
-		return false;
+	}
+
+	if (symtab == nullptr || strtab == nullptr) [[unlikely]] {
+		// don't need to proceed
+		return true;
 	}
 
 	List<String> names{};
@@ -759,6 +757,7 @@ bool Elf::launch() {
 	if (!processPltRelocations()) [[unlikely]] {
 		return false;
 	}
+
 	uintptr_t args = setupKernelRW();
 	if (args == 0) [[unlikely]] {
 		return false;
@@ -771,7 +770,6 @@ bool Elf::launch() {
 
 	puts("starting");
 
-	// TODO release the buffer from memory
 	return start(args);
 }
 
@@ -792,6 +790,9 @@ bool Elf::start(uintptr_t args) {
 }
 
 uintptr_t Elf::getSymbolAddress(const Elf64_Rela *__restrict rel) const {
+	if (symtab == nullptr || strtab == nullptr) [[unlikely]] {
+		return true;
+	}
 	const Elf64_Sym *__restrict sym = symtab + ELF64_R_SYM(rel->r_info);
 	if (sym->st_value != 0) {
 		// the symbol exists in our elf
@@ -810,6 +811,9 @@ uintptr_t Elf::getSymbolAddress(const Elf64_Rela *__restrict rel) const {
 }
 
 bool Elf::processRelocations() {
+	if (relatbl == nullptr) [[unlikely]] {
+		return true;
+	}
 	uint8_t *const image = data.get() + textOffset;
 	const size_t length = relaLength;
 	for (size_t i = 0; i < length; i++) {
@@ -850,6 +854,9 @@ bool Elf::processRelocations() {
 }
 
 bool Elf::processPltRelocations() {
+	if (plt == nullptr) [[unlikely]] {
+		return true;
+	}
 	uint8_t *const image = data.get() + textOffset;
 	const size_t length = pltLength;
 	for (size_t i = 0; i < length; i++) {

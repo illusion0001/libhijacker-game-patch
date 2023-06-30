@@ -204,6 +204,10 @@ class ProcessInfoIterator {
 		iterator end() const {
 			return pids.end();
 		}
+
+		size_t length() const {
+			return pids.length();
+		}
 };
 
 inline ProcessInfoIterator getProcesses() {

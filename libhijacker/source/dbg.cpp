@@ -82,6 +82,8 @@ int __attribute__((noinline)) mdbg_call(DbgArg1 &arg1, DbgArg2 &arg2, DbgArg3 &a
 		int res = sceKernelDlsym(0x2001, "get_authinfo", (void **) &addr);
 		if (res > -1 && addr) {
 			_mdbg = (p_mdbg_call)(addr + 7);
+		} else {
+			puts("failed to get get_authinfo for mdbg_call");
 		}
 	}
 
@@ -98,8 +100,17 @@ IdArray getAllPids() {
 	UniquePtr<int[]> buf{new int[length]};
 	DbgGetPidsArg arg2{buf.get(), length};
 	DbgArg3 arg3{};
-	mdbg_call(arg1, arg2, arg3);
-	return {buf.get(), arg3.length};
+	int res = mdbg_call(arg1, arg2, arg3);
+	if (arg3.length != 0) {
+		return {buf.get(), arg3.length};
+	}
+	int err = errno;
+	if (res == 0) {
+		res = arg3.err;
+	}
+	printf("dbg::getAllPids failed %d %s\n", res, strerror(res));
+	printf("errno %d %s\n", err, strerror(err));
+	return nullptr;
 }
 
 IdArray getAllTids(int pid) {
