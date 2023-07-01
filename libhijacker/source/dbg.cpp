@@ -19,6 +19,9 @@ extern "C" p_mdbg_call _mdbg = nullptr;
 extern "C" int sceKernelDlsym(int handle, const char* symbol, void** addrp);
 extern "C" int *__error();
 
+static constexpr uintptr_t PID_OFFSET = 0xBC;
+static constexpr uintptr_t UCRED_OFFSET = 0x40;
+
 int __attribute__((naked, noinline)) syscall_mdbg_call(void *arg1, void *arg2, void *arg3) {
 	asm (
 		"mov $573, %rax\n"
@@ -43,9 +46,9 @@ static uintptr_t getCurrentProc() {
 	}
 	*/
 
-	uintptr_t proc = kread<uintptr_t>(kernel_base + OFFSET_KERNEL_DATA_BASE_ALLPROC);
+	uintptr_t proc = kread<uintptr_t>(kernel_base + offsets::allproc());
 	while (proc != 0) {
-		int cid = kread<int>(proc + OFFSET_KERNEL_PROC_P_PID);
+		int cid = kread<int>(proc + PID_OFFSET);
 		if (cid == pid) {
 			return proc;
 		}
@@ -64,13 +67,13 @@ class DbgAuthidSwapper {
 public:
 	DbgAuthidSwapper(uint64_t authid) {
 		uintptr_t proc = getCurrentProc();
-		uintptr_t ucred = kread<uintptr_t>(proc + OFFSET_KERNEL_PROC_P_UCRED);
+		uintptr_t ucred = kread<uintptr_t>(proc + UCRED_OFFSET);
 		id = kread<uint64_t>(ucred + AUTHID_OFFSET);
 		kwrite(ucred + AUTHID_OFFSET, authid);
 	}
 	~DbgAuthidSwapper() {
 		uintptr_t proc = getCurrentProc();
-		uintptr_t ucred = kread<uintptr_t>(proc + OFFSET_KERNEL_PROC_P_UCRED);
+		uintptr_t ucred = kread<uintptr_t>(proc + UCRED_OFFSET);
 		kwrite(ucred + AUTHID_OFFSET, id);
 	}
 };
@@ -91,6 +94,7 @@ int __attribute__((noinline)) mdbg_call(DbgArg1 &arg1, DbgArg2 &arg2, DbgArg3 &a
 		DbgAuthidSwapper swapper{DEBUGGER_AUTHID};
 		return syscall_mdbg_call(&arg1, &arg2, &arg3);
 	}
+	puts("_mdbg is null");
 	return -1;
 }
 
@@ -100,17 +104,8 @@ IdArray getAllPids() {
 	UniquePtr<int[]> buf{new int[length]};
 	DbgGetPidsArg arg2{buf.get(), length};
 	DbgArg3 arg3{};
-	int res = mdbg_call(arg1, arg2, arg3);
-	if (arg3.length != 0) {
-		return {buf.get(), arg3.length};
-	}
-	int err = errno;
-	if (res == 0) {
-		res = arg3.err;
-	}
-	printf("dbg::getAllPids failed %d %s\n", res, strerror(res));
-	printf("errno %d %s\n", err, strerror(err));
-	return nullptr;
+	mdbg_call(arg1, arg2, arg3);
+	return {buf.get(), arg3.length};
 }
 
 IdArray getAllTids(int pid) {
@@ -176,7 +171,6 @@ bool write(int pid, uintptr_t dst, const void *src, size_t length) {
 	}
 	return true;
 }
-
 
 
 } // mdbg
