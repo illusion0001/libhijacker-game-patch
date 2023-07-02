@@ -19,7 +19,7 @@ String getKernelString(uintptr_t addr) {
 }
 
 UniquePtr<KProc> getProc(int pid) {
-	for (auto p : getAllProcs()) {
+	for (auto &p : getAllProcs()) {
 		if (pid == p->pid()) {
 			return p.release();
 		}

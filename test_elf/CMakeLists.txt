@@ -65,13 +65,13 @@ set(CMAKE_C_FLAGS "--target=x86_64-freebsd-pc-elf -DPPR -DPS5 -DPS5_FW_VERSION=$
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_POSIX_SOURCE -D_POSIX_C_SOURCE=200112 -D__BSD_VISIBLE=1 -D__XSI_VISIBLE=500")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-builtin -nostdlib -Wall") #  -nostartfiles
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC -fPIE -march=znver2 -Wall -Werror")
-set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -gfull -O3 -pedantic -pedantic-errors")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
+set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -gfull -O0 -pedantic -pedantic-errors")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0")
 
 target_sources(${PROJECT_NAME} PRIVATE ${SrcFiles})
 target_link_directories	(${PROJECT_NAME} PUBLIC ${D_CWD})
 
-target_link_libraries	(${PROJECT_NAME} PUBLIC SceLibcInternal kernel_sys)
+target_link_libraries	(${PROJECT_NAME} PUBLIC ps5sdk_crt SceLibcInternal kernel_sys)
 set(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=lld -v -Xlinker -pie -Xlinker --gc-sections -Xlinker -zmax-page-size=16384 -Xlinker -zcommon-page-size=16384 -Xlinker -T ${CMAKE_CURRENT_SOURCE_DIR}/linker.x -Wl,--build-id=none -Wl,-z,norelro")
 set (CMAKE_C_LINKER_WRAPPER_FLAG "-Xlinker" " ")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)

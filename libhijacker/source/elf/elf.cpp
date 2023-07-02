@@ -23,9 +23,8 @@ namespace {
 extern uint8_t LIBLOADER_SHELLCODE[153];
 extern uint8_t ALLOCATOR_SHELLCODE[729];
 extern uint8_t KERNELRW_SHELLCODE[278];
-};
 
-constexpr size_t PAGE_SIZE = 0x4000;
+};
 
 namespace nid {
 
@@ -288,6 +287,7 @@ bool Elf::parseDynamicTable() {
 	int handleCount = 0;
 	for (const Elf64_Dyn *lib : neededLibs) {
 		StringView filename = strtab + lib->d_un.d_val;
+		printf("strtab 0x%08llx\n", strtab);
 		if (!filename.endswith(".so"_sv)) [[unlikely]] {
 			__builtin_printf("unexpected library 0x%llx %s\n", (unsigned long long)lib->d_un.d_val, filename.c_str());
 			return false;
@@ -570,7 +570,7 @@ bool Elf::processProgramHeaders() {
 					// skip text
 					continue;
 				}
-				if (phdr->p_align != PAGE_SIZE) [[unlikely]] {
+				if ((phdr->p_paddr & 0x3FFF) != 0) [[unlikely]] {
 					printf("phdr starting at paddr 0x%llx is not page aligned\n", phdr->p_paddr);
 					return false;
 				}
@@ -695,8 +695,6 @@ uintptr_t Elf::setupKernelRW() {
 	kwrite<uint32_t>(sock, 0x100);
 	pcb = kread<uintptr_t>(sock + 0x18);
 	auto victim_inp6_outputopts = kread<uintptr_t>(pcb + 0x120);
-	printf("victim_inp6_outputopts: 0x%08llx\n", victim_inp6_outputopts);
-	printf("victim_pktinfo: 0x%08llx\n", victim_inp6_outputopts + 0x10);
 	kwrite(master_inp6_outputopts + 0x10, victim_inp6_outputopts + 0x10);
 	kwrite<uint32_t>(master_inp6_outputopts + 0xc0, 0x13370000);
 	const uintptr_t pipeaddr = kread<uintptr_t>(newtbl.getFile(files[2]));

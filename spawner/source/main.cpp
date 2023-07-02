@@ -26,11 +26,13 @@ extern "C" {
 	ssize_t _read(int, void *, size_t);
 }
 
+/*
 static constexpr int LOGGER_PORT = 9021;
-static constexpr int ELF_PORT = 9027;
+//static constexpr int ELF_PORT = 9027;
 
 static constexpr int STDOUT = 1;
 static constexpr int STDERR = 2;
+*/
 
 class FileDescriptor {
 	int fd = -1;
@@ -81,60 +83,14 @@ class FileDescriptor {
 		void release() { fd = -1; }
 };
 
-bool runElf(Hijacker *hijacker, uint16_t port) {
-	socklen_t addr_len;
-	UniquePtr<uint8_t[]> buf = nullptr;
-	{
-		FileDescriptor sock = socket(AF_INET, SOCK_STREAM, 0);
+extern "C" unsigned int daemon_size;
+extern "C" uint8_t daemon_start[];
 
-		if (!sock) {
-			__builtin_printf("socket: %s", strerror(errno));
-			return false;
-		}
+bool runElf(Hijacker *hijacker) {
 
-		int value = 1;
-		if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &value, sizeof(int)) < 0) {
-			__builtin_printf("setsockopt: %s", strerror(errno));
-			return false;
-		}
-
-		struct sockaddr_in server_addr{0, AF_INET, htons(port), {}, {}};
-
-		if (bind(sock, (struct sockaddr*)&server_addr, sizeof(server_addr)) != 0) {
-			__builtin_printf("bind: %s", strerror(errno));
-			return false;
-		}
-
-		if (listen(sock, 1) != 0) {
-			__builtin_printf("listen: %s", strerror(errno));
-			return false;
-		}
-
-		struct sockaddr client_addr{};
-		addr_len = sizeof(client_addr);
-		__builtin_printf("waiting for connection to load elf on port %d\n", port);
-		FileDescriptor conn = accept(sock, &client_addr, &addr_len);
-		if (!conn) {
-			__builtin_printf("accept: %s", strerror(errno));
-			return false;
-		}
-
-		__builtin_printf("connection accepted, connfd: %d\n", (int)conn);
-
-		ssize_t size = 0;
-		if (_read(conn, &size, sizeof(size)) == -1) {
-			__builtin_printf("read size: %s", strerror(errno));
-			return false;
-		}
-
-		__builtin_printf("elf size: %lld\n", (long long)size);
-
-		buf = new uint8_t[size];
-
-		if (!conn.read(buf.get(), size)) {
-			return false;
-		}
-	}
+	// we need a writeable copy
+	UniquePtr<uint8_t[]> buf = new uint8_t[daemon_size];
+	__builtin_memcpy(buf.get(), daemon_start, daemon_size);
 
 	Elf elf{hijacker, buf.release()};
 
@@ -155,6 +111,7 @@ bool runElf(Hijacker *hijacker, uint16_t port) {
 	);
 }
 
+/*
 static bool initStdout() {
 	socklen_t addr_len;
 	{
@@ -190,28 +147,27 @@ static bool initStdout() {
 	}
 	return true;
 }
+*/
 
 int main() {
-	initStdout();
+	//initStdout();
 	//clearFramePointer();
 	puts("main entered");
-
-	auto processes = dbg::getProcesses();
-	if (processes.length() == 0) {
+	if (dbg::getProcesses().length() == 0) {
 		puts("This kernel version is not yet supported :(");
 		return -1;
 	}
 
-	auto spawner = Spawner::getSpawner("SceRedisServer");
-	if (spawner == nullptr) {
-		puts("failed to get spawner for SceRedisServer");
+	auto hijacker = Hijacker::getHijacker("SceRedisServer"_sv);
+	if (hijacker == nullptr) {
+		puts("failed to get hijacker for SceRedisServer");
 		return -1;
 	}
-	puts("jailbreaking original SceRedisServer process");
-	spawner->getHijacker()->jailbreak();
+
+	Spawner spawner{*hijacker};
 
 	puts("spawning new SceRedisServer process");
-	auto redis = spawner->spawn();
+	auto redis = spawner.bootstrap(*hijacker);
 
 	if (redis == nullptr) {
 		puts("failed to spawn new redis server process");
@@ -229,7 +185,7 @@ int main() {
 
 	// listen on a port for now. in the future embed the daemon and load directly
 
-	if (runElf(redis.get(), ELF_PORT)) {
+	if (runElf(redis.get())) {
 		__builtin_printf("process name %s pid %d\n", redis->getProc()->getSelfInfo()->name, redis->getPid());
 	} else {
 		// TODO kill spawned process on error

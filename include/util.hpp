@@ -58,13 +58,22 @@ class UniquePtr {
 			return ptr != nullptr;
 		}
 
-		T *operator*() const {
+		T &operator*() {
 			#ifdef DEBUG
 			if (ptr == nullptr) [[unlikely]] {
 				fatalf("nullptr dereference\n");
 			}
 			#endif
-			return ptr;
+			return *ptr;
+		}
+
+		const T &operator*() const {
+			#ifdef DEBUG
+			if (ptr == nullptr) [[unlikely]] {
+				fatalf("nullptr dereference\n");
+			}
+			#endif
+			return *ptr;
 		}
 
 		T *operator->() const {

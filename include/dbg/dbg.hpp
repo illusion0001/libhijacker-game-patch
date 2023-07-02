@@ -171,23 +171,22 @@ class ProcessInfoIterator {
 
 	class iterator {
 
+		UniquePtr<ProcessInfo> it;
 		const int *ptr;
 
 		public:
-			iterator(const int *ptr) : ptr(ptr) {}
+			iterator(const int *ptr) : it(new ProcessInfo{*ptr}), ptr(ptr) {}
 
-			ProcessInfo operator*() {
-				return *ptr;
+			ProcessInfo &operator*() {
+				return *it;
 			}
 
-			iterator operator++(int) {
-				iterator it = ptr;
-				ptr++;
-				return it;
+			const ProcessInfo &operator*() const {
+				return *it;
 			}
 
 			iterator &operator++() {
-				++ptr;
+				it = new ProcessInfo{*++ptr};
 				return *this;
 			}
 
@@ -221,24 +220,23 @@ class ThreadInfoIterator {
 
 	class iterator {
 
+		UniquePtr<ThreadInfo> it;
 		const int *ptr;
 		const int pid;
 
 		public:
-			iterator(const int *ptr, int pid) : ptr(ptr), pid(pid) {}
+			iterator(const int *ptr, int pid) : it(new ThreadInfo{pid, *ptr}), ptr(ptr), pid(pid) {}
 
-			ThreadInfo operator*() {
-				return ThreadInfo{pid, *ptr};
+			ThreadInfo &operator*() {
+				return *it;
 			}
 
-			iterator operator++(int) {
-				iterator it{ptr, pid};
-				ptr++;
-				return it;
+			const ThreadInfo &operator*() const {
+				return *it;
 			}
 
 			iterator &operator++() {
-				++ptr;
+				it = new ThreadInfo{pid, *++ptr};
 				return *this;
 			}
 

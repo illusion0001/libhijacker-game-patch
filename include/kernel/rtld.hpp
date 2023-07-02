@@ -60,8 +60,7 @@ class SharedLibSection : public KernelObject<SharedLibSection, 0x18> {
 
 		SectionType type() const {
 			if (_type == SectionType::INVALID) {
-				KPointer<SectionType> ptr{get<uintptr_t, 0>() + 8};
-				_type = *ptr;
+				_type = kread<SectionType>(get<uintptr_t, 0>() + 8);
 			}
 			return _type;
 		}
@@ -226,20 +225,24 @@ class SharedLib : public KernelObject<SharedLib, 0x200> {
 
 class SharedLibIterable {
 
+	UniquePtr<SharedLib> it;
 	uintptr_t addr;
 	const int pid;
 
 	public:
-		SharedLibIterable(decltype(nullptr)) : addr(), pid() {}
-		SharedLibIterable(uintptr_t addr, int pid) : addr(addr), pid(pid) {}
+		SharedLibIterable(decltype(nullptr)) : it{nullptr}, addr(), pid() {}
+		SharedLibIterable(uintptr_t addr, int pid) : it{new SharedLib{addr, pid}}, addr(addr), pid(pid) {}
 		bool operator!=(decltype(nullptr)) const { return addr != 0; }
-		UniquePtr<SharedLib> operator*() {
-			return new SharedLib{addr, pid};
+		UniquePtr<SharedLib> &operator*() {
+			return it;
 		}
 		SharedLibIterable &operator++() {
 			uintptr_t ptr = 0;
 			kernel_copyout(addr, &ptr, sizeof(ptr));
 			addr = ptr;
+			if (addr != 0) [[likely]] {
+				it = new SharedLib{addr, pid};
+			}
 			return *this;
 		}
 };
@@ -281,18 +284,18 @@ class SharedObject : KernelObject<SharedObject, 0x188> {
 		}
 
 		UniquePtr<SharedLib> getLib(int handle) {
-			for (auto lib : getLibs()) {
+			for (auto &lib : getLibs()) {
 				if (lib->handle() == handle) {
-					return lib;
+					return lib.release();
 				}
 			}
 			return nullptr;
 		}
 
 		UniquePtr<SharedLib> getLib(const StringView &name) const {
-			for (auto lib : getLibs()) {
+			for (auto &lib : getLibs()) {
 				if (lib->getPath().endswith(name)) {
-					return lib;
+					return lib.release();
 				}
 			}
 			return nullptr;

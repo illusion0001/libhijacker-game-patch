@@ -134,22 +134,23 @@ class KernelObject {
 template<typename T>
 class KPointer {
 
+	UniquePtr<T> ptr;
+
 	protected:
 		const uintptr_t addr;
 
 	public:
-		KPointer(decltype(nullptr)) : addr(0) {}
-		KPointer(uintptr_t addr) : addr(addr) {}
-		T operator*() const {
-			T t;
-			kernel_copyout(addr, &t, sizeof(T));
-			return t;
+		KPointer(decltype(nullptr)) : ptr(nullptr), addr(0) {}
+		KPointer(uintptr_t addr) : ptr(new T(addr)), addr(addr) {}
+		const T &operator*() const {
+			return *ptr;
 		}
-
+		T &operator*() {
+			return *ptr;
+		}
 		explicit operator bool() const {
 			return addr;
 		}
-
 		bool operator==(const KPointer<T> &rhs) const { return addr == rhs.addr; }
 };
 
@@ -161,17 +162,19 @@ class KIterable {
 
 	friend struct KIterator<T>;
 
+	UniquePtr<T> it;
+
 	protected:
 
 		uintptr_t addr;
 
-		KIterable(decltype(nullptr)) : addr() {}
+		KIterable(decltype(nullptr)) : it(nullptr), addr() {}
 
 	public:
-		KIterable(uintptr_t addr) : addr(addr) {}
+		KIterable(uintptr_t addr) : it(new T(addr)), addr(addr){}
 
-		UniquePtr<T> operator*() {
-			return new T{addr};
+		UniquePtr<T> &operator*() {
+			return it;
 		}
 
 		bool operator==(decltype(nullptr)) const { return addr == 0; }
@@ -186,6 +189,7 @@ class KIterable {
 			uintptr_t ptr = 0;
 			kernel_copyout(addr, &ptr, sizeof(ptr));
 			addr = ptr;
+			it = new T(addr);
 			return *this;
 		}
 

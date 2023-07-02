@@ -1,11 +1,10 @@
 #include "dbg/dbg.hpp"
 #include "hijacker.hpp"
+#include "hijacker/hijacker.hpp"
+#include "util.hpp"
 #include <sys/_stdint.h>
-
-extern "C" {
-	#include <stdio.h>
-	int usleep(unsigned int);
-}
+#include <stdio.h>
+#include <unistd.h>
 
 // this always seems to be the case
 static constexpr uintptr_t ENTRYPOINT_OFFSET = 0x70;
@@ -45,8 +44,6 @@ namespace {
 
 namespace nid {
 
-static inline constexpr Nid sceKernelDlsym{"LwG8g3niqwA"};
-static inline constexpr Nid _nanosleep{"NhpspxdjEKU"};
 static inline constexpr Nid sceSystemServiceGetAppStatus{"t5ShV0jWEFE"};
 static inline constexpr Nid sceSystemServiceAddLocalProcess{"0cl8SuwosPQ"};
 static inline constexpr Nid socketpair{"MZb0GKT3mo8"};
@@ -77,23 +74,11 @@ struct Args {
 	}
 };
 
-Spawner::Spawner(Hijacker *ptr) :
-		pids(dbg::getAllPids()), state(), hijacker(ptr),
-		entry(), dlsym(), nanosleepOffset(), argbuf(), pid(ptr->getPid()) {
-	argbuf = hijacker->dataAllocator.allocate(sizeof(Args));
-	state = {pid, argbuf};
-	entry = hijacker->textAllocator.allocate(sizeof(SHELLCODE));
-	hijacker->write(entry, SHELLCODE);
-	dlsym = hijacker->getLibKernelFunctionAddress(nid::sceKernelDlsym);
-	uintptr_t addr = hijacker->getLibKernelFunctionAddress(nid::_nanosleep);
-	nanosleepOffset = addr - hijacker->getLibKernelBase();
-}
+static int32_t getResult(const Hijacker &hijacker, ProcessPointer<int32_t> &state, dbg::IdArray &pids, int pid) {
 
-int32_t Spawner::getResult() const {
+	// we are done when a new process has spawned or the hijacked process has died
 
-	// we are state when a new process has spawned or the hijacked process has died
-
-	auto frame = hijacker->getTrapFrame();
+	auto frame = hijacker.getTrapFrame();
 	if (frame == nullptr) {
 		return -2;
 	}
@@ -109,62 +94,18 @@ int32_t Spawner::getResult() const {
 }
 
 UniquePtr<Hijacker> Spawner::spawn() {
-	int currentId = pids[0];
-	int id = -1;
 	LoopBuilder loop = SLEEP_LOOP;
-	{
-		Args args{*hijacker.get()};
-		dbg::write(pid, argbuf, &args, sizeof(args));
-		ScopedSuspender suspender{hijacker.get()};
-		auto frame = hijacker->getTrapFrame();
-		if (frame == nullptr) {
-			return nullptr;
-		}
 
-		UniquePtr<TrapFrame> backup{new TrapFrame(*frame.get())};
-
-		frame->setRdi(argbuf)
-			.setRip(entry)
-			.setRsp(frame->getRsp() - 0x100) // some extra stack space just incase
-			.flush();
-
-		// wait for the new process to spawn
-		hijacker->resume();
-		int32_t state = 0;
-		do {
-			state = getResult();
-		} while (state == 0);
-
-		if (state != 1) [[unlikely]] {
-			if (state == -2) {
-				// process died
-				return nullptr;
-			}
-			ProcessPointer<Args::Result> pres{pid, argbuf};
-			Args::Result res = *pres;
-			if (res.state == -1) {
-				printf("spawn failed err: %s\n", strerror(res.err));
-			} else if (res.state > 1) {
-				printf("spawn failed %lld\n", res.state);
-			} else {
-				printf("spawn failed state: %llx err: 0x%llx\n", (unsigned long long) res.state, (unsigned long long) res.err);
-			}
-			return nullptr;
-		}
-
-		hijacker->suspend();
-		hijacker->getTrapFrame()->setFrame(backup.get())
-			.flush();
-	}
+	const int lastPid = pids[0];
 
 	// this should never miss because the pid lock is currently
 	// held by the kernel when creating the new process
 	// if spawning fails it's because the redis server can only do this once
 	// we'll end up obtaining the previously spawned one
 	// may be a good idea to rename the process
-	id = dbg::getAllPids()[0];
+	int id = dbg::getAllPids()[0];
 
-	if (id == currentId) {
+	if (id == lastPid) {
 		// catastrophic failure
 		return nullptr;
 	}
@@ -173,7 +114,7 @@ UniquePtr<Hijacker> Spawner::spawn() {
 
 	// this loop forces enough time to be given for it to load far enough
 	// otherwise we go too fast and get stuck
-	StringView name = "eboot.bin";
+	StringView name = "eboot.bin"; // what if it's not eboot.bin?
 	puts("waiting for name to be set");
 	while (info->name() != name && info->name()) {
 		usleep(1); // some delay is needed or it will never proceed
@@ -201,6 +142,61 @@ UniquePtr<Hijacker> Spawner::spawn() {
 	spawned->pSavedRsp = rsp;
 
 	return spawned;
+}
+
+UniquePtr<Hijacker> Spawner::bootstrap(Hijacker &hijacker) {
+
+	uintptr_t entry = hijacker.textAllocator.allocate(sizeof(SHELLCODE));
+	hijacker.write(entry, SHELLCODE);
+
+	uintptr_t argbuf = hijacker.dataAllocator.allocate(sizeof(Args));
+	Args args{hijacker};
+	dbg::write(pid, argbuf, &args, sizeof(args));
+
+	ProcessPointer<int32_t> pstate = {pid, argbuf};
+
+	ScopedSuspender suspender{&hijacker};
+	auto frame = hijacker.getTrapFrame();
+	if (frame == nullptr) {
+		return nullptr;
+	}
+
+	UniquePtr<TrapFrame> backup{new TrapFrame(*frame.get())};
+
+	frame->setRdi(argbuf)
+		.setRip(entry)
+		.setRsp(frame->getRsp() - 0x100) // some extra stack space just incase
+		.flush();
+
+	// wait for the new process to spawn
+	hijacker.resume();
+	int32_t state = 0;
+	do {
+		state = getResult(hijacker, pstate, pids, pid);
+	} while (state == 0);
+
+	if (state != 1) [[unlikely]] {
+		if (state == -2) {
+			// process died
+			return nullptr;
+		}
+		ProcessPointer<Args::Result> pres{pid, argbuf};
+		Args::Result res = *pres;
+		if (res.state == -1) {
+			printf("spawn failed err: %s\n", strerror(res.err));
+		} else if (res.state > 1) {
+			printf("spawn failed %lld\n", res.state);
+		} else {
+			printf("spawn failed state: %llx err: 0x%llx\n", (unsigned long long) res.state, (unsigned long long) res.err);
+		}
+		return nullptr;
+	}
+
+	hijacker.suspend();
+	hijacker.getTrapFrame()->setFrame(backup.get())
+		.flush();
+
+	return spawn();
 }
 
 

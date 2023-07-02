@@ -10,7 +10,7 @@ extern "C" {
 
 UniquePtr<Hijacker> Hijacker::getHijacker(const StringView &processName) {
 	UniquePtr<SharedObject> obj = nullptr;
-	for (dbg::ProcessInfo info : dbg::getProcesses()) {
+	for (dbg::ProcessInfo &info : dbg::getProcesses()) {
 		if (info.name() == processName) {
 			auto p = ::getProc(info.pid());
 			obj = p->getSharedObject();
@@ -19,9 +19,9 @@ UniquePtr<Hijacker> Hijacker::getHijacker(const StringView &processName) {
 	return obj ? new Hijacker(obj.release()) : nullptr;
 }
 
-int Hijacker::getMainThreadId() {
+int Hijacker::getMainThreadId() const {
 	if (mainThreadId == -1) {
-		for (dbg::ThreadInfo info : dbg::getThreads(obj->pid)) {
+		for (dbg::ThreadInfo &info : dbg::getThreads(obj->pid)) {
 			StringView name = info.name();
 			if (name.contains("Main") || name.contains(".")) {
 				// this works for most of them
@@ -29,13 +29,19 @@ int Hijacker::getMainThreadId() {
 				break;
 			}
 		}
+		if (mainThreadId == -1) [[unlikely]] {
+			puts("main thread id not found");
+		}
 	}
 	return mainThreadId;
 }
 
-UniquePtr<TrapFrame> Hijacker::getTrapFrame() {
+UniquePtr<TrapFrame> Hijacker::getTrapFrame() const {
 	// do not cache this
 	int tid = getMainThreadId();
+	if (tid == -1) [[unlikely]] {
+		return nullptr;
+	}
 	auto p = ::getProc(obj->pid);
 	if (p == nullptr) {
 		return nullptr;

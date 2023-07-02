@@ -23,7 +23,7 @@ class Hijacker {
 	protected:
 		uintptr_t pSavedRsp = 0;
 	private:
-		int mainThreadId = -1;
+		mutable int mainThreadId = -1;
 		bool isMainThreadRunning = true;
 
 		Hijacker(SharedObject *obj) : obj(obj), textAllocator(nullptr), dataAllocator(nullptr), libkernel(nullptr) {
@@ -41,12 +41,12 @@ class Hijacker {
 			return meta ? meta->getMetaData() : nullptr;
 		}
 
-		uintptr_t getLibKernelBase() {
+		uintptr_t getLibKernelBase() const {
 			RtldMeta *meta = getLibKernelMetaData();
 			return meta ? meta->imageBase : 0;
 		}
 
-		int getMainThreadId();
+		int getMainThreadId() const;
 
 	public:
 		static UniquePtr<Hijacker> getHijacker(const StringView &processName);
@@ -108,7 +108,7 @@ class Hijacker {
 			return obj->getLibs();
 		}
 
-		UniquePtr<TrapFrame> getTrapFrame();
+		UniquePtr<TrapFrame> getTrapFrame() const;
 		void jailbreak() const;
 		uintptr_t getFunctionAddress(SharedLib *lib, const Nid &fname) const;
 		uintptr_t getLibKernelFunctionAddress(const Nid &fname) const {

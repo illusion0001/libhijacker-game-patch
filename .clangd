@@ -1,6 +1,0 @@
-CompileFlags:
-  Remove:
-  - '-std=gnu++20'
-  Add:
-  #- '-std=c++20'
-  - '-DPS5_FW_VERSION=0x450'

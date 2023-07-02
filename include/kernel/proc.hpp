@@ -123,7 +123,7 @@ class KProc : public KernelObject<KProc, 0xc90> {
 		}
 
 		UniquePtr<KThread> getThread(int tid) const {
-			for (auto td : getThreads()) {
+			for (auto &td : getThreads()) {
 				if (tid == td->tid()) {
 					return td.release();
 				}
@@ -144,7 +144,7 @@ class KProc : public KernelObject<KProc, 0xc90> {
 		}
 
 		// no flush required
-		void setName(const String &name, bool reload=false) {
+		void setName(const StringView &name, bool reload=false) {
 			const size_t length = name.length() < 0x1f ? name.length() : 0x20;
 			kernel_copyin(const_cast<char*>(name.c_str()), address() + 0x59C, length);
 			if (reload) {

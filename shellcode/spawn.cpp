@@ -18,18 +18,13 @@ struct AppStatus {
 	unsigned char pad[28];
 };
 
-typedef int (*dlsym_t)(int handle, const char *name, void **fun);
-typedef int (*sceSystemServiceAddLocalProcess_t)(unsigned int param_1, const char * path, const char * * argv, LocalProcessArgs * param_4);
-typedef int (*socketpair_t)(int domain, int type, int protocol, int *fds);
-typedef int (*usleep_t)(int usec);
-
 struct Args {
 	struct Result {
 		int32_t state;
 		int32_t err;
 	} result;
 	int (*sceSystemServiceGetAppStatus)(AppStatus *status);
-	int (*sceSystemServiceAddLocalProcess)(unsigned int param_1, const char * path, const char * * argv, LocalProcessArgs * param_4);
+	int (*sceSystemServiceAddLocalProcess)(unsigned int id, const char *path, const char **argv, LocalProcessArgs *args);
 	int (*socketpair)(int domain, int type, int protocol, int *fds);
 	int (*usleep)(int usec);
 	int *(*errno)();
@@ -50,7 +45,7 @@ void respawn(Args *args) {
 
 	// NOTE: volatile to prevent the use of data
 	volatile LocalProcessArgs param;
-	// {{0, 0}, 1, -1, {0, 0, 0, 0}};
+	// {{0, 0}, 1, -1, {0, 0}};
 	param.fds[0] = 0;
 	param.fds[1] = 0;
 	param.a = 1;

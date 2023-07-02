@@ -1,8 +1,11 @@
 #pragma once
 
 #include "hijacker.hpp"
+#include "hijacker/hijacker.hpp"
+#include "hijacker/spawner.hpp"
 #include "memory.hpp"
 #include "util.hpp"
+#include <unistd.h>
 
 extern "C" {
 	#include <stdint.h>
@@ -12,26 +15,27 @@ extern "C" {
 
 class Spawner {
 	dbg::IdArray pids;
-	ProcessPointer<int32_t> state;
-	UniquePtr<Hijacker> hijacker;
-	uintptr_t entry;
-	uintptr_t dlsym;
 	uintptr_t nanosleepOffset;
-	uintptr_t argbuf;
 	int pid;
 
-	Spawner(Hijacker *ptr);
-	int32_t getResult() const;
+	static inline constexpr Nid _nanosleep{"NhpspxdjEKU"};
+
+	static uintptr_t getNanosleepOffset(const Hijacker &hijacker) {
+		uintptr_t addr = hijacker.getLibKernelFunctionAddress(_nanosleep);
+		return addr - hijacker.getLibKernelBase();
+	}
+
+	static uintptr_t getNanosleepOffset() {
+		auto hijacker = Hijacker::getHijacker(getpid());
+		if (hijacker == nullptr) [[unlikely]] {
+			return 0;
+		}
+		return getNanosleepOffset(*hijacker);
+	}
 
 	public:
-		~Spawner() { *state = false; }
-		static UniquePtr<Spawner> getSpawner(const StringView &processName) {
-			auto hijacker = Hijacker::getHijacker(processName);
-			return hijacker ? new Spawner(hijacker.release()) : nullptr;
-		}
-		static UniquePtr<Spawner> getSpawner(int pid) {
-			return new Spawner(Hijacker::getHijacker(pid).release());
-		}
-		Hijacker *getHijacker() const { return hijacker.get(); }
+		explicit Spawner() : pids(dbg::getAllPids()), nanosleepOffset(getNanosleepOffset()), pid(getpid()) {}
+		Spawner(const Hijacker &ptr) : pids(dbg::getAllPids()), nanosleepOffset(getNanosleepOffset(ptr)), pid(ptr.getPid()) {}
+		UniquePtr<Hijacker> bootstrap(Hijacker &hijacker);
 		UniquePtr<Hijacker> spawn();
 };

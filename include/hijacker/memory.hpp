@@ -7,9 +7,14 @@ extern "C" {
 #include "dbg.hpp"
 
 template <typename T>
+class ProcessPointer;
+
+template <typename T>
 class ProcessReference {
 	uintptr_t addr;
 	int pid;
+
+	friend class ProcessReference<T>;
 
 	public:
 		ProcessReference() = default;
@@ -35,6 +40,8 @@ class ProcessReference {
 
 template <>
 class ProcessReference<bool> {
+	friend class ProcessReference<bool>;
+
 	uintptr_t addr;
 	int pid;
 
@@ -60,21 +67,21 @@ class ProcessReference<bool> {
 
 template <typename T>
 class ProcessPointer {
-	uintptr_t addr;
-	int pid;
+	ProcessReference<T> ref;
 
 	public:
-		ProcessPointer() : addr(), pid() {}
-		ProcessPointer(int pid, uintptr_t addr) : addr(addr), pid(pid) {}
+		ProcessPointer() : ref{} {}
+		ProcessPointer(int pid, uintptr_t addr) : ref(pid, addr) {}
 		ProcessPointer(const ProcessPointer&) = default;
 		ProcessPointer(ProcessPointer&&) = default;
 		ProcessPointer &operator=(const ProcessPointer&) = default;
 		ProcessPointer &operator=(ProcessPointer&&) = default;
-		ProcessReference<T> operator*() const { return {pid, addr}; }
+		const ProcessReference<T> &operator*() const { return ref; }
+		ProcessReference<T> &operator*() { return ref; }
 		T get() const {
 			T value{};
-			dbg::read(pid, addr, &value, sizeof(T));
+			dbg::read(ref.pid, ref.addr, &value, sizeof(T));
 			return value;
 		}
-		uintptr_t address() const { return addr; }
+		uintptr_t address() const { return ref.addr; }
 };
