@@ -164,6 +164,8 @@ int main() {
 		return -1;
 	}
 
+	hijacker->jailbreak();
+
 	Spawner spawner{*hijacker};
 
 	puts("spawning new SceRedisServer process");
@@ -189,6 +191,9 @@ int main() {
 		__builtin_printf("process name %s pid %d\n", redis->getProc()->getSelfInfo()->name, redis->getPid());
 	} else {
 		// TODO kill spawned process on error
+		if (Hijacker::getHijacker("SceRedisServer"_sv) == nullptr) {
+			puts("SceRedisServer died, restart required");
+		}
 	}
 
 	return 0;

@@ -10,7 +10,7 @@ extern "C" {
 
 UniquePtr<Hijacker> Hijacker::getHijacker(const StringView &processName) {
 	UniquePtr<SharedObject> obj = nullptr;
-	for (dbg::ProcessInfo &info : dbg::getProcesses()) {
+	for (dbg::ProcessInfo info : dbg::getProcesses()) {
 		if (info.name() == processName) {
 			auto p = ::getProc(info.pid());
 			obj = p->getSharedObject();
@@ -21,7 +21,7 @@ UniquePtr<Hijacker> Hijacker::getHijacker(const StringView &processName) {
 
 int Hijacker::getMainThreadId() const {
 	if (mainThreadId == -1) {
-		for (dbg::ThreadInfo &info : dbg::getThreads(obj->pid)) {
+		for (dbg::ThreadInfo info : dbg::getThreads(obj->pid)) {
 			StringView name = info.name();
 			if (name.contains("Main") || name.contains(".")) {
 				// this works for most of them

@@ -161,16 +161,20 @@ class StringView {
 	size_t size;
 
 	public:
-		StringView(decltype(nullptr)) : str(nullptr), size(0) {}
+		constexpr StringView() : str(nullptr), size(0) {}
+		constexpr StringView(decltype(nullptr)) : str(nullptr), size(0) {}
 
-		StringView(const char *str) : str(str), size(__builtin_strlen(str)) {}
+		constexpr StringView(const char *str) : str(str), size(__builtin_strlen(str)) {}
 
 		constexpr StringView(const char *str, unsigned long length) : str(str), size(length) {}
 
-		StringView(const StringView &) = default;
-		StringView &operator=(const StringView &) = default;
-		StringView(StringView &&) = default;
-		StringView &operator=(StringView &&) = default;
+		constexpr StringView(const StringView &) = default;
+		constexpr StringView &operator=(const StringView &) = default;
+		constexpr StringView(StringView &&) = default;
+		constexpr StringView &operator=(StringView &&) = default;
+		constexpr char operator[](size_t i) const {
+			return str[i];
+		}
 
 		explicit operator bool() const {
 			return str;
@@ -219,6 +223,10 @@ class StringView {
 			const size_t sz = view.length();
 			const char *buf = view.c_str();
 			return sz > size ? false : __builtin_memcmp(str, buf, sz) == 0;
+		}
+
+		constexpr int32_t operator<=>(const StringView &rhs) const {
+			return __builtin_strcmp(str, rhs.str);
 		}
 };
 

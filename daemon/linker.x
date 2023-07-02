@@ -64,7 +64,7 @@ SECTIONS {
 
 	. = ALIGN(0x4000); /* move to a new page in memory */
 
-	.eh_frame_hdr : ALIGN(0x10) {
+	.eh_frame_hdr : ALIGN(0x4000) {
 		*(.eh_frame_hdr)
 	} : phdr_eh_frame
 
@@ -114,9 +114,8 @@ SECTIONS {
 
     PROVIDE (__payload_end = .);
 
-	. = ALIGN(0x4000); /* move to a new page in memory */
-
-    .dynamic : {
+	/* this needs to be forced aligned to 0x4000 */
+    .dynamic : ALIGN(0x4000) {
         PROVIDE_HIDDEN (_DYNAMIC = .);
         *(.dynamic);
     } : phdr_dynamic

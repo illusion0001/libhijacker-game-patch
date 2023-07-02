@@ -155,4 +155,9 @@ class Hijacker {
 		uintptr_t getSavedRsp() const {
 			return *getPointer<uintptr_t>(pSavedRsp);
 		}
+
+		void hexdump(uintptr_t addr, size_t size) {
+			auto buf = read(addr, size);
+			::hexdump(buf.get(), size);
+		}
 };

@@ -106,7 +106,6 @@ class SharedLib : public KernelObject<SharedLib, 0x200> {
 		}
 
 		StringView getPath() const {
-			__builtin_printf("SharedLib::getPath 0x%llx\n", (unsigned long long)get<uintptr_t, 8>());
 			if (path.length() == 0) [[unlikely]] {
 				path = getString<8>();
 			}
@@ -225,24 +224,20 @@ class SharedLib : public KernelObject<SharedLib, 0x200> {
 
 class SharedLibIterable {
 
-	UniquePtr<SharedLib> it;
 	uintptr_t addr;
 	const int pid;
 
 	public:
-		SharedLibIterable(decltype(nullptr)) : it{nullptr}, addr(), pid() {}
-		SharedLibIterable(uintptr_t addr, int pid) : it{new SharedLib{addr, pid}}, addr(addr), pid(pid) {}
+		SharedLibIterable(decltype(nullptr)) : addr(), pid() {}
+		SharedLibIterable(uintptr_t addr, int pid) : addr(addr), pid(pid) {}
 		bool operator!=(decltype(nullptr)) const { return addr != 0; }
-		UniquePtr<SharedLib> &operator*() {
-			return it;
+		UniquePtr<SharedLib> operator*() {
+			return new SharedLib{addr, pid};
 		}
 		SharedLibIterable &operator++() {
 			uintptr_t ptr = 0;
 			kernel_copyout(addr, &ptr, sizeof(ptr));
 			addr = ptr;
-			if (addr != 0) [[likely]] {
-				it = new SharedLib{addr, pid};
-			}
 			return *this;
 		}
 };
@@ -284,7 +279,7 @@ class SharedObject : KernelObject<SharedObject, 0x188> {
 		}
 
 		UniquePtr<SharedLib> getLib(int handle) {
-			for (auto &lib : getLibs()) {
+			for (auto lib : getLibs()) {
 				if (lib->handle() == handle) {
 					return lib.release();
 				}
@@ -293,8 +288,12 @@ class SharedObject : KernelObject<SharedObject, 0x188> {
 		}
 
 		UniquePtr<SharedLib> getLib(const StringView &name) const {
-			for (auto &lib : getLibs()) {
-				if (lib->getPath().endswith(name)) {
+			String fullname = name;
+			if (!name.endswith(".sprx"_sv)) {
+				fullname += ".sprx"_sv;
+			}
+			for (auto lib : getLibs()) {
+				if (lib->getPath().endswith(fullname)) {
 					return lib.release();
 				}
 			}

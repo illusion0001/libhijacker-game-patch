@@ -69,6 +69,7 @@ STUB(memset)
 STUB(putchar)
 STUB(memcpy)
 STUB(memcmp)
+STUB(strcmp)
 STUB(socket)
 STUB(bind)
 STUB(listen)
@@ -133,6 +134,7 @@ void _start(struct payload_args *args) {
 	LIBC_LINK(free);
 	LIBC_LINK(memcpy);
 	LIBC_LINK(memcmp);
+	LIBC_LINK(strcmp);
 	LIBC_LINK(printf);
 
 	LIBC_LINK(strstr);

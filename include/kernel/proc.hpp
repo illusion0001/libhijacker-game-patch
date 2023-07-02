@@ -123,7 +123,7 @@ class KProc : public KernelObject<KProc, 0xc90> {
 		}
 
 		UniquePtr<KThread> getThread(int tid) const {
-			for (auto &td : getThreads()) {
+			for (auto td : getThreads()) {
 				if (tid == td->tid()) {
 					return td.release();
 				}

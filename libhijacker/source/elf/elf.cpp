@@ -20,7 +20,7 @@ extern "C" {
 
 namespace {
 
-extern uint8_t LIBLOADER_SHELLCODE[153];
+extern uint8_t LIBLOADER_SHELLCODE[282];
 extern uint8_t ALLOCATOR_SHELLCODE[729];
 extern uint8_t KERNELRW_SHELLCODE[278];
 
@@ -28,6 +28,7 @@ extern uint8_t KERNELRW_SHELLCODE[278];
 
 namespace nid {
 
+static inline constexpr Nid sceSysmoduleLoadModuleInternal{"39iV5E1HoCk"};
 static inline constexpr Nid sceSysmoduleLoadModuleByNameInternal{"CU8m+Qs+HN4"};
 static inline constexpr Nid usleep{"QcteRwbsnV0"};
 static inline constexpr Nid errno{"9BcDykPmo1I"};
@@ -44,6 +45,9 @@ static inline constexpr Nid setsockopt{"fFxGkxF2bVo"};
 struct NidKeyValue {
 	Nid nid; 		// packed to fit in 12 bytes
 	uint32_t index; // index into symtab (which is a 32 bit integer)
+	constexpr int_fast32_t operator<=>(const Nid &rhs) const {
+		return nid <=> rhs;
+	}
 }; // total size is 16 bytes to allow a memcpy size of a multiple of 16
 
 class NidMap {
@@ -172,6 +176,161 @@ struct SymbolLookupTable {
 		}
 };
 
+static constexpr uint32_t hash(const StringView &str) {
+	uint32_t hash = 0;
+	for (size_t i = 0; i < str.length(); i++) {
+		hash = 31 * hash + (str[i] & 0xff);
+	}
+	return hash;
+}
+
+struct HashedStringView {
+	StringView name;
+	uint32_t hash;
+
+	constexpr HashedStringView() : name(), hash() {}
+	explicit constexpr HashedStringView(const StringView &name) : name(name), hash(::hash(name)) {}
+
+	constexpr int32_t operator<=>(const HashedStringView &rhs) const {
+		const int32_t v = hash - rhs.hash;
+		return v != 0 ? v : name <=> rhs.name;
+	}
+
+	const char *c_str() const { return name.c_str(); }
+};
+
+struct SysmoduleMapEntry {
+	HashedStringView name;
+	uint32_t id;
+
+	constexpr SysmoduleMapEntry() = default;
+	constexpr SysmoduleMapEntry(const StringView &name, uint32_t id) : name(name), id(id) {}
+
+	constexpr int32_t operator<=>(const SysmoduleMapEntry &rhs) const {
+		const int32_t v = name.hash - rhs.name.hash;
+		return v != 0 ? v : name <=> rhs.name;
+	}
+	constexpr int32_t operator<=>(const HashedStringView &rhs) const {
+		return name <=> rhs;
+	}
+};
+
+template <size_t N>
+struct SysmoduleMapEntryArray {
+	SysmoduleMapEntry entries[N];
+
+	constexpr SysmoduleMapEntryArray(const SysmoduleMapEntry (&array)[N]) {
+		__builtin_memcpy(entries, array, sizeof(entries));
+	}
+
+	constexpr SysmoduleMapEntry &operator[](size_t i) {
+		return entries[i];
+	}
+
+	constexpr const SysmoduleMapEntry &operator[](size_t i) const {
+		return entries[i];
+	}
+};
+
+constexpr void swap(SysmoduleMapEntry& lhs, SysmoduleMapEntry& rhs) {
+	SysmoduleMapEntry tmp = rhs;
+	rhs = lhs;
+	lhs = tmp;
+}
+
+template <size_t N>
+constexpr void doSort(SysmoduleMapEntryArray<N> &array, size_t left, size_t right) {
+	if (left < right) {
+		size_t m = left;
+
+		for (size_t i = left + 1; i<right; i++) {
+			if (array[i]<array[left]) {
+				swap(array[++m], array[i]);
+			}
+		}
+
+		swap(array[left], array[m]);
+
+		doSort(array, left, m);
+		doSort(array, m + 1, right);
+	}
+}
+
+template <size_t N>
+constexpr SysmoduleMapEntryArray<N> sort(const SysmoduleMapEntry (&array)[N]) {
+	SysmoduleMapEntryArray<N> sorted = array;
+	doSort(sorted, 0, N);
+	return sorted;
+}
+
+template <size_t N>
+class SysmoduleHashMap {
+	SysmoduleMapEntryArray<N> entries;
+
+	constexpr int_fast32_t getIndex(const HashedStringView &key) const {
+		int_fast32_t lo = 0;
+		int_fast32_t hi = N - 1;
+
+		while (lo <= hi) {
+			const auto m = (lo + hi) >> 1;
+			const auto n = entries[m] <=> key;
+
+			if (n == 0) [[unlikely]] {
+				return m;
+			}
+
+			if (n < 0)
+				lo = m + 1;
+			else
+				hi = m - 1;
+		}
+		return -(lo + 1);
+	}
+
+	public:
+		constexpr SysmoduleHashMap(const SysmoduleMapEntry (&array)[N]) : entries{sort(array)} {}
+		constexpr uint32_t operator[](const StringView &key) const {
+			HashedStringView hashed{key};
+			const int_fast32_t index = getIndex(hashed);
+			return index >= 0 ? entries[index].id : 0;
+		}
+};
+
+// FIXME! this is creating a ton of relocations that cause a crash during use
+static constexpr const SysmoduleHashMap SYSMODULES{{
+	{"libSceAudioOut"_sv, 0x80000001},
+	{"libSceAudioIn"_sv, 0x80000002},
+	{"libSceAvcap"_sv, 0x80000003},
+	{"libSceSysCore"_sv, 0x80000004},
+	{"libSceCdlgUtilServer"_sv, 0x80000007},
+	{"libSceKeyboard"_sv, 0x80000008},
+	{"libSceNetCtl"_sv, 0x80000009},
+	{"libSceHttp"_sv, 0x8000000A},
+	{"libSceSsl"_sv, 0x8000000B},
+	{"libSceNpCommon"_sv, 0x8000000C},
+	{"libSceNpManager"_sv, 0x8000000D},
+	{"libSceNpWebApi"_sv, 0x8000000E},
+	{"libSceSaveData"_sv, 0x8000000F},
+	{"libSceSystemService"_sv, 0x80000010},
+	{"libSceUserService"_sv, 0x80000011},
+	{"libSceVisionManager"_sv, 0x80000012},
+	{"libSceAc3Enc"_sv, 0x80000013},
+	{"libSceAppInstUtil"_sv, 0x80000014},
+	{"libSceVdecCore"_sv, 0x80000015},
+	{"libSceVencCore"_sv, 0x80000016},
+	{"libSceHidControl"_sv, 0x80000017},
+	{"libSceCommonDialog"_sv, 0x80000018},
+	{"libScePerf"_sv, 0x80000019},
+	{"libSceCamera"_sv, 0x8000001A},
+	{"libSceNet"_sv, 0x8000001C},
+	{"libSceIpmi"_sv, 0x8000001D},
+	{"libSceVideoOut"_sv, 0x80000022},
+	{"libSceBgft"_sv, 0x8000002A},
+}};
+
+static_assert(SYSMODULES["libSceSystemService"_sv] != 0, "libSceSystemService not found");
+static_assert(SYSMODULES["libDummy"_sv] == 0, "libDummy found?");
+
 Elf::Elf(Hijacker *hijacker, uint8_t *data) :
 		Elf64_Ehdr(*(Elf64_Ehdr *)data), phdrs((Elf64_Phdr*)(data + e_phoff)),
 		strtab(), strtabLength(), symtab(), symtabLength(), relatbl(), relaLength(),
@@ -287,7 +446,6 @@ bool Elf::parseDynamicTable() {
 	int handleCount = 0;
 	for (const Elf64_Dyn *lib : neededLibs) {
 		StringView filename = strtab + lib->d_un.d_val;
-		printf("strtab 0x%08llx\n", strtab);
 		if (!filename.endswith(".so"_sv)) [[unlikely]] {
 			__builtin_printf("unexpected library 0x%llx %s\n", (unsigned long long)lib->d_un.d_val, filename.c_str());
 			return false;
@@ -305,40 +463,32 @@ bool Elf::parseDynamicTable() {
 			preLoadedHandles[handleCount++] = 0x11;
 			continue;
 		}
-		if (filename == "libSceNet.so"_sv) {
-			preLoadedHandles[handleCount++] = 0x13;
-			continue;
-		}
-		if (filename == "libSceIpmi.so"_sv) {
-			preLoadedHandles[handleCount++] = 0x6024;
-			continue;
-		}
-		if (filename == "libSceRegMgr.so"_sv) {
-			preLoadedHandles[handleCount++] = 0x2025;
-			continue;
-		}
-		if (filename == "libSceSystemService.so"_sv) {
-			preLoadedHandles[handleCount++] = 0x26;
-			continue;
-		}
 
-		names.emplace_front(StringView{filename.c_str(), filename.length() - 2});
+		names.emplace_front(StringView{filename.c_str(), filename.length() - 3});
 	}
 
 	libs = {handleCount + names.length()};
 
 	if (names.length() > 0) {
+		puts("loading libraries");
 		if (!loadLibraries(*hijacker, names, libs, handleCount)) {
 			__builtin_printf("failed to load libraries\n");
 			return false;
 		}
 	}
 
+	puts("filling symbol tables");
 	for (auto i = 0; i < handleCount; i++) {
-		SymbolLookupTable &lib = libs[i] = hijacker->getLib(preLoadedHandles[i]).release();
+		auto ptr = hijacker->getLib(preLoadedHandles[i]);
+		if (ptr == nullptr) {
+			printf("failed to get lib for 0x%x\n", (unsigned int) preLoadedHandles[i]);
+			return false;
+		}
+		SymbolLookupTable &lib = libs[i] = ptr.release();
 		lib.fillTable();
 	}
 
+	puts("finished process dynamic table");
 	return true;
 }
 
@@ -347,6 +497,7 @@ struct LibLoaderArgs {
 		int32_t state;
 		int32_t err;
 	} result;
+	uintptr_t sceSysmoduleLoadModuleInternal;
 	uintptr_t sceSysmoduleLoadModuleByNameInternal;
 	uintptr_t usleep;
 	uintptr_t strtab;
@@ -354,9 +505,11 @@ struct LibLoaderArgs {
 	int numOffsets;
 
 	LibLoaderArgs(Hijacker& hijacker, const String &fulltbl, int nlibs) : result({0, 0}) {
-		UniquePtr<SharedLib> libSceSystemService = hijacker.getLib(0x11);
+		UniquePtr<SharedLib> libSceSysmodule = hijacker.getLib(0x11);
+		sceSysmoduleLoadModuleInternal =
+			hijacker.getFunctionAddress(libSceSysmodule.get(), nid::sceSysmoduleLoadModuleInternal);
 		sceSysmoduleLoadModuleByNameInternal =
-			hijacker.getFunctionAddress(libSceSystemService.get(), nid::sceSysmoduleLoadModuleByNameInternal);
+			hijacker.getFunctionAddress(libSceSysmodule.get(), nid::sceSysmoduleLoadModuleByNameInternal);
 		usleep = hijacker.getLibKernelFunctionAddress(nid::usleep);
 		strtab = hijacker.getDataAllocator().allocate(fulltbl.length());
 		offsets = hijacker.getDataAllocator().allocate(sizeof(uintptr_t) * nlibs);
@@ -377,11 +530,22 @@ bool loadLibraries(Hijacker &hijacker, const List<String> &names, Array<SymbolLo
 		}
 		fulltbl.reserve(tblSize);
 		for (const String &path : names) {
-			positions[i++] = fulltbl.length();
-			fulltbl += path;
-			fulltbl += '\0';
+			const StringView name{path};
+			printf("looking up %s\n", name.c_str());
+			auto id = SYSMODULES[name];
+			if (id != 0) {
+				return true;
+				//printf("id 0x%x found for %s\n", id, path.c_str());
+				//positions[i++] = id;
+			} else {
+				return false;
+				positions[i++] = fulltbl.length();
+				fulltbl += path;
+				fulltbl += '\0';
+			}
 		}
 	}
+
 	LibLoaderArgs args{hijacker, fulltbl, (int) nlibs};
 	auto argbuf = hijacker.getDataAllocator().allocate(sizeof(args));
 	hijacker.write(argbuf, &args, sizeof(args));
@@ -408,14 +572,29 @@ bool loadLibraries(Hijacker &hijacker, const List<String> &names, Array<SymbolLo
 		} while (state.state == 0);
 
 		if (state.state != 1) [[unlikely]] {
-			printf("failed to load lib %s 0x%08llx\n", names[state.err].c_str(), positions[state.err]);;
+			printf("state %d err %d\n", state.state, state.err);
+			if (state.err > 0 && (size_t)state.err < nlibs) {
+				printf("failed to load lib %s 0x%08llx\n", names[state.err].c_str(), positions[state.err]);
+			}
 			return false;
 		}
 		hijacker.read(args.offsets, positions.get(), positionsSize);
 	}
 
 	for (size_t i = 0; i < nlibs; i++) {
-		SymbolLookupTable &lib = libs[i + reserved] = hijacker.getLib(positions[i]).release();
+		intptr_t handle = positions[i];
+		UniquePtr<SharedLib> ptr = nullptr;
+		if (handle == 0) {
+			// sceSysmoduleLoadModuleInternal was used
+			ptr = hijacker.getLib(names[i]);
+		} else {
+			ptr = hijacker.getLib(handle).release();
+		}
+		if (ptr == nullptr) {
+			printf("failed to get lib handle for %s\n", names[i].c_str());
+			return false;
+		}
+		SymbolLookupTable &lib = libs[i + reserved] = ptr.release();
 		lib.fillTable();
 	}
 
@@ -508,7 +687,7 @@ static uintptr_t runAllocatorShellcode(Hijacker *hijacker, Array<AllocationInfo>
 		do {
 			usleep(10);
 			if (!isAlive(pid)) {
-				printf("process died during allocation\n");
+				printf("spawned process died during allocation\n");
 				return 0;
 			}
 			hijacker->read(argbuf, &args, sizeof(args));
@@ -531,6 +710,7 @@ static uintptr_t runAllocatorShellcode(Hijacker *hijacker, Array<AllocationInfo>
 }
 
 bool Elf::processProgramHeaders() {
+
 	uintptr_t entry = hijacker->getTextAllocator().allocate(sizeof(ALLOCATOR_SHELLCODE));
 	hijacker->write(entry, ALLOCATOR_SHELLCODE);
 
@@ -569,6 +749,9 @@ bool Elf::processProgramHeaders() {
 				if (phdr->p_flags & PF_X) {
 					// skip text
 					continue;
+				}
+				if (phdr->p_align != 0x4000) {
+					printf("phdr starting at paddr 0x%llx is not page aligned\n", phdr->p_paddr);
 				}
 				if ((phdr->p_paddr & 0x3FFF) != 0) [[unlikely]] {
 					printf("phdr starting at paddr 0x%llx is not page aligned\n", phdr->p_paddr);
@@ -690,7 +873,6 @@ uintptr_t Elf::setupKernelRW() {
 	kwrite<uint32_t>(sock, 0x100);
 	auto pcb = kread<uintptr_t>(sock + 0x18);
 	auto master_inp6_outputopts = kread<uintptr_t>(pcb + 0x120);
-	printf("master_inp6_outputopts: 0x%08llx\n", master_inp6_outputopts);
 	sock = newtbl.getFileData(files[1]);
 	kwrite<uint32_t>(sock, 0x100);
 	pcb = kread<uintptr_t>(sock + 0x18);
@@ -883,16 +1065,24 @@ namespace {
 
 // see shellcode/libloader.cpp for source
 uint8_t LIBLOADER_SHELLCODE[]{
-	0x55, 0x41, 0x57, 0x41, 0x56, 0x41, 0x55, 0x41, 0x54, 0x53, 0x50, 0x44, 0x8b, 0x77, 0x28, 0x48,
-	0x89, 0xfb, 0x45, 0x85, 0xf6, 0x7e, 0x43, 0x4c, 0x8b, 0x63, 0x08, 0x4c, 0x8b, 0x6b, 0x18, 0x48,
-	0x8b, 0x6b, 0x20, 0x45, 0x31, 0xff, 0x66, 0x2e, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x4a, 0x8b, 0x7c, 0xfd, 0x00, 0x31, 0xf6, 0x31, 0xd2, 0x31, 0xc9, 0x45, 0x31, 0xc0, 0x45, 0x31,
-	0xc9, 0x4c, 0x01, 0xef, 0x41, 0xff, 0xd4, 0x85, 0xc0, 0x7e, 0x2e, 0x89, 0xc0, 0x4a, 0x89, 0x44,
-	0xfd, 0x00, 0x49, 0xff, 0xc7, 0x4d, 0x39, 0xfe, 0x75, 0xd6, 0xc7, 0x03, 0x01, 0x00, 0x00, 0x00,
-	0x48, 0x8b, 0x5b, 0x10, 0x66, 0x66, 0x66, 0x2e, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0xbf, 0x40, 0x42, 0x0f, 0x00, 0xff, 0xd3, 0xeb, 0xf7, 0xc7, 0x03, 0x02, 0x00, 0x00, 0x00, 0x44,
-	0x89, 0x7b, 0x04, 0x48, 0x8b, 0x5b, 0x10, 0x66, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0xbf, 0x40, 0x42, 0x0f, 0x00, 0xff, 0xd3, 0xeb, 0xf7
+    0x48, 0x83, 0xec, 0x28, 0x48, 0x89, 0x7c, 0x24, 0x20, 0xc7, 0x44, 0x24, 0x1c, 0x00, 0x00, 0x00,
+    0x00, 0x8b, 0x44, 0x24, 0x1c, 0x48, 0x8b, 0x4c, 0x24, 0x20, 0x3b, 0x41, 0x30, 0x0f, 0x8d, 0xda,
+    0x00, 0x00, 0x00, 0x48, 0x8b, 0x44, 0x24, 0x20, 0x48, 0x8b, 0x40, 0x28, 0x48, 0x63, 0x4c, 0x24,
+    0x1c, 0x48, 0x8b, 0x04, 0xc8, 0x48, 0x89, 0x44, 0x24, 0x10, 0x48, 0xb8, 0x00, 0x00, 0x00, 0x80,
+    0x00, 0x00, 0x00, 0x00, 0x48, 0x23, 0x44, 0x24, 0x10, 0x48, 0x83, 0xf8, 0x00, 0x0f, 0x84, 0x1b,
+    0x00, 0x00, 0x00, 0x48, 0x8b, 0x44, 0x24, 0x20, 0x48, 0x8b, 0x40, 0x08, 0x48, 0x8b, 0x4c, 0x24,
+    0x10, 0x89, 0xcf, 0xff, 0xd0, 0x89, 0x44, 0x24, 0x18, 0xe9, 0x2e, 0x00, 0x00, 0x00, 0x48, 0x8b,
+    0x44, 0x24, 0x20, 0x48, 0x8b, 0x40, 0x10, 0x48, 0x8b, 0x4c, 0x24, 0x20, 0x48, 0x8b, 0x79, 0x20,
+    0x48, 0x03, 0x7c, 0x24, 0x10, 0x31, 0xc9, 0x41, 0x89, 0xc9, 0x4c, 0x89, 0xce, 0x4c, 0x89, 0xca,
+    0x4c, 0x89, 0xc9, 0x4d, 0x89, 0xc8, 0xff, 0xd0, 0x89, 0x44, 0x24, 0x18, 0x83, 0x7c, 0x24, 0x18,
+    0x00, 0x0f, 0x8d, 0x2f, 0x00, 0x00, 0x00, 0xc7, 0x44, 0x24, 0x08, 0x02, 0x00, 0x00, 0x00, 0x8b,
+    0x44, 0x24, 0x18, 0x89, 0x44, 0x24, 0x0c, 0x48, 0x8b, 0x44, 0x24, 0x20, 0x48, 0x8b, 0x4c, 0x24,
+    0x08, 0x48, 0x89, 0x08, 0x48, 0x8b, 0x44, 0x24, 0x20, 0xbf, 0x40, 0x42, 0x0f, 0x00, 0xff, 0x50,
+    0x18, 0xe9, 0xee, 0xff, 0xff, 0xff, 0x48, 0x63, 0x54, 0x24, 0x18, 0x48, 0x8b, 0x44, 0x24, 0x20,
+    0x48, 0x8b, 0x40, 0x28, 0x48, 0x63, 0x4c, 0x24, 0x1c, 0x48, 0x89, 0x14, 0xc8, 0x8b, 0x44, 0x24,
+    0x1c, 0x83, 0xc0, 0x01, 0x89, 0x44, 0x24, 0x1c, 0xe9, 0x14, 0xff, 0xff, 0xff, 0x48, 0x8b, 0x44,
+    0x24, 0x20, 0xc7, 0x00, 0x01, 0x00, 0x00, 0x00, 0x48, 0x8b, 0x44, 0x24, 0x20, 0xbf, 0x40, 0x42,
+    0x0f, 0x00, 0xff, 0x50, 0x18, 0xe9, 0xee, 0xff, 0xff, 0xff
 };
 
 // see shellcode/allocator.cpp for source
