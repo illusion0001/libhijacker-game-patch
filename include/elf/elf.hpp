@@ -27,7 +27,7 @@ class Elf : Elf64_Ehdr {
 	Hijacker *__restrict hijacker;
 	size_t textOffset;
 	uintptr_t imagebase;
-	UniquePtr<uint8_t[]> data;
+	uint8_t *data;
 	Array<SymbolLookupTable> libs;
 
 	bool processProgramHeaders();

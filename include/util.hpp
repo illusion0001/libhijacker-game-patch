@@ -188,7 +188,7 @@ class StringView {
 			return str;
 		}
 
-		const char *c_str() const {
+		constexpr const char *c_str() const {
 			return str;
 		}
 
@@ -456,6 +456,12 @@ class Array {
 			return ptr == nullptr;
 		}
 		T *data() { return ptr.get(); }
+		size_t shrink(size_t newSize) {
+			if (newSize < size) {
+				size = newSize;
+			}
+			return size;
+		}
 };
 
 template <typename T>

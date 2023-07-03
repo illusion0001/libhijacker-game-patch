@@ -6,6 +6,7 @@
 #include "hijacker.hpp"
 #include "kernel/kernel.hpp"
 #include "util.hpp"
+#include <elf.h>
 #include <unistd.h>
 
 
@@ -88,11 +89,7 @@ extern "C" uint8_t daemon_start[];
 
 bool runElf(Hijacker *hijacker) {
 
-	// we need a writeable copy
-	UniquePtr<uint8_t[]> buf = new uint8_t[daemon_size];
-	__builtin_memcpy(buf.get(), daemon_start, daemon_size);
-
-	Elf elf{hijacker, buf.release()};
+	Elf elf{hijacker, daemon_start};
 
 	if (!elf.launch()) {
 		puts("launch failed");
@@ -149,10 +146,39 @@ static bool initStdout() {
 }
 */
 
-int main() {
+extern "C" const uintptr_t __text_start[] __attribute__((weak));
+extern "C" const Elf64_Rela __rela_start[] __attribute__((weak));
+extern "C" const Elf64_Rela __rela_stop[] __attribute__((weak));
+
+static bool hasUnprocessedRelocations() {
+	if ((uintptr_t)__rela_start != (uintptr_t)__rela_stop) {
+		const uintptr_t imagebase = (uintptr_t)__text_start;
+		const uintptr_t *ptr = (uintptr_t *)(__rela_start[0].r_offset + imagebase);
+		return *ptr == 0;
+	}
+	return false;
+}
+
+static bool processRelocations() {
+	const uintptr_t imagebase = (uintptr_t)__text_start;
+	for (const Elf64_Rela __restrict *it = __rela_start; it != __rela_stop; it++) {
+		if (ELF64_R_TYPE(it->r_info) != R_X86_64_RELATIVE) [[unlikely]] {
+			printf("unexpected relocation type %d\n", ELF64_R_TYPE(it->r_info));
+			return false;
+		}
+		*(uintptr_t*)(imagebase + it->r_offset) = imagebase + it->r_addend;
+	}
+	return true;
+}
+
+extern "C" int main() {
 	//initStdout();
-	//clearFramePointer();
+	///clearFramePointer();
 	puts("main entered");
+	if (hasUnprocessedRelocations()) {
+		puts("fixing unprocessed relocations for spawner.elf");
+		processRelocations();
+	}
 	if (dbg::getProcesses().length() == 0) {
 		puts("This kernel version is not yet supported :(");
 		return -1;

@@ -71,3 +71,4 @@ target_link_directories	(${PROJECT_NAME} PUBLIC "${D_PS5SDK}/lib" "${PROJECT_ROO
 target_link_libraries	(${PROJECT_NAME} PUBLIC hijacker)
 add_dependencies(${PROJECT_NAME} daemon)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=lld -Xlinker -pie -Xlinker -zmax-page-size=16384 -Xlinker -zcommon-page-size=16384 -Xlinker -T ${D_CWD}/linker.x -Wl,--build-id=none -Wl,-z,norelro")

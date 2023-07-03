@@ -3,6 +3,8 @@ OUTPUT_ARCH(i386:x86-64)
 
 ENTRY(_start)
 
+/* this linker scrip is only for spawner.elf */
+
 PHDRS
 {
 	/*
@@ -11,10 +13,8 @@ PHDRS
 	 * PF_R = 0x4
 	 */
 
-	ph_text PT_LOAD FLAGS (0x1 | 0x4);
-	ph_relro PT_LOAD FLAGS (0x4);
+	ph_text PT_LOAD FLAGS (0x1);
 	ph_data PT_LOAD FLAGS (0x2 | 0x4);
-	ph_dyn PT_DYNAMIC FLAGS(0x2 | 0x4);
 }
 
 SECTIONS
@@ -34,28 +34,21 @@ SECTIONS
 	.rodata : ALIGN(0x4000)
 	{
 		*(.rodata .rodata.*)
-	}
-
-	.eh_frame : ALIGN(0x4000)
-	{
-		*(.eh_frame.*)
-	}
-
-	. = ALIGN(0x4000);
+	} : ph_data
 
 	.data.rel.ro : ALIGN(0x4000)
 	{
 		*(.data.rel.ro .data.rel.ro.*)
-	} : ph_relro
-
-	.rela :
-	{
-		*(.rela *.rela.*)
 	}
 
-	. = ALIGN(0x4000);
+	.rela : ALIGN(0x10)
+	{
+		PROVIDE_HIDDEN(__rela_start = .);
+		*(.rela *.rela.*)
+		PROVIDE_HIDDEN(__rela_stop = .);
+	}
 
-	.data : ALIGN(0x4000)
+	.data :
 	{
 		*(.data .data.*)
 
@@ -76,25 +69,5 @@ SECTIONS
 
 		. = . + 4;
 		. = ALIGN(4);
-	} : ph_data
-
-	.dynamic :
-	{
-		*(.dynamic)
-	} : ph_dyn
-
-	.dynstr :
-	{
-		*(.dynstr)
-	}
-
-	.dynsym :
-	{
-		*(.dynsym)
-	}
-
-	.rela.dyn :
-	{
-		*(.rela.dyn)
 	}
 }

@@ -184,19 +184,16 @@ static constexpr uint32_t hash(const StringView &str) {
 	return hash;
 }
 
-struct HashedStringView {
-	StringView name;
+struct HashedStringView : StringView {
 	uint32_t hash;
 
-	constexpr HashedStringView() : name(), hash() {}
-	explicit constexpr HashedStringView(const StringView &name) : name(name), hash(::hash(name)) {}
+	constexpr HashedStringView() : StringView(), hash() {}
+	explicit constexpr HashedStringView(const StringView &name) : StringView(name), hash(::hash(name)) {}
 
 	constexpr int32_t operator<=>(const HashedStringView &rhs) const {
 		const int32_t v = hash - rhs.hash;
-		return v != 0 ? v : name <=> rhs.name;
+		return v != 0 ? v : StringView::operator<=>(rhs);
 	}
-
-	const char *c_str() const { return name.c_str(); }
 };
 
 struct SysmoduleMapEntry {
@@ -217,18 +214,18 @@ struct SysmoduleMapEntry {
 
 template <size_t N>
 struct SysmoduleMapEntryArray {
-	SysmoduleMapEntry entries[N];
+	SysmoduleMapEntry array[N];
 
 	constexpr SysmoduleMapEntryArray(const SysmoduleMapEntry (&array)[N]) {
-		__builtin_memcpy(entries, array, sizeof(entries));
+		__builtin_memcpy(this->array, array, sizeof(array));
 	}
 
 	constexpr SysmoduleMapEntry &operator[](size_t i) {
-		return entries[i];
+		return array[i];
 	}
 
 	constexpr const SysmoduleMapEntry &operator[](size_t i) const {
-		return entries[i];
+		return array[i];
 	}
 };
 
@@ -344,14 +341,14 @@ Elf::~Elf() {
 	// this is to ensure that the destructor for SymbolLookupTable is visible
 }
 
-bool loadLibraries(Hijacker &hijacker, const List<String> &paths, Array<SymbolLookupTable> &libs, const size_t reserved);
+bool loadLibraries(Hijacker &hijacker, const Array<String> &paths, Array<SymbolLookupTable> &libs, const size_t reserved);
 
 bool Elf::parseDynamicTable() {
 	const Elf64_Dyn *__restrict dyntbl = nullptr;
 	for (size_t i = 0; i < e_phnum; i++) {
 		const Elf64_Phdr *__restrict phdr = phdrs + i;
 		if (phdr->p_type == PT_DYNAMIC) {
-			dyntbl = (Elf64_Dyn*)(data.get() + phdr->p_offset);
+			dyntbl = (Elf64_Dyn*)(data + phdr->p_offset);
 			break;
 		}
 	}
@@ -363,7 +360,7 @@ bool Elf::parseDynamicTable() {
 
 	List<const Elf64_Dyn *> neededLibs{};
 
-	uint8_t *const image = data.get() + textOffset;
+	uint8_t *const image = data + textOffset;
 
 	for (const Elf64_Dyn *dyn = dyntbl; dyn->d_tag != DT_NULL; dyn++) {
 		switch (dyn->d_tag) {
@@ -441,9 +438,10 @@ bool Elf::parseDynamicTable() {
 		return true;
 	}
 
-	List<String> names{};
+	Array<String> names{neededLibs.length()};
 	int preLoadedHandles[6];
 	int handleCount = 0;
+	size_t i = 0;
 	for (const Elf64_Dyn *lib : neededLibs) {
 		StringView filename = strtab + lib->d_un.d_val;
 		if (!filename.endswith(".so"_sv)) [[unlikely]] {
@@ -464,8 +462,11 @@ bool Elf::parseDynamicTable() {
 			continue;
 		}
 
-		names.emplace_front(StringView{filename.c_str(), filename.length() - 3});
+		names[i++] = StringView{filename.c_str(), filename.length() - 3};
 	}
+
+	// remove unset values
+	names.shrink(i);
 
 	libs = {handleCount + names.length()};
 
@@ -517,7 +518,7 @@ struct LibLoaderArgs {
 	}
 };
 
-bool loadLibraries(Hijacker &hijacker, const List<String> &names, Array<SymbolLookupTable> &libs, const size_t reserved) {
+bool loadLibraries(Hijacker &hijacker, const Array<String> &names, Array<SymbolLookupTable> &libs, const size_t reserved) {
 	const size_t nlibs = names.length();
 	String fulltbl{};
 	const size_t positionsSize = sizeof(uintptr_t) * nlibs;
@@ -531,14 +532,11 @@ bool loadLibraries(Hijacker &hijacker, const List<String> &names, Array<SymbolLo
 		fulltbl.reserve(tblSize);
 		for (const String &path : names) {
 			const StringView name{path};
-			printf("looking up %s\n", name.c_str());
 			auto id = SYSMODULES[name];
 			if (id != 0) {
-				return true;
-				//printf("id 0x%x found for %s\n", id, path.c_str());
-				//positions[i++] = id;
+				printf("id 0x%x found for %s\n", id, path.c_str());
+				positions[i++] = id;
 			} else {
-				return false;
 				positions[i++] = fulltbl.length();
 				fulltbl += path;
 				fulltbl += '\0';
@@ -910,7 +908,7 @@ bool Elf::load() {
 		}
 
 		int j = 0;
-		while (!hijacker->write(vaddr, data.get() + phdr->p_offset, phdr->p_filesz)) {
+		while (!hijacker->write(vaddr, data + phdr->p_offset, phdr->p_filesz)) {
 			printf("failed to write section data for phdr with paddr 0x%08llx\n", phdr->p_paddr);
 			if (j++ > 10) {
 				return false;
@@ -994,7 +992,7 @@ bool Elf::processRelocations() {
 	if (relatbl == nullptr) [[unlikely]] {
 		return true;
 	}
-	uint8_t *const image = data.get() + textOffset;
+	uint8_t *const image = data + textOffset;
 	const size_t length = relaLength;
 	for (size_t i = 0; i < length; i++) {
 		const Elf64_Rela *__restrict rel = relatbl + i;
@@ -1037,7 +1035,7 @@ bool Elf::processPltRelocations() {
 	if (plt == nullptr) [[unlikely]] {
 		return true;
 	}
-	uint8_t *const image = data.get() + textOffset;
+	uint8_t *const image = data + textOffset;
 	const size_t length = pltLength;
 	for (size_t i = 0; i < length; i++) {
 		const Elf64_Rela *__restrict rel = plt + i;

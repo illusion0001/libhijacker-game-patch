@@ -1,5 +1,5 @@
 .intel_syntax noprefix
-.section .rodata
+.section .data
 
 # elf
 .global daemon_start
