@@ -13,4 +13,5 @@ CMakeCache.txt
 *.o
 *.elf
 *.so
-log.txt
+*.txt
+!**/CMakeLists.txt

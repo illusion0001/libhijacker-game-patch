@@ -534,7 +534,6 @@ bool loadLibraries(Hijacker &hijacker, const Array<String> &names, Array<SymbolL
 			const StringView name{path};
 			auto id = SYSMODULES[name];
 			if (id != 0) {
-				printf("id 0x%x found for %s\n", id, path.c_str());
 				positions[i++] = id;
 			} else {
 				positions[i++] = fulltbl.length();

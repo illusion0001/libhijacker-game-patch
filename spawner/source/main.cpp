@@ -27,13 +27,13 @@ extern "C" {
 	ssize_t _read(int, void *, size_t);
 }
 
-/*
+
 static constexpr int LOGGER_PORT = 9021;
 //static constexpr int ELF_PORT = 9027;
 
 static constexpr int STDOUT = 1;
 static constexpr int STDERR = 2;
-*/
+
 
 class FileDescriptor {
 	int fd = -1;
@@ -91,13 +91,19 @@ bool runElf(Hijacker *hijacker) {
 
 	Elf elf{hijacker, daemon_start};
 
-	if (!elf.launch()) {
+	while (true) {
+		// forcefully trying like this can cause a panic on shutdown after x amount of failed attempts
+		if (elf.launch()) {
+			puts("launch succeeded");
+			return true;
+		}
 		puts("launch failed");
-		return false;
+		if (Hijacker::getHijacker("SceRedisServer"_sv) == nullptr) {
+			puts("SceRedisServer died, restart required");
+			return false;
+		}
 	}
 
-	puts("launch succeeded");
-	return true;
 }
 
 [[maybe_unused]] static void __attribute__((naked, noinline)) clearFramePointer() {
@@ -108,43 +114,59 @@ bool runElf(Hijacker *hijacker) {
 	);
 }
 
-/*
-static bool initStdout() {
+static int initStdout() {
 	socklen_t addr_len;
 	{
 		FileDescriptor sock = socket(AF_INET, SOCK_STREAM, 0);
 
 		if (!sock) {
-			return false;
+			return -1;
 		}
 
 		int value = 1;
 		if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &value, sizeof(int)) < 0) {
-			return false;
+			return -1;
 		}
 
 		struct sockaddr_in server_addr{0, AF_INET, htons(LOGGER_PORT), {}, {}};
 
 		if (bind(sock, (struct sockaddr*)&server_addr, sizeof(server_addr)) != 0) {
-			return false;
+			return -1;
 		}
 
 		if (listen(sock, 1) != 0) {
-			return false;
+			return -1;
 		}
 
 		struct sockaddr client_addr{};
 		addr_len = sizeof(client_addr);
 		int conn = accept(sock, &client_addr, &addr_len);
-		if (conn == -1) {
-			return false;
+		if (conn != -1) {
+			return conn;
 		}
-		dup2(conn, STDOUT);
-		dup2(conn, STDERR);
 	}
-	return true;
+	return -1;
 }
-*/
+
+class Stdout {
+	int fd = -1;
+
+	public:
+		explicit Stdout() : fd(initStdout()) {
+			if (fd != -1) {
+				dup2(fd, STDOUT);
+				dup2(fd, STDERR);
+				close(fd);
+			}
+		}
+		~Stdout() {
+			if (fd != -1) {
+				close(STDOUT);
+				close(STDERR);
+			}
+		}
+};
+
 
 extern "C" const uintptr_t __text_start[] __attribute__((weak));
 extern "C" const Elf64_Rela __rela_start[] __attribute__((weak));
@@ -172,7 +194,7 @@ static bool processRelocations() {
 }
 
 extern "C" int main() {
-	//initStdout();
+	Stdout dummy{};
 	///clearFramePointer();
 	puts("main entered");
 	if (hasUnprocessedRelocations()) {
@@ -181,6 +203,11 @@ extern "C" int main() {
 	}
 	if (dbg::getProcesses().length() == 0) {
 		puts("This kernel version is not yet supported :(");
+		return -1;
+	}
+
+	if (Hijacker::getHijacker("HomebrewDaemon"_sv) != nullptr) {
+		puts("HomebrewDaemon is already running");
 		return -1;
 	}
 
@@ -215,11 +242,6 @@ extern "C" int main() {
 
 	if (runElf(redis.get())) {
 		__builtin_printf("process name %s pid %d\n", redis->getProc()->getSelfInfo()->name, redis->getPid());
-	} else {
-		// TODO kill spawned process on error
-		if (Hijacker::getHijacker("SceRedisServer"_sv) == nullptr) {
-			puts("SceRedisServer died, restart required");
-		}
 	}
 
 	return 0;

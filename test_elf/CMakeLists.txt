@@ -69,7 +69,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -gfull -O0 -pedantic -pedantic-errors")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0")
 
 target_sources(${PROJECT_NAME} PRIVATE ${SrcFiles})
-target_link_directories	(${PROJECT_NAME} PUBLIC ${D_CWD})
+target_link_directories	(${PROJECT_NAME} PUBLIC ${D_CWD} ${D_CWD}/../lib)
 
 target_link_libraries	(${PROJECT_NAME} PUBLIC ps5sdk_crt SceLibcInternal kernel_sys)
 set(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=lld -Xlinker -pie -Xlinker --gc-sections -Xlinker -zmax-page-size=16384 -Xlinker -zcommon-page-size=16384 -Xlinker -T ${CMAKE_CURRENT_SOURCE_DIR}/linker.x -Wl,--build-id=none -Wl,-z,norelro")
