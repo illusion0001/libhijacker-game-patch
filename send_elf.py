@@ -4,6 +4,7 @@ import asyncio
 import re
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Union
 import aiofiles
 
 SEM = asyncio.Semaphore(60)
@@ -45,7 +46,7 @@ class DummyLogger:
 
 
 @asynccontextmanager
-async def get_logger(log: Path | None):
+async def get_logger(log: Union[Path, None]):
     if log is None:
         async with DummyLogger() as fp:
            yield fp
@@ -100,7 +101,7 @@ async def send_elf(host: str, elf: Path, processName: str, isGame: bool):
         return False
 
 
-async def log_task(reader: asyncio.StreamReader, log: Path | None, silent = False):
+async def log_task(reader: asyncio.StreamReader, log: Union[Path, None], silent = False):
     async with get_logger(log) as fp:
         line = b''
         while True:
@@ -137,7 +138,7 @@ async def has_homebrew_daemon(host: str) -> bool:
             return False
 
 
-async def logger_client(host: str, spawner: Path, log: Path | None, silent: bool):
+async def logger_client(host: str, spawner: Path, log: Union[Path, None], silent: bool):
     async with SEM:
         async with open_connection(host, LOGGER_PORT) as (reader, writer):
             reader._buffer = LineBuffer(reader._buffer)
@@ -156,7 +157,7 @@ async def send_spawner(host: str, spawner: Path):
             await writer.drain()
 
 
-async def klog_client(host, log: Path | None, silent: bool):
+async def klog_client(host, log: Union[Path, None], silent: bool):
         async with open_connection(host, KLOGGER_PORT) as (reader, _):
             reader._buffer = LineBuffer(reader._buffer)
             await log_task(reader, log, silent)
