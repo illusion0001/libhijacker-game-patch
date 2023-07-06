@@ -87,23 +87,45 @@ class FileDescriptor {
 extern "C" unsigned int daemon_size;
 extern "C" uint8_t daemon_start[];
 
-bool runElf(Hijacker *hijacker) {
+static bool runElf(Hijacker *hijacker) {
 
 	Elf elf{hijacker, daemon_start};
 
-	while (true) {
-		// forcefully trying like this can cause a panic on shutdown after x amount of failed attempts
-		if (elf.launch()) {
-			puts("launch succeeded");
-			return true;
-		}
-		puts("launch failed");
-		if (Hijacker::getHijacker("SceRedisServer"_sv) == nullptr) {
-			puts("SceRedisServer died, restart required");
-			return false;
-		}
+	if (elf.launch()) {
+		puts("launch succeeded");
+		return true;
 	}
+	puts("launch failed");
+	return false;
+}
 
+static bool spawn(Hijacker *hijacker) {
+	Spawner spawner{*hijacker};
+
+	puts("spawning new SceRedisServer process");
+	auto redis = spawner.bootstrap(*hijacker);
+
+	if (redis == nullptr) {
+		puts("failed to spawn new redis server process");
+		return false;
+	}
+	puts("getting saved stack pointer");
+	while (redis->getSavedRsp() == 0) {
+		usleep(1);
+	}
+	puts("setting process name");
+	redis->getProc()->setName("HomebrewDaemon"_sv);
+	__builtin_printf("new process %s pid %d\n", redis->getProc()->getSelfInfo()->name, redis->getPid());
+	puts("jailbreaking new process");
+	redis->jailbreak();
+
+	// listen on a port for now. in the future embed the daemon and load directly
+
+	if (runElf(redis.get())) {
+		__builtin_printf("process name %s pid %d\n", redis->getProc()->getSelfInfo()->name, redis->getPid());
+		return true;
+	}
+	return false;
 }
 
 [[maybe_unused]] static void __attribute__((naked, noinline)) clearFramePointer() {
@@ -219,29 +241,12 @@ extern "C" int main() {
 
 	hijacker->jailbreak();
 
-	Spawner spawner{*hijacker};
-
-	puts("spawning new SceRedisServer process");
-	auto redis = spawner.bootstrap(*hijacker);
-
-	if (redis == nullptr) {
-		puts("failed to spawn new redis server process");
-		return -1;
-	}
-	puts("getting saved stack pointer");
-	while (redis->getSavedRsp() == 0) {
-		usleep(1);
-	}
-	puts("setting process name");
-	redis->getProc()->setName("HomebrewDaemon"_sv);
-	__builtin_printf("new process %s pid %d\n", redis->getProc()->getSelfInfo()->name, redis->getPid());
-	puts("jailbreaking new process");
-	redis->jailbreak();
-
-	// listen on a port for now. in the future embed the daemon and load directly
-
-	if (runElf(redis.get())) {
-		__builtin_printf("process name %s pid %d\n", redis->getProc()->getSelfInfo()->name, redis->getPid());
+	// forcefully trying like this can cause a panic on shutdown after x amount of failed attempts
+	while (!spawn(hijacker.get())) {
+		if (Hijacker::getHijacker("SceRedisServer"_sv) == nullptr) {
+			puts("SceRedisServer died, restart required");
+			break;
+		}
 	}
 
 	return 0;

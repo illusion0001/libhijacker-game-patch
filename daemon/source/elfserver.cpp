@@ -36,7 +36,7 @@ struct LocalProcessArgs {
 };
 
 extern "C" int sceSystemServiceGetAppStatus(AppStatus *status);
-extern "C" int sceSystemServiceAddLocalProcess(unsigned int id, const char *path, const char **argv, LocalProcessArgs *args);
+extern "C" uint64_t sceSystemServiceAddLocalProcess(unsigned int id, const char *path, const char **argv, LocalProcessArgs *args);
 
 enum ProcessType : uint8_t {
 	INVALID,
@@ -70,9 +70,9 @@ static UniquePtr<Hijacker> spawn(const uint8_t *elf) {
 	}
 
 	// afaik this doesn't block
-	res = sceSystemServiceAddLocalProcess(status.id, EBOOT_PATH, SPAWN_ARGS, &param);
-	if (res < 0) [[unlikely]] {
-		printf("sceSystemServiceAddLocalProcess failed 0x%08x\n", (unsigned int)res);
+	uint64_t ans = sceSystemServiceAddLocalProcess(status.id, EBOOT_PATH, SPAWN_ARGS, &param);
+	if (ans != 0) [[unlikely]] {
+		printf("sceSystemServiceAddLocalProcess failed 0x%08llx\n", (unsigned long long) ans);
 		return nullptr;
 	}
 
@@ -84,60 +84,52 @@ static void run(int s) {
 	FileDescriptor sock{s};
 	ResponseType response = ResponseType::ERROR;
 	ProcessType type = INVALID;
-	if (read(sock, &type, sizeof(type)) == STUPID_C_ERROR_VALUE) {
-		int err = errno;
-		printf("read failed %d %s\n", err, strerror(err));
+	if (!sock.read(&type, sizeof(type))) {
 		return;
 	}
 	switch (type) {
 		case DAEMON:
 			break;
 		case GAME:
-			puts("Game process not yet supported");
-			[[fallthrough]];
+			sock.write(&response, sizeof(response));
+			sock.println("Game process not yet supported");
+			break;
 		default:
-			if (write(sock, &response, sizeof(response)) == STUPID_C_ERROR_VALUE) {
-				int err = errno;
-				printf("write failed %d %s\n", err, strerror(err));
-			}
+			sock.write(&response, sizeof(response));
+			sock.println("Unexpected process type");
 			return;
 	}
 
 	char name[32];
-	if (read(sock, name, sizeof(name)) == STUPID_C_ERROR_VALUE) {
-		int err = errno;
-		printf("read failed %d %s\n", err, strerror(err));
+	if (!sock.read(name, sizeof(name))) {
 		return;
 	}
 
 	size_t elfSize = 0;
-	if (read(sock, &elfSize, sizeof(elfSize)) == STUPID_C_ERROR_VALUE) {
-		int err = errno;
-		printf("read failed %d %s\n", err, strerror(err));
+	if (!sock.read(&elfSize, sizeof(elfSize))) {
 		return;
 	}
 
 	UniquePtr<uint8_t[]> buf = new uint8_t[elfSize];
-	if (read(sock, buf.get(), sizeof(elfSize)) == STUPID_C_ERROR_VALUE) {
-		int err = errno;
-		printf("read failed %d %s\n", err, strerror(err));
+	if (!sock.read(buf.get(), sizeof(elfSize))) {
 		return;
 	}
 	if (*(uint32_t *)buf.get() != ELF_MAGIC) {
-		puts("invalid elf");
-		if (write(sock, &response, sizeof(response)) == STUPID_C_ERROR_VALUE) {
-			int err = errno;
-			printf("write failed %d %s\n", err, strerror(err));
-		}
+		sock.write(&response, sizeof(response));
+		sock.println("invalid elf");
 		return;
 	}
 
+	int out = dup(1);
+	int err = dup(1);
+	dup2(sock, 1);
+	dup2(sock, 2);
 	auto hijacker = spawn(buf.get());
+	dup2(out, 1);
+	dup2(err, 2);
 	if (hijacker == nullptr) {
-		if (write(sock, &response, sizeof(response)) == STUPID_C_ERROR_VALUE) {
-			int err = errno;
-			printf("write failed %d %s\n", err, strerror(err));
-		}
+		sock.write(&response, sizeof(response));
+		sock.println("spawn failed");
 		return;
 	}
 
@@ -145,10 +137,7 @@ static void run(int s) {
 
 	response = ResponseType::OK;
 
-	if (write(sock, &response, sizeof(response)) == STUPID_C_ERROR_VALUE) {
-		int err = errno;
-		printf("write failed %d %s\n", err, strerror(err));
-	}
+	sock.write(&response, sizeof(response));
 }
 
 int runElfServer(void *unused) {

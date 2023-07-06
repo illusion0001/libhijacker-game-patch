@@ -1,1 +1,1 @@
-clang --target=x86_64-freebsd-pc-elf -fPIC -fPIE -fomit-frame-pointer -Wall -Werror -gfull -O0 -march=znver2 -mavx2 -c
+clang --target=x86_64-freebsd-pc-elf -fPIC -fPIE -fomit-frame-pointer -Wall -Werror -gfull -O3 -march=znver2 -mavx2 -c

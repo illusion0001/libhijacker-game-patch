@@ -93,7 +93,7 @@ static int32_t getResult(const Hijacker &hijacker, ProcessPointer<int32_t> &stat
 	return ids.contains(pid) && ids.length() > pids.length();
 }
 
-UniquePtr<Hijacker> Spawner::spawn() {
+UniquePtr<Hijacker> Spawner::spawn(decltype(printf) logger) {
 	LoopBuilder loop = SLEEP_LOOP;
 
 	const int lastPid = pids[0];
@@ -107,6 +107,8 @@ UniquePtr<Hijacker> Spawner::spawn() {
 
 	if (id == lastPid) {
 		// catastrophic failure
+		logger("%s", "catastrophic failure\n");
+		logger("lastPid %d id %d\n", lastPid, id);
 		return nullptr;
 	}
 
@@ -115,7 +117,7 @@ UniquePtr<Hijacker> Spawner::spawn() {
 	// this loop forces enough time to be given for it to load far enough
 	// otherwise we go too fast and get stuck
 	StringView name = "eboot.bin"; // what if it's not eboot.bin?
-	puts("waiting for name to be set");
+	logger("%s", "waiting for name to be set\n");
 	while (info->name() != name && info->name()) {
 		usleep(1); // some delay is needed or it will never proceed
 		info = new dbg::ProcessInfo(id);

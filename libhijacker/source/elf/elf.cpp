@@ -293,7 +293,6 @@ class SysmoduleHashMap {
 		}
 };
 
-// FIXME! this is creating a ton of relocations that cause a crash during use
 static constexpr const SysmoduleHashMap SYSMODULES{{
 	{"libSceAudioOut"_sv, 0x80000001},
 	{"libSceAudioIn"_sv, 0x80000002},
@@ -323,6 +322,14 @@ static constexpr const SysmoduleHashMap SYSMODULES{{
 	{"libSceIpmi"_sv, 0x8000001D},
 	{"libSceVideoOut"_sv, 0x80000022},
 	{"libSceBgft"_sv, 0x8000002A},
+	{"libScePad"_sv, 0x80000024},
+	{"libSceVideoOut"_sv, 0x80000022},
+	{"libSceVcodec"_sv, 0x80000091},
+	{"libSceDipsw"_sv, 0x80000029},
+	{"libSceSysUtil"_sv, 0x80000026},
+	{"libSceAvSetting"_sv, 0x80000021},
+	{"libSceRtc"_sv, 0x80000020},
+	{"libSceRegMgr"_sv, 0x8000001f}
 }};
 
 static_assert(SYSMODULES["libSceSystemService"_sv] != 0, "libSceSystemService not found");
@@ -675,6 +682,11 @@ static uintptr_t runAllocatorShellcode(Hijacker *hijacker, Array<AllocationInfo>
 
 		// hold the reference to keep this alive
 		auto frame = hijacker->getTrapFrame();
+		if (frame == nullptr) [[unlikely]] {
+			printf("Process died, null trapframe\n");
+			return 0;
+		}
+
 		frame->setRdi(argbuf)
 			.setRip(entry)
 			.flush();
