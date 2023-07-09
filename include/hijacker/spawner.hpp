@@ -38,5 +38,5 @@ class Spawner {
 		explicit Spawner() : pids(dbg::getAllPids()), nanosleepOffset(getNanosleepOffset()), pid(getpid()) {}
 		Spawner(const Hijacker &ptr) : pids(dbg::getAllPids()), nanosleepOffset(getNanosleepOffset(ptr)), pid(ptr.getPid()) {}
 		UniquePtr<Hijacker> bootstrap(Hijacker &hijacker);
-		UniquePtr<Hijacker> spawn(decltype(printf) logger = printf);
+		UniquePtr<Hijacker> spawn();
 };

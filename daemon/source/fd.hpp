@@ -72,4 +72,15 @@ class FileDescriptor {
 			}
 			return 0;
 		}
+
+		bool writeAll(const void *buf, size_t size) const {
+			while (size > 0) {
+				auto wrote = ::write(fd, buf, size);
+				if (wrote == STUPID_C_ERROR_VALUE) [[unlikely]] {
+					return false;
+				}
+				size -= wrote;
+			}
+			return true;
+		}
 };

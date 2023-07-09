@@ -29,7 +29,6 @@ extern "C" {
 
 
 static constexpr int LOGGER_PORT = 9021;
-//static constexpr int ELF_PORT = 9027;
 
 static constexpr int STDOUT = 1;
 static constexpr int STDERR = 2;
@@ -247,6 +246,7 @@ extern "C" int main() {
 			puts("SceRedisServer died, restart required");
 			break;
 		}
+		puts("spawn failed retrying...");
 	}
 
 	return 0;

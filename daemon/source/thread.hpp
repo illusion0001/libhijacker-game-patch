@@ -63,7 +63,7 @@ class Thread {
 class JThread : public Thread {
 
 	public:
-		JThread(thrd_start_t fun, void *args) : Thread{fun, args} {}
+		JThread(thrd_start_t fun, void *args = nullptr) : Thread{fun, args} {}
 		~JThread() {
 			join();
 		}

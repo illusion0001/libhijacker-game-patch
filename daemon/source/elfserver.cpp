@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#include "dbg/dbg.hpp"
 #include "fd.hpp"
 #include "hijacker/hijacker.hpp"
 #include "hijacker/spawner.hpp"
@@ -69,12 +70,17 @@ static UniquePtr<Hijacker> spawn(const uint8_t *elf) {
 		return nullptr;
 	}
 
+	printf("status id: %d\n", status.id);
+
 	// afaik this doesn't block
 	uint64_t ans = sceSystemServiceAddLocalProcess(status.id, EBOOT_PATH, SPAWN_ARGS, &param);
-	if (ans != 0) [[unlikely]] {
+	if (ans < 0) [[unlikely]] {
 		printf("sceSystemServiceAddLocalProcess failed 0x%08llx\n", (unsigned long long) ans);
 		return nullptr;
 	}
+
+	close(param.fds[0]);
+	close(param.fds[1]);
 
 	// race it
 	return spawner.spawn();

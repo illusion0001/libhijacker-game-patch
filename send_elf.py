@@ -217,6 +217,9 @@ async def log_task(reader: asyncio.StreamReader, logger: Union[DummyLogger, aiof
             continue
 
         line = line.decode('latin-1')
+        if 'a looped back NS message is' in line:
+            # STFU
+            continue
         if silent:
             continue
         if '\r' not in line:
@@ -272,11 +275,13 @@ async def run_loggers(args: ParsedArgs):
             logger = asyncio.create_task(logger_client(args))
             await asyncio.wait((spawner, logger), return_when=asyncio.ALL_COMPLETED)
 
-        if args.name is None:
-            args.name = args.elf.stem
-
-        res = await send_elf(args)
-        if res:
+        if args.elf:
+            if args.name is None:
+                args.name = args.elf.stem
+            sender = asyncio.create_task(send_elf(args))
+            logger = asyncio.create_task(klog_client(args))
+            await asyncio.wait((sender, logger), return_when=asyncio.ALL_COMPLETED)
+        else:
             await klog_client(args)
         #klogger = asyncio.create_task(klog_client(args))
         #sender = asyncio.create_task(send_elf(args))
@@ -288,7 +293,7 @@ def main():
         description='Helper script for sending the spawner, an elf to load into spawned process and for logging',
     )
     parser.add_argument('ip', help='PS5 ip address')
-    parser.add_argument('elf', help='Path to the elf to load into the spawned process')
+    #parser.add_argument('elf', help='Path to the elf to load into the spawned process')
     parser.add_argument(
         '--spawner',
         default='bin/spawner.elf',
@@ -332,7 +337,7 @@ def main():
         if not args.spawner.exists():
             print(f'{args.spawner} does not exist')
             return
-        if not args.elf.exists():
+        if args.elf and not args.elf.exists():
             print(f'{args.elf} does not exist')
             return
         asyncio.run(run_loggers(args))

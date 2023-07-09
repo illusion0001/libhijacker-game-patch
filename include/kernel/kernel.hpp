@@ -174,8 +174,7 @@ class KIterable {
 			return new T{addr};
 		}
 
-		bool operator==(decltype(nullptr)) const { return addr == 0; }
-		bool operator!=(decltype(nullptr)) const { return addr != 0; }
+		bool operator!=(const KIterable<T> &rhs) const { return addr != rhs.addr; }
 
 		KIterable<T> &operator++() {
 			#ifdef DEBUG
@@ -201,7 +200,7 @@ struct KIterator {
 	KIterable<T> begin() const {
 		return addr;
 	}
-	decltype(nullptr) end() const {
+	KIterable<T> end() const {
 		return nullptr;
 	}
 

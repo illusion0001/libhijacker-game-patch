@@ -111,7 +111,8 @@ class KProc : public KernelObject<KProc, 0xc90> {
 		}
 
 		UniquePtr<SharedObject> getSharedObject() const {
-			return new SharedObject{get<uintptr_t, 0x3e8>(), pid()};
+			auto obj = get<uintptr_t, 0x3e8>();
+			return obj != 0 ? new SharedObject{obj, pid()} : nullptr;
 		}
 
 		KIterator<KThread> p_threads() const {
@@ -151,7 +152,6 @@ class KProc : public KernelObject<KProc, 0xc90> {
 				this->reload();
 			}
 		}
-
 };
 
 inline KIterator<KProc> getAllProcs() {

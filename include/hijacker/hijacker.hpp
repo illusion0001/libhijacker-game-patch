@@ -52,10 +52,14 @@ class Hijacker {
 		static UniquePtr<Hijacker> getHijacker(const StringView &processName);
 		static UniquePtr<Hijacker> getHijacker(int pid) {
 			auto p = ::getProc(pid);
+			if (p == nullptr) [[unlikely]] {
+				return nullptr;
+			}
+
 			auto obj = p->getSharedObject();
 
 			// obj may be a nullptr when racing process creation
-			return obj ? new Hijacker{obj.release()} : nullptr;
+			return obj != nullptr ? new Hijacker{obj.release()} : nullptr;
 		}
 
 		UniquePtr<KProc> getProc() const {
