@@ -28,6 +28,10 @@ class Hijacker {
 
 		Hijacker(SharedObject *obj) : obj(obj), textAllocator(nullptr), dataAllocator(nullptr), libkernel(nullptr) {
 			auto eboot = this->obj->getEboot();
+			while (eboot == nullptr) {
+				// this can happen when it is still loading
+				eboot = this->obj->getEboot();
+			}
 			while (textAllocator == nullptr) {
 				textAllocator = ProcessMemoryAllocator(eboot->getTextSection());
 			}

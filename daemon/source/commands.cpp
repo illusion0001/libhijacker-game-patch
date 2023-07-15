@@ -6,6 +6,7 @@
 
 #include "dbg/dbg.hpp"
 #include "fd.hpp"
+#include "launcher.hpp"
 #include "thread.hpp"
 
 static constexpr int COMMAND_PORT = 9028;
@@ -18,7 +19,7 @@ enum Command : int8_t {
 };
 
 static void processCommand(const FileDescriptor &fd);
-static bool launchApp(const char *titleId);
+bool launchApp(const char *titleId, bool block=false);
 
 int runCommandProcessor(void *unused) {
 	// for now this is solely for checking if we are running
@@ -100,37 +101,12 @@ static void processCommand(const FileDescriptor &fd) {
 	}
 }
 
-#define SCE_LNC_UTIL_ERROR_ALREADY_RUNNING 0x8094000c
-#define SCE_LNC_ERROR_APP_NOT_FOUND 0x80940031
-
-enum Flag : uint64_t {
-    Flag_None = 0,
-    SkipLaunchCheck = 1,
-    SkipResumeCheck = 1,
-    SkipSystemUpdateCheck = 2,
-    RebootPatchInstall = 4,
-    VRMode = 8,
-    NonVRMode = 16
-};
-
-struct LncAppParam {
-    uint32_t sz;
-    uint32_t user_id;
-    uint32_t app_opt;
-    uint64_t crash_report;
-    Flag check_flag;
-};
-
-extern "C" int sceUserServiceGetForegroundUser(uint32_t *userId);
-extern "C" int sceLncUtilLaunchApp(const char* tid, const char* argv[], LncAppParam* param);
-extern "C" int sceUserServiceInitialize(const int *);
-
 static void __attribute__((constructor)) initUserService() {
 	int priority = 256;
 	sceUserServiceInitialize(&priority);
 }
 
-static bool launchApp(const char *titleId) {
+bool launchApp(const char *titleId, bool block) {
 	puts("launching app");
 	uint32_t id = -1;
 	uint32_t res = sceUserServiceGetForegroundUser(&id);
@@ -139,7 +115,8 @@ static bool launchApp(const char *titleId) {
 		return false;
 	}
 	printf("user id %u\n", id);
-	LncAppParam param{sizeof(LncAppParam), id, 0, 0, Flag_None};
+	Flag flag = block ? Flag_None : SkipLaunchCheck;
+	LncAppParam param{sizeof(LncAppParam), id, 0, 0, flag};
 	int err = sceLncUtilLaunchApp(titleId, nullptr, &param);
 	printf("sceLncUtilLaunchApp returned 0x%llx\n", (uint32_t)err);
 	if (err >= 0) {

@@ -18,11 +18,11 @@
 #include "util.hpp"
 
 static constexpr int ELF_PORT = 9027;
-static constexpr int STUPID_C_ERROR_VALUE = -1;
+//static constexpr int STUPID_C_ERROR_VALUE = -1;
 static constexpr uint32_t ELF_MAGIC = 0x464C457F;
 
-static const char *EBOOT_PATH = "/app0/eboot.bin";
-static const char *SPAWN_ARGS[] = {NULL};
+//static const char *EBOOT_PATH = "/app0/eboot.bin";
+//static const char *SPAWN_ARGS[] = {NULL};
 
 struct AppStatus {
 	unsigned int id;
@@ -50,9 +50,20 @@ enum class ResponseType : int8_t {
 	ERROR = -1
 };
 
+extern bool launchApp(const char *titleId, bool block=false);
+
+static int runSpawnThread(void *unused) {
+	if (!launchApp("BREW00000")) {
+		puts("failed to launch BREW00000");
+		return 1;
+	}
+	return 0;
+}
+
 static UniquePtr<Hijacker> spawn(const uint8_t *elf) {
 	Spawner spawner{};
 
+	/*
 	// start the new process
 	AppStatus status;
 	int res = sceSystemServiceGetAppStatus(&status);
@@ -81,6 +92,12 @@ static UniquePtr<Hijacker> spawn(const uint8_t *elf) {
 
 	close(param.fds[0]);
 	close(param.fds[1]);
+	*/
+	const int pid = dbg::getAllPids()[0];
+	JThread spawnThread{runSpawnThread};
+	while (pid == dbg::getAllPids()[0]);
+
+
 
 	// race it
 	return spawner.spawn();
@@ -126,13 +143,7 @@ static void run(int s) {
 		return;
 	}
 
-	int out = dup(1);
-	int err = dup(1);
-	dup2(sock, 1);
-	dup2(sock, 2);
 	auto hijacker = spawn(buf.get());
-	dup2(out, 1);
-	dup2(err, 2);
 	if (hijacker == nullptr) {
 		sock.write(&response, sizeof(response));
 		sock.println("spawn failed");

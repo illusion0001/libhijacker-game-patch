@@ -71,9 +71,18 @@ class Stdout {
 		operator int() const { return fd; }
 };
 
+
+extern void makenewapp();
+
 static int runStdoutServer(void *unused) {
+	bool madeApp = false;
 	while (true) {
 		Stdout out{};
+		if (!madeApp) {
+			puts("making app");
+			makenewapp();
+			madeApp = true;
+		}
 		pollfd fpd = {.fd =  out, .events = POLLHUP, .revents = 0};
 		if (poll(&fpd, 1, INFTIM) == -1) {
 			return 0;
@@ -84,7 +93,7 @@ static int runStdoutServer(void *unused) {
 int main() {
 	JThread stdoutThread{runStdoutServer};
 	JThread kloggerThread{runKlogger};
-	//JThread elfServerThread{runElfServer};
+	JThread elfServerThread{runElfServer};
 	JThread commandThread{runCommandProcessor};
 
 	// TODO add elf loader with options for process name and type (daemon/game)

@@ -273,7 +273,11 @@ class SharedObject : KernelObject<SharedObject, 0x188> {
 
 		SharedLib *getEboot() const {
 			if (eboot == nullptr) [[unlikely]] {
-				eboot = new SharedLib{get<uintptr_t, 0>(), pid};
+				const auto ptr = get<uintptr_t, 0>();
+				if (ptr == 0) [[unlikely]] {
+					return nullptr;
+				}
+				eboot = new SharedLib{ptr, pid};
 			}
 			return eboot.get();
 		}

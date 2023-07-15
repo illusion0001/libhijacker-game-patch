@@ -293,7 +293,7 @@ def main():
         description='Helper script for sending the spawner, an elf to load into spawned process and for logging',
     )
     parser.add_argument('ip', help='PS5 ip address')
-    #parser.add_argument('elf', help='Path to the elf to load into the spawned process')
+    parser.add_argument('elf', help='Path to the elf to load into the spawned process')
     parser.add_argument(
         '--spawner',
         default='bin/spawner.elf',
