@@ -9,6 +9,8 @@
 #define STDOUT 1
 #define STDERR 2
 
+// NOLINTBEGIN(*) c sucks so screw linting it
+
 // Store necessary sockets/pipe for corruption.
 static int _rw_pipe[2];
 static int _master_sock;
@@ -115,3 +117,5 @@ void __attribute__((noreturn)) _start(struct payload_args *__restrict args) {
 	// run main
 	exit(main(0, NULL));
 }
+
+// NOLINTEND(*)

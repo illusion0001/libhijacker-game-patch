@@ -41,12 +41,10 @@ class UniquePtr {
 		UniquePtr(T *ptr) : ptr(ptr) {}
 		UniquePtr(const UniquePtr &rhs) = delete;
 		UniquePtr &operator=(const UniquePtr &rhs) = delete;
-		UniquePtr(UniquePtr &&rhs) {
-			delete ptr;
-			ptr = rhs.ptr;
+		UniquePtr(UniquePtr &&rhs) noexcept : ptr(rhs.ptr) {
 			rhs.ptr = nullptr;
 		}
-		UniquePtr &operator=(UniquePtr &&rhs) {
+		UniquePtr &operator=(UniquePtr &&rhs) noexcept {
 			delete ptr;
 			ptr = rhs.ptr;
 			rhs.ptr = nullptr;
@@ -110,12 +108,10 @@ class UniquePtr<T[]> {
 		UniquePtr(T *ptr) : ptr(ptr) {}
 		UniquePtr(const UniquePtr &rhs) = delete;
 		UniquePtr &operator=(const UniquePtr &rhs) = delete;
-		UniquePtr(UniquePtr &&rhs) {
-			delete[] ptr;
-			ptr = rhs.ptr;
+		UniquePtr(UniquePtr &&rhs) noexcept : ptr(rhs.ptr) {
 			rhs.ptr = nullptr;
 		}
-		UniquePtr &operator=(UniquePtr &&rhs) {
+		UniquePtr &operator=(UniquePtr &&rhs) noexcept {
 			delete[] ptr;
 			ptr = rhs.ptr;
 			rhs.ptr = nullptr;
@@ -168,10 +164,6 @@ class StringView {
 
 		constexpr StringView(const char *str, unsigned long length) : str(str), size(length) {}
 
-		constexpr StringView(const StringView &) = default;
-		constexpr StringView &operator=(const StringView &) = default;
-		constexpr StringView(StringView &&) = default;
-		constexpr StringView &operator=(StringView &&) = default;
 		constexpr char operator[](size_t i) const {
 			return str[i];
 		}
@@ -232,6 +224,9 @@ class StringView {
 
 constexpr StringView operator"" _sv(const char *str, unsigned long len) { return {str, len}; }
 
+// NOLINTBEGIN(cppcoreguidelines-owning-memory, cppcoreguidelines-pro-type-member-init)
+
+//
 class String {
 
 	static constexpr size_t SSO_MAX = 16;
@@ -282,7 +277,7 @@ class String {
 		String(const StringView &view) : size(view.length()), capacity(align(view.length()+1)) {
 			if (is_sso()) {
 				__builtin_memcpy(data.buf, view.c_str(), size);
-				data.buf[size] = '\0';
+				*(data.buf + size) = '\0';
 			} else {
 				data.ptr = new char[capacity];
 				__builtin_memcpy(data.ptr, view.c_str(), size);
@@ -310,25 +305,25 @@ class String {
 			}
 			return *this;
 		}
-		String(String &&rhs) : size(rhs.size), capacity(rhs.capacity) {
+		String(String &&rhs) noexcept : size(rhs.size), capacity(rhs.capacity) {
 			if (is_sso()) {
 				__builtin_memcpy(data.buf, rhs.c_str(), size+1);
 				capacity = SSO_MAX;
 			} else {
-				data.ptr = new char[rhs.capacity];
-				__builtin_memcpy(data.ptr, rhs.c_str(), size+1);
+				capacity = rhs.capacity;
+				data.ptr = rhs.data.ptr;
 				rhs.data.ptr = nullptr;
 			}
 		}
-		String &operator=(String &&rhs) {
+		String &operator=(String &&rhs) noexcept {
 			size = rhs.size;
 			capacity = rhs.capacity;
 			if (is_sso()) {
 				__builtin_memcpy(data.buf, rhs.c_str(), size+1);
 				capacity = SSO_MAX;
 			} else {
-				data.ptr = new char[rhs.capacity];
-				__builtin_memcpy(data.ptr, rhs.c_str(), size+1);
+				capacity = rhs.capacity;
+				data.ptr = rhs.data.ptr;
 				rhs.data.ptr = nullptr;
 			}
 			return *this;
@@ -346,9 +341,9 @@ class String {
 			}
 			char *__restrict ptr = buffer();
 			__builtin_memcpy(ptr + size, rhs.c_str(), rhs.length());
-			size = newsz;
+			size = newsz; // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
 			ptr[size] = '\0';
-			return *this;
+			return *this; // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
 		}
 
 		String &operator+=(const char c) {
@@ -359,7 +354,7 @@ class String {
 			char *__restrict ptr = buffer();
 			ptr[size++] = c;
 			ptr[size] = '\0';
-			return *this;
+			return *this; // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
 		}
 
 		bool operator==(const StringView &rhs) const {
@@ -414,9 +409,13 @@ class String {
 		}
 
 		void reserve(size_t i) {
-			grow(i);
+			if (i > 0) [[likely]] {
+				grow(i);
+			}
 		}
 };
+
+// NOLINTEND(cppcoreguidelines-owning-memory, cppcoreguidelines-pro-type-member-init)
 
 template <typename T>
 class Array {
@@ -429,8 +428,9 @@ class Array {
 		Array(size_t size) : ptr(new T[size]), size(size) {}
 		Array(const Array &rhs) = delete;
 		Array &operator=(const Array &rhs) = delete;
-		Array(Array &&rhs) = default;
-		Array &operator=(Array &&rhs) = default;
+		Array(Array &&rhs) noexcept = default;
+		Array &operator=(Array &&rhs) noexcept = default;
+		~Array() noexcept = default;
 
 		size_t length() const {
 			return size;
@@ -475,14 +475,13 @@ class _List_node {
 	friend class List<T>;
 	friend class _List_iterator<T>;
 
-	_List_node<T> *next;
+	UniquePtr<_List_node<T>> *next;
 	// don't need a doubly linked list
 	T value;
 
 	public:
 		_List_node(T t) : next(nullptr), value(t) {}
 		_List_node(_List_node<T> *next, T t) : next(next), value(t) {}
-		~_List_node() { delete next; }
 
 		template <typename ...Types>
 		_List_node(_List_node<T> *next, Types ...values) : next(next), value(values...) {}
@@ -515,21 +514,11 @@ class _List_iterator {
 
 template <typename T>
 class List {
-	_List_node<T> *head;
+	UniquePtr<_List_node<T>> *head;
 	size_t size;
 
 	public:
 		List() : head(nullptr), size(0) {}
-		List(List<T> &&rhs) : head(rhs.head), size(rhs.size) { rhs.head = nullptr; }
-		List &operator=(List<T> &&rhs) {
-			delete head;
-			head = rhs.head;
-			size(rhs.size);
-			rhs.head = nullptr;
-		}
-		~List() {
-			delete head;
-		}
 
 		size_t length() const { return size; }
 
@@ -537,13 +526,13 @@ class List {
 		T &emplace_front(Types ...values) {
 			// much cheaper to emplace in front
 			size++;
-			head = new _List_node<T>(head, values...);
+			head = {new _List_node<T>(head, values...)};
 			return head->value;
 		}
 
 		T &push_front(const T &value) {
 			size++;
-			head = new _List_node<T>(head, value);
+			head = {new _List_node<T>(head, value)};
 			return head->value;
 		}
 
@@ -564,8 +553,11 @@ class List {
 		}
 };
 
+// NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers)
+
+//
 [[maybe_unused]] static void hexdump(const void *ptr, size_t len) {
-	const uint8_t *buf = (uint8_t *)ptr;
+	const uint8_t *buf = reinterpret_cast<const uint8_t *>(ptr);
 	auto rows = len / 16;
 	for (size_t i = 0; i < rows; i++) {
 		auto j = i * 16;
@@ -581,3 +573,5 @@ class List {
 	}
 	puts("");
 }
+
+// NOLINTEND(cppcoreguidelines-avoid-magic-numbers)

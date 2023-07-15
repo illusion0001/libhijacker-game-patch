@@ -81,7 +81,7 @@ public:
 int __attribute__((noinline)) mdbg_call(DbgArg1 &arg1, DbgArg2 &arg2, DbgArg3 &arg3) {
 
 	if (!_mdbg) [[unlikely]] {
-		uint64_t addr = 0;
+		uint8_t *addr = 0;
 		int res = sceKernelDlsym(0x2001, "get_authinfo", (void **) &addr);
 		if (res > -1 && addr) {
 			_mdbg = (p_mdbg_call)(addr + 7);

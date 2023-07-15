@@ -10,6 +10,8 @@ extern "C" {
 #include <stdint.h>
 }
 
+// NOLINTBEGIN(*)
+
 namespace {
 
 typedef struct
@@ -45,29 +47,27 @@ A million repetitions of "a"
 #include <stdint.h>
 
 
-#define rol(value, bits) (((value) << (bits)) | ((value) >> (32 - (bits))))
+#define rol __builtin_rotateleft32
 
 /* blk0() and blk() perform the initial expand. */
 /* I got the idea of expanding during the round function from SSLeay */
 #define blk0(i) (block->l[i] = (rol(block->l[i],24)&0xFF00FF00) \
 	|(rol(block->l[i],8)&0x00FF00FF))
 
-#define blk(i) (block->l[i&15] = rol(block->l[(i+13)&15]^block->l[(i+8)&15] \
-	^block->l[(i+2)&15]^block->l[i&15],1))
+#define blk(i) (block->l[(i)&15] = rol(block->l[((i)+13)&15]^block->l[((i)+8)&15] \
+	^block->l[((i)+2)&15]^block->l[(i)&15],1))
 
 /* (R0+R1), R2, R3, R4 are the different operations used in SHA1 */
-#define R0(v,w,x,y,z,i) z+=((w&(x^y))^y)+blk0(i)+0x5A827999+rol(v,5);w=rol(w,30);
-#define R1(v,w,x,y,z,i) z+=((w&(x^y))^y)+blk(i)+0x5A827999+rol(v,5);w=rol(w,30);
-#define R2(v,w,x,y,z,i) z+=(w^x^y)+blk(i)+0x6ED9EBA1+rol(v,5);w=rol(w,30);
-#define R3(v,w,x,y,z,i) z+=(((w|x)&y)|(w&x))+blk(i)+0x8F1BBCDC+rol(v,5);w=rol(w,30);
-#define R4(v,w,x,y,z,i) z+=(w^x^y)+blk(i)+0xCA62C1D6+rol(v,5);w=rol(w,30);
+#define R0(v,w,x,y,z,i) z+=(((w)&((x)^(y)))^(y))+blk0(i)+0x5A827999+rol(v,5);(w)=rol(w,30);
+#define R1(v,w,x,y,z,i) z+=(((w)&((x)^(y)))^(y))+blk(i)+0x5A827999+rol(v,5);(w)=rol(w,30);
+#define R2(v,w,x,y,z,i) z+=((w)^(x)^(y))+blk(i)+0x6ED9EBA1+rol(v,5);(w)=rol(w,30);
+#define R3(v,w,x,y,z,i) z+=((((w)|(x))&(y))|((w)&(x)))+blk(i)+0x8F1BBCDC+rol(v,5);(w)=rol(w,30);
+#define R4(v,w,x,y,z,i) z+=((w)^(x)^(y))+blk(i)+0xCA62C1D6+rol(v,5);(w)=rol(w,30);
 
 
 /* Hash a single 512-bit block. This is the core of the algorithm. */
 
 static inline void SHA1Transform(uint32_t state[5], const unsigned char buffer[64]) {
-	uint32_t a, b, c, d, e;
-
 	typedef union {
 		unsigned char c[64];
 		uint32_t l[16];
@@ -86,11 +86,11 @@ static inline void SHA1Transform(uint32_t state[5], const unsigned char buffer[6
 	CHAR64LONG16 *block = (const CHAR64LONG16 *) buffer;
 #endif
 	/* Copy context->state[] to working vars */
-	a = state[0];
-	b = state[1];
-	c = state[2];
-	d = state[3];
-	e = state[4];
+	uint32_t a = state[0];
+	uint32_t b = state[1];
+	uint32_t c = state[2];
+	uint32_t d = state[3];
+	uint32_t e = state[4];
 	/* 4 rounds of 20 operations each. Loop unrolled. */
 	R0(a, b, c, d, e, 0);
 	R0(e, a, b, c, d, 1);
@@ -178,8 +178,6 @@ static inline void SHA1Transform(uint32_t state[5], const unsigned char buffer[6
 	state[2] += c;
 	state[3] += d;
 	state[4] += e;
-	/* Wipe variables */
-	a = b = c = d = e = 0;
 #ifdef SHA1HANDSOFF
 	__builtin_memset(block, '\0', sizeof(block));
 #endif
@@ -201,13 +199,14 @@ static inline void SHA1Init(SHA1_CTX * context) {
 
 /* Run your data through this. */
 
-static inline void SHA1Update(SHA1_CTX * context, const unsigned char *data, uint32_t len) {
+static inline void SHA1Update(SHA1_CTX *__restrict context, const unsigned char *data, uint32_t len) {
 	uint32_t i;
 
 	uint32_t j;
 
 	j = context->count[0];
-	if ((context->count[0] += len << 3) < j)
+	context->count[0] += len << 3;
+	if (context->count[0] < j)
 		context->count[1]++;
 	context->count[1] += (len >> 29);
 	j = (j >> 3) & 63;
@@ -303,3 +302,5 @@ static inline void genSha1(uint8_t *res, const StringView &str) {
 	SHA1Update(&ctx, NID_KEY, sizeof(NID_KEY));
 	SHA1Final(res, &ctx);
 }
+
+// NOLINTEND(*)

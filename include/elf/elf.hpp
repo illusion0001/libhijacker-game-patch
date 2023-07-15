@@ -41,7 +41,6 @@ class Elf : Elf64_Ehdr {
 
 	public:
 		Elf(Hijacker *hijacker, uint8_t *data);
-		~Elf();
 
 		bool launch();
 };

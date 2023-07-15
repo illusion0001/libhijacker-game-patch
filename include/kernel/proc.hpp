@@ -10,7 +10,18 @@
 extern "C" {
 	#include <ps5/kernel.h>
 	extern int getpid();
-	extern uintptr_t kernel_base;
+	extern const uintptr_t kernel_base;
+}
+
+namespace {
+
+static constexpr size_t SELFINFO_SIZE = 0x400;
+static constexpr size_t SELFINFO_NAME_SIZE = 32;
+static constexpr size_t SELFINFO_PATH_SIZE = 972;
+
+static constexpr size_t FILEDESCENT_SIZE = 0x30;
+static constexpr size_t PROC_SIZE = 0xc90;
+
 }
 
 struct SelfInfo {
@@ -19,26 +30,30 @@ struct SelfInfo {
 	uint32_t ps5_sdk_version;
 	uint32_t beef_face;
 	uint32_t dbbcc;
-	char name[32];
-	char path[972];
+	char name[SELFINFO_NAME_SIZE];
+	char path[SELFINFO_PATH_SIZE];
 };
 
-static_assert(sizeof(SelfInfo) == 0x400, "sizeof(SelfInfo) != 0x400");
+static_assert(sizeof(SelfInfo) == SELFINFO_SIZE, "sizeof(SelfInfo) != 0x400");
 
-class Filedescent : public KernelObject<Filedescent, 0x30> {
+class Filedescent : public KernelObject<Filedescent, FILEDESCENT_SIZE> {
+
+	static constexpr size_t FILE_OFFSET = 0;
+	static constexpr size_t FLAGS_OFFSET = 0x28;
+	static constexpr size_t SEQ_OFFSET = 0x2c;
 
 	public:
 		Filedescent(uintptr_t addr) : KernelObject(addr) {}
 		uintptr_t file() const {
-			return get<uintptr_t, 0>();
+			return get<uintptr_t, FILE_OFFSET>();
 		}
 
 		uint8_t flags() const {
-			return get<uint8_t, 0x28>();
+			return get<uint8_t, FLAGS_OFFSET>();
 		}
 
 		uint32_t seq() const {
-			return get<uint32_t, 0x2c>();
+			return get<uint32_t, SEQ_OFFSET>();
 		}
 };
 
@@ -56,11 +71,7 @@ class FdTbl {
 	}
 
 	public:
-		FdTbl(uintptr_t addr) : addr(addr), ntables(kread<uintptr_t>(addr) & 0xffffffff) {}
-		FdTbl(const FdTbl&) = default;
-		FdTbl &operator=(const FdTbl&) = default;
-		FdTbl(FdTbl&&) = default;
-		FdTbl &operator=(FdTbl&&) = default;
+		FdTbl(uintptr_t addr) : addr(addr), ntables((uint32_t)kread<uintptr_t>(addr)) {}
 
 		Filedescent operator[](size_t i) const {
 			return {addr + (checkIndex(i) * Filedescent::length) + sizeof(ntables)};
@@ -89,13 +100,21 @@ class FdTbl {
 		}
 };
 
-class KProc : public KernelObject<KProc, 0xc90> {
+class KProc : public KernelObject<KProc, PROC_SIZE> {
+
+	static constexpr size_t UCRED_OFFSET = 0x40;
+	static constexpr size_t SHARED_OBJECT_OFFSET = 0x3e8;
+	static constexpr size_t PID_OFFSET = 0xbc;
+	static constexpr size_t THREADS_OFFSET = 0x10;
+	static constexpr size_t FD_OFFSET = 0x48;
+	static constexpr size_t SELFINFO_OFFSET = 0x588;
+	static constexpr size_t SELFINFO_NAME_OFFSET = 0x59C;
 
 	public:
 
 		KProc(uintptr_t addr) : KernelObject(addr) {}
 		uintptr_t p_ucred() const {
-			return get<uintptr_t, 0x40>();
+			return get<uintptr_t, UCRED_OFFSET>();
 		}
 
 		UniquePtr<KUcred> ucred() const {
@@ -103,7 +122,7 @@ class KProc : public KernelObject<KProc, 0xc90> {
 		}
 
 		int p_pid() const {
-			return get<int, 0xbc>();
+			return get<int, PID_OFFSET>();
 		}
 
 		int pid() const {
@@ -111,12 +130,12 @@ class KProc : public KernelObject<KProc, 0xc90> {
 		}
 
 		UniquePtr<SharedObject> getSharedObject() const {
-			auto obj = get<uintptr_t, 0x3e8>();
+			auto obj = get<uintptr_t, SHARED_OBJECT_OFFSET>();
 			return obj != 0 ? new SharedObject{obj, pid()} : nullptr;
 		}
 
 		KIterator<KThread> p_threads() const {
-			return address() + 0x10;
+			return address() + THREADS_OFFSET;
 		}
 
 		KIterator<KThread> getThreads() const {
@@ -133,7 +152,7 @@ class KProc : public KernelObject<KProc, 0xc90> {
 		}
 
 		uintptr_t p_fd() const {
-			return get<uintptr_t, 0x48>();
+			return get<uintptr_t, FD_OFFSET>();
 		}
 
 		FdTbl getFdTbl() const {
@@ -141,13 +160,13 @@ class KProc : public KernelObject<KProc, 0xc90> {
 		}
 
 		const SelfInfo *getSelfInfo() const {
-			return (SelfInfo *) (buf + 0x588);
+			return reinterpret_cast<const SelfInfo *>(buf + SELFINFO_OFFSET);
 		}
 
 		// no flush required
 		void setName(const StringView &name, bool reload=false) {
-			const size_t length = name.length() < 0x1f ? name.length() : 0x20;
-			kernel_copyin(const_cast<char*>(name.c_str()), address() + 0x59C, length);
+			const size_t length = name.length() < (SELFINFO_NAME_SIZE-1) ? name.length() : SELFINFO_NAME_SIZE;
+			kwrite(address() + SELFINFO_NAME_OFFSET, name.c_str(), length);
 			if (reload) {
 				this->reload();
 			}

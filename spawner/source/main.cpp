@@ -48,14 +48,14 @@ class FileDescriptor {
 		FileDescriptor() = default;
 		FileDescriptor(int fd) : fd(fd) {}
 		FileDescriptor(const FileDescriptor&) = delete;
-		FileDescriptor(FileDescriptor &&rhs) : fd(rhs.fd) { rhs.fd = -1; }
+		FileDescriptor(FileDescriptor &&rhs) noexcept : fd(rhs.fd) { rhs.fd = -1; }
 		FileDescriptor &operator=(int fd) {
 			close();
 			this->fd = fd;
 			return *this;
 		}
 		FileDescriptor &operator=(const FileDescriptor &rhs) = delete;
-		FileDescriptor &operator=(FileDescriptor &&rhs) {
+		FileDescriptor &operator=(FileDescriptor &&rhs) noexcept {
 			close();
 			fd = rhs.fd;
 			rhs.fd = -1;
@@ -195,7 +195,7 @@ extern "C" const Elf64_Rela __rela_stop[] __attribute__((weak));
 
 static bool hasUnprocessedRelocations() {
 	if ((uintptr_t)__rela_start != (uintptr_t)__rela_stop) {
-		const uintptr_t imagebase = (uintptr_t)__text_start;
+		const uint8_t *imagebase = (uint8_t *)__text_start;
 		const uintptr_t *ptr = (uintptr_t *)(__rela_start[0].r_offset + imagebase);
 		return *ptr == 0;
 	}
@@ -203,13 +203,13 @@ static bool hasUnprocessedRelocations() {
 }
 
 static bool processRelocations() {
-	const uintptr_t imagebase = (uintptr_t)__text_start;
+	uint8_t *imagebase = (uint8_t *)__text_start;
 	for (const Elf64_Rela __restrict *it = __rela_start; it != __rela_stop; it++) {
 		if (ELF64_R_TYPE(it->r_info) != R_X86_64_RELATIVE) [[unlikely]] {
 			printf("unexpected relocation type %d\n", ELF64_R_TYPE(it->r_info));
 			return false;
 		}
-		*(uintptr_t*)(imagebase + it->r_offset) = imagebase + it->r_addend;
+		*(uint8_t**)(imagebase + it->r_offset) = (uint8_t *)(imagebase + it->r_addend);
 	}
 	return true;
 }

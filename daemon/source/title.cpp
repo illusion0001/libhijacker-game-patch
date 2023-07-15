@@ -45,17 +45,20 @@ static bool remount(const char *dev, const char *path) {
 		"ignoreacl"_iov, {nullptr, 0}
 	};
 	constexpr size_t iovlen = sizeof(iov) / sizeof(iov[0]);
-	return nmount((struct iovec *)iov, iovlen, MNT_UPDATE) == 0;
+	return nmount(reinterpret_cast<struct iovec *>(iov), iovlen, MNT_UPDATE) == 0;
 }
 
 static constexpr int STUPID_C_ERROR = -1;
+static constexpr int MKDIR_FLAGS = 0666;
+
+// NOLINTBEGIN(cppcoreguidelines-owning-memory)
 
 void makenewapp() {
 	if (!remount("/dev/ssd0.system_ex", "/system_ex")) {
 		puts(strerror(errno));
 		return;
 	}
-	if (mkdir("/system_ex/app/BREW00000", 0666) == STUPID_C_ERROR) {
+	if (mkdir("/system_ex/app/BREW00000", MKDIR_FLAGS) == STUPID_C_ERROR) {
 		const int err = errno;
 		if (err != EEXIST) {
 			puts(strerror(errno));
@@ -84,7 +87,7 @@ void makenewapp() {
 	}
 	fwrite(buf.get(), 1, st.st_size, fp);
 	fclose(fp);
-	if (mkdir("/system_ex/app/BREW00000/sce_sys", 0666) == STUPID_C_ERROR) {
+	if (mkdir("/system_ex/app/BREW00000/sce_sys", MKDIR_FLAGS) == STUPID_C_ERROR) {
 		const int err = errno;
 		if (err != EEXIST) {
 			puts(strerror(errno));
@@ -100,3 +103,5 @@ void makenewapp() {
 	fwrite(json.c_str(), 1, json.length(), fp);
 	fclose(fp);
 }
+
+// NOLINTEND(cppcoreguidelines-owning-memory)

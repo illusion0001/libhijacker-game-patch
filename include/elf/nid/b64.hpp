@@ -4,12 +4,17 @@ extern "C" {
 	#include <stdint.h>
 }
 
+#include "../../nid.hpp"
+
+// NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers,cppcoreguidelines-pro-bounds-constant-array-index)
+namespace {
 
 static inline constexpr char encoder[]{"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-"};
-static constexpr int NID_LENGTH = 11;
+
+}
 
 static inline constexpr void b64encode(char (&dest)[NID_LENGTH+1], const unsigned char *src) {
-	for (int i = 0, j = 0; j < NID_LENGTH;) {
+	for (unsigned int i = 0, j = 0; j < NID_LENGTH;) {
 		uint32_t a = src[i++];
 		uint32_t b = src[i++];
 		uint32_t c = src[i++];
@@ -24,4 +29,4 @@ static inline constexpr void b64encode(char (&dest)[NID_LENGTH+1], const unsigne
 	dest[NID_LENGTH] = 0;
 }
 
-
+// NOLINTEND(cppcoreguidelines-avoid-magic-numbers,cppcoreguidelines-pro-bounds-constant-array-index)

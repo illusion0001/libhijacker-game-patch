@@ -22,8 +22,8 @@ public:
 	}
 	IdArray(const IdArray&) = delete;
 	IdArray& operator=(const IdArray&) = delete;
-	IdArray(IdArray &&rhs) : ptr(rhs.ptr), size(rhs.size) { rhs.ptr = nullptr; }
-	IdArray& operator=(IdArray &&rhs) {
+	IdArray(IdArray &&rhs) noexcept : ptr(rhs.ptr), size(rhs.size) { rhs.ptr = nullptr; }
+	IdArray& operator=(IdArray &&rhs) noexcept {
 		delete[] ptr;
 		ptr = rhs.ptr;
 		rhs.ptr = nullptr;
@@ -78,14 +78,15 @@ public:
 	}
 	ProcessInfo(const ProcessInfo&) = delete;
 	ProcessInfo &operator=(const ProcessInfo&) = delete;
-	ProcessInfo(ProcessInfo &&rhs) : buf(rhs.buf.release()), _name(rhs._name), _path(rhs._path), _pid(rhs._pid) {}
-	ProcessInfo &operator=(ProcessInfo &&rhs) {
+	ProcessInfo(ProcessInfo &&rhs) noexcept : buf(rhs.buf.release()), _name(rhs._name), _path(rhs._path), _pid(rhs._pid) {}
+	ProcessInfo &operator=(ProcessInfo &&rhs) noexcept {
 		buf = rhs.buf.release();
 		_name = rhs._name;
 		_path = rhs._path;
 		_pid = rhs._pid;
 		return *this;
 	}
+	~ProcessInfo() noexcept = default;
 
 	const StringView &name() const {
 		return _name;
@@ -133,8 +134,9 @@ public:
 
 	ThreadInfo(const ThreadInfo&) = delete;
 	ThreadInfo &operator=(const ThreadInfo&) = delete;
-	ThreadInfo(ThreadInfo&&) = default;
-	ThreadInfo &operator=(ThreadInfo&&) = default;
+	ThreadInfo(ThreadInfo&&) noexcept = default;
+	ThreadInfo &operator=(ThreadInfo&&) noexcept = default;
+	~ThreadInfo() noexcept = default;
 
 	const StringView &name() const {
 		return _name;

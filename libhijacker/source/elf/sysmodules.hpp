@@ -17,7 +17,7 @@ struct HashedStringView : StringView {
 	explicit constexpr HashedStringView(const StringView &name) : StringView(name), hash(::hash(name)) {}
 
 	constexpr int32_t operator<=>(const HashedStringView &rhs) const {
-		const int32_t v = hash - rhs.hash;
+		const int32_t v = (int32_t)(hash - rhs.hash);
 		return v != 0 ? v : StringView::operator<=>(rhs);
 	}
 };
@@ -30,7 +30,7 @@ struct SysmoduleMapEntry {
 	constexpr SysmoduleMapEntry(const StringView &name, uint32_t id) : name(name), id(id) {}
 
 	constexpr int32_t operator<=>(const SysmoduleMapEntry &rhs) const {
-		const int32_t v = name.hash - rhs.name.hash;
+		const int32_t v = (int32_t)(name.hash - rhs.name.hash);
 		return v != 0 ? v : name <=> rhs.name;
 	}
 	constexpr int32_t operator<=>(const HashedStringView &rhs) const {

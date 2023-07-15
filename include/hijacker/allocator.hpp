@@ -3,14 +3,14 @@
 
 // "allocates" memory from another process out of EXISTING process memory
 class ProcessMemoryAllocator {
+	static constexpr size_t ALIGNMENT = 0x10;
+	static constexpr size_t ALIGNMENT_MASK = 0xf;
 	const SharedLibSection *section;
 	size_t allocated;
 
 	public:
 		ProcessMemoryAllocator(decltype(nullptr)) : section(nullptr), allocated() {}
 		ProcessMemoryAllocator(const SharedLibSection *section) : section(section), allocated() {}
-		ProcessMemoryAllocator(const ProcessMemoryAllocator &rhs) = default;
-		ProcessMemoryAllocator &operator=(const ProcessMemoryAllocator &rhs) = default;
 
 		/**
 		 * "Releases" all the allocated memory
@@ -26,8 +26,8 @@ class ProcessMemoryAllocator {
 		 * @return the virtual address for the requested memory
 		 */
 		uintptr_t allocate(size_t size) {
-			if ((size & 0xf) != 0) {
-				size = (size & ~0xf) + 0x10;
+			if ((size & ALIGNMENT_MASK) != 0) {
+				size = (size & ~ALIGNMENT_MASK) + ALIGNMENT;
 			}
 			allocated += size;
 			return section->end() - allocated;

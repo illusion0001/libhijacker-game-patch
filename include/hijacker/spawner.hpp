@@ -12,8 +12,6 @@ extern "C" {
 	#include <stdio.h>
 }
 
-
-
 class Spawner {
 	dbg::IdArray pids;
 	uintptr_t nanosleepOffset;

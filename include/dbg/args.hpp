@@ -15,6 +15,8 @@ enum DbgCommand : uint64_t {
 	ARG2_CMD = 0x1e
 };
 
+// NOLINTBEGIN(*)
+
 // aggressively zero all dbg args
 template <unsigned long size>
 struct DbgArg {
@@ -132,3 +134,5 @@ private:
 };
 
 static_assert(sizeof(DbgArg3) == 0x20, "sizeof(DbgArg3) != 0x20");
+
+// NOLINTEND(*)

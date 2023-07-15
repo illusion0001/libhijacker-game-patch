@@ -8,15 +8,19 @@
 
 // this always seems to be the case
 static constexpr uintptr_t ENTRYPOINT_OFFSET = 0x70;
+static constexpr int SYSTEM_SERVICE_HANDLE = 38;
+static constexpr size_t LOOB_BUILDER_SIZE = 30;
+static constexpr size_t LOOP_BUILDER_TARGET_OFFSET = 11;
+static constexpr size_t LOOP_BUILDER_STACK_PTR_OFFSET = 5;
 
 struct LoopBuilder {
-	uint8_t data[30];
+	uint8_t data[LOOB_BUILDER_SIZE];
 
 	void setTarget(uintptr_t addr) {
-		*reinterpret_cast<uintptr_t *>(data + 11) = addr;
+		*reinterpret_cast<uintptr_t *>(data + LOOP_BUILDER_TARGET_OFFSET) = addr;
 	}
 	void setStackPointer(uintptr_t addr) {
-		*reinterpret_cast<uint32_t *>(data + 5) = (uint32_t)addr;
+		*reinterpret_cast<uint32_t *>(data + LOOP_BUILDER_STACK_PTR_OFFSET) = (uint32_t)addr;
 	}
 };
 
@@ -39,7 +43,7 @@ static inline constexpr LoopBuilder SLEEP_LOOP{
 
 namespace {
 	// shellcode to hack into your ps5 and steal your nudes
-	extern uint8_t SHELLCODE[282];
+	extern const uint8_t SHELLCODE[282];
 }
 
 namespace nid {
@@ -63,14 +67,13 @@ struct Args {
 	uintptr_t usleep;
 	uintptr_t errno;
 
-	Args(Hijacker &hijacker) : result({0, 0}) {
-		UniquePtr<SharedLib> libSceSystemService = hijacker.getLib(38);
+	Args(Hijacker &hijacker) :
+			result({0, 0}), socketpair(hijacker.getLibKernelFunctionAddress(nid::socketpair)),
+			usleep(hijacker.getLibKernelFunctionAddress(nid::usleep)), errno(hijacker.getLibKernelFunctionAddress(nid::errno)) {
+		UniquePtr<SharedLib> libSceSystemService = hijacker.getLib(SYSTEM_SERVICE_HANDLE);
 		SharedLib *lib = libSceSystemService.get();
 		sceSystemServiceGetAppStatus = hijacker.getFunctionAddress(lib, nid::sceSystemServiceGetAppStatus);
 		sceSystemServiceAddLocalProcess = hijacker.getFunctionAddress(lib, nid::sceSystemServiceAddLocalProcess);
-		socketpair = hijacker.getLibKernelFunctionAddress(nid::socketpair);
-		usleep = hijacker.getLibKernelFunctionAddress(nid::usleep);
-		errno = hijacker.getLibKernelFunctionAddress(nid::errno);
 	}
 };
 
@@ -83,7 +86,7 @@ static int32_t getResult(const Hijacker &hijacker, ProcessPointer<int32_t> &stat
 		return -2;
 	}
 
-	uint64_t res = *state;
+	int32_t res = *state;
 	if (res != 0) {
 		return res;
 	}
@@ -159,13 +162,13 @@ UniquePtr<Hijacker> Spawner::bootstrap(Hijacker &hijacker) {
 
 	frame->setRdi(argbuf)
 		.setRip(entry)
-		.setRsp(frame->getRsp() - 0x100) // some extra stack space just incase
+		.setRsp(frame->getRsp())
 		.flush();
 
 	// wait for the new process to spawn
 	hijacker.resume();
 	int32_t state = 0;
-	do {
+	do { // NOLINT(cppcoreguidelines-avoid-do-while)
 		state = getResult(hijacker, pstate, pids, pid);
 	} while (state == 0);
 
@@ -193,11 +196,12 @@ UniquePtr<Hijacker> Spawner::bootstrap(Hijacker &hijacker) {
 	return spawn();
 }
 
+// NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers)
 
 namespace {
 
 // see shellcode/spawner.c for source
-uint8_t SHELLCODE[]{
+const uint8_t SHELLCODE[]{
 	0x53, 0x48, 0x83, 0xec, 0x60, 0x48, 0x89, 0xfb, 0x48, 0x8d, 0x7c, 0x24, 0x40, 0xff, 0x53, 0x08,
 	0x85, 0xc0, 0x0f, 0x88, 0xa2, 0x00, 0x00, 0x00, 0x48, 0x8d, 0x4c, 0x24, 0x10, 0xbf, 0x01, 0x00,
 	0x00, 0x00, 0xbe, 0x01, 0x00, 0x00, 0x00, 0x31, 0xd2, 0xc7, 0x44, 0x24, 0x10, 0x00, 0x00, 0x00,
@@ -219,3 +223,5 @@ uint8_t SHELLCODE[]{
 };
 
 } // anonymous namespace
+
+// NOLINTEND(cppcoreguidelines-avoid-magic-numbers)

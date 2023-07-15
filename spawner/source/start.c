@@ -1,9 +1,13 @@
 // Required header
 
-#include "main.h"
+#include <stdint.h>
 #include <ps5/payload_main.h>
 #include <ps5/kernel.h>
 #include <stddef.h>
+
+// NOLINTBEGIN(*)
+
+extern uintptr_t kernel_base;
 
 #define libkernel 0x2001
 #define nullptr 0
@@ -155,3 +159,5 @@ void _start(struct payload_args *args) {
 	dup2(origStdout, STDOUT);
 	dup2(origStderr, STDERR);
 }
+
+// NOLINTEND(*)

@@ -15,15 +15,23 @@ extern "C" {
 	#include <ps5/payload_main.h>
 	int puts(const char *);
 	int usleep(unsigned int useconds);
-	extern int _master_sock;
-	extern int _victim_sock;
+	extern const int _master_sock;
+	extern const int _victim_sock;
 }
 
 namespace {
 
-extern uint8_t LIBLOADER_SHELLCODE[282];
-extern uint8_t ALLOCATOR_SHELLCODE[729];
-extern uint8_t KERNELRW_SHELLCODE[278];
+extern const uint8_t LIBLOADER_SHELLCODE[282];
+extern const uint8_t ALLOCATOR_SHELLCODE[729];
+extern const uint8_t KERNELRW_SHELLCODE[278];
+
+constexpr size_t NUM_PRELOADED_MODULES = 3;
+constexpr int LIBKERNEL_HANDLE = 0x2001;
+constexpr int LIBC_HANDLE = 2;
+constexpr int LIBSYSMODULE_HANDLE = 0X11;
+constexpr unsigned int USLEEP_INTERVAL = 10;
+constexpr size_t PAGE_SIZE = 0x4000;
+constexpr size_t PAGE_ALIGN_MASK = PAGE_SIZE - 1;
 
 };
 
@@ -46,7 +54,7 @@ static inline constexpr Nid setsockopt{"fFxGkxF2bVo"};
 struct NidKeyValue {
 	Nid nid; 		// packed to fit in 12 bytes
 	uint32_t index; // index into symtab (which is a 32 bit integer)
-	constexpr int_fast32_t operator<=>(const Nid &rhs) const {
+	constexpr int_fast64_t operator<=>(const Nid &rhs) const {
 		return nid <=> rhs;
 	}
 }; // total size is 16 bytes to allow a memcpy size of a multiple of 16
@@ -57,13 +65,13 @@ class NidMap {
 
 	friend struct SymbolLookupTable;
 
-	NidKeyValue *__restrict nids;
+	UniquePtr<NidKeyValue[]> nids;
 	uint_fast32_t size;
 	// there is no intention of ever growing this since the symtab size is known
 
-	int_fast32_t binarySearch(const Nid &key) const {
-		int_fast32_t lo = 0;
-		int_fast32_t hi = size - 1;
+	int_fast64_t binarySearch(const Nid &key) const {
+		int_fast64_t lo = 0;
+		int_fast64_t hi = size - 1;
 
 		while (lo <= hi) {
 			const auto m = (lo + hi) >> 1;
@@ -81,7 +89,7 @@ class NidMap {
 		return -(lo + 1);
 	}
 
-	static int_fast32_t toIndex(int_fast32_t i) {
+	static int_fast64_t toIndex(int_fast64_t i) {
 		return -(i + 1);
 	}
 
@@ -92,7 +100,7 @@ class NidMap {
 			value.nid = key;
 			return value;
 		}
-		__builtin_memcpy(nids + i + 1, nids + i, sizeof(NidKeyValue) * (size - i));
+		__builtin_memcpy(nids.get() + i + 1, nids.get() + i, sizeof(NidKeyValue) * (size - i));
 		NidKeyValue &value = nids[i];
 		value.nid = key;
 		return value;
@@ -109,11 +117,9 @@ class NidMap {
 	NidMap(decltype(nullptr)) : nids(nullptr), size() {}
 	NidMap(uint_fast32_t capacity) : nids(new NidKeyValue[capacity]()), size(0) {}
 	NidMap &operator=(uint_fast32_t capacity) {
-		delete[] nids;
 		nids = new NidKeyValue[capacity]();
 		return *this;
 	}
-	~NidMap() { delete[] nids; }
 	uint_fast32_t length() const { return size; }
 
 	const NidKeyValue *operator[](const Nid &key) const {
@@ -121,7 +127,7 @@ class NidMap {
 		if (index < 0) {
 			return nullptr;
 		}
-		return nids + index;
+		return nids.get() + index;
 	}
 };
 
@@ -146,8 +152,7 @@ struct SymbolLookupTable {
 		SymbolLookupTable(SharedLib *lib) :
 			// while not obvious, nchain == length of symtab
 			nids(lib->getMetaData()->nSymbols()), lib(lib){}
-		SymbolLookupTable(SymbolLookupTable&&) = default;
-		SymbolLookupTable &operator=(SymbolLookupTable&&) = default;
+
 		SymbolLookupTable &operator=(SharedLib *lib) {
 			nids = lib->getMetaData()->nSymbols();
 			this->lib = lib;
@@ -163,8 +168,8 @@ struct SymbolLookupTable {
 		}
 
 		const rtld::ElfSymbol operator[](const char *sym) {
-			Nid nid;
-			fillNid(nid.str, sym);
+			Nid nid; // NOLINT(cppcoreguidelines-pro-type-member-init) we're initializing it in fillNid
+			fillNid(nid, sym);
 			return (*this)[nid];
 		}
 
@@ -178,16 +183,12 @@ struct SymbolLookupTable {
 };
 
 Elf::Elf(Hijacker *hijacker, uint8_t *data) :
-		Elf64_Ehdr(*(Elf64_Ehdr *)data), phdrs((Elf64_Phdr*)(data + e_phoff)),
+		Elf64_Ehdr(*reinterpret_cast<Elf64_Ehdr *>(data)), phdrs(reinterpret_cast<Elf64_Phdr*>(data + e_phoff)),
 		strtab(), strtabLength(), symtab(), symtabLength(), relatbl(), relaLength(),
 		plt(), pltLength(), hijacker(hijacker), textOffset(), imagebase(),
 		data(data), libs(nullptr) {
 	// TODO check the elf magic stupid
 	//hexdump(data, sizeof(Elf64_Ehdr));
-}
-
-Elf::~Elf() {
-	// this is to ensure that the destructor for SymbolLookupTable is visible
 }
 
 bool loadLibraries(Hijacker &hijacker, const Array<String> &paths, Array<SymbolLookupTable> &libs, const size_t reserved);
@@ -197,7 +198,7 @@ bool Elf::parseDynamicTable() {
 	for (size_t i = 0; i < e_phnum; i++) {
 		const Elf64_Phdr *__restrict phdr = phdrs + i;
 		if (phdr->p_type == PT_DYNAMIC) {
-			dyntbl = (Elf64_Dyn*)(data + phdr->p_offset);
+			dyntbl = reinterpret_cast<Elf64_Dyn*>(data + phdr->p_offset);
 			break;
 		}
 	}
@@ -217,28 +218,28 @@ bool Elf::parseDynamicTable() {
 				neededLibs.push_front(dyn);
 				break;
 			case DT_RELA:
-				relatbl = (Elf64_Rela *)(image + dyn->d_un.d_ptr);
+				relatbl = reinterpret_cast<Elf64_Rela *>(image + dyn->d_un.d_ptr);
 				break;
 			case DT_RELASZ:
 				relaLength = dyn->d_un.d_val / sizeof(Elf64_Rela);
 				break;
 			case DT_JMPREL:
-				plt = (Elf64_Rela *)(image + dyn->d_un.d_ptr);
+				plt = reinterpret_cast<Elf64_Rela *>(image + dyn->d_un.d_ptr);
 				break;
 			case DT_PLTRELSZ:
 				pltLength = dyn->d_un.d_val / sizeof(Elf64_Rela);
 				break;
 			case DT_SYMTAB:
-				symtab = (Elf64_Sym *) (image + dyn->d_un.d_ptr);
+				symtab = reinterpret_cast<Elf64_Sym *>(image + dyn->d_un.d_ptr);
 				break;
 			case DT_STRTAB:
-				strtab = (const char *) (image + dyn->d_un.d_ptr);
+				strtab = reinterpret_cast<const char *>(image + dyn->d_un.d_ptr);
 				break;
 			case DT_STRSZ:
 				strtabLength = dyn->d_un.d_val;
 				break;
 			case DT_HASH:
-				symtabLength = ((uint32_t *)(image + dyn->d_un.d_ptr))[1];
+				symtabLength = reinterpret_cast<uint32_t *>(image + dyn->d_un.d_ptr)[1];
 				break;
 
 			// don't care for now
@@ -288,7 +289,8 @@ bool Elf::parseDynamicTable() {
 	}
 
 	Array<String> names{neededLibs.length()};
-	int preLoadedHandles[6];
+
+	int preLoadedHandles[NUM_PRELOADED_MODULES];
 	int handleCount = 0;
 	size_t i = 0;
 	for (const Elf64_Dyn *lib : neededLibs) {
@@ -299,15 +301,15 @@ bool Elf::parseDynamicTable() {
 		}
 		// I really do not want to implement a hashmap
 		if (filename.startswith("libkernel"_sv)) {
-			preLoadedHandles[handleCount++] = 0x2001;
+			*(preLoadedHandles + handleCount++) = LIBKERNEL_HANDLE;
 			continue;
 		}
 		if (filename == "libSceLibcInternal.so"_sv || filename == "libc.so"_sv) {
-			preLoadedHandles[handleCount++] = 0x2;
+			*(preLoadedHandles + handleCount++) = LIBC_HANDLE;
 			continue;
 		}
 		if (filename == "libSceSysmodule.so"_sv) {
-			preLoadedHandles[handleCount++] = 0x11;
+			*(preLoadedHandles + handleCount++) = LIBSYSMODULE_HANDLE;
 			continue;
 		}
 
@@ -329,9 +331,9 @@ bool Elf::parseDynamicTable() {
 
 	puts("filling symbol tables");
 	for (auto i = 0; i < handleCount; i++) {
-		auto ptr = hijacker->getLib(preLoadedHandles[i]);
+		auto ptr = hijacker->getLib(*(preLoadedHandles + i));
 		if (ptr == nullptr) {
-			printf("failed to get lib for 0x%x\n", (unsigned int) preLoadedHandles[i]);
+			printf("failed to get lib for 0x%x\n", (unsigned int) *(preLoadedHandles + i));
 			return false;
 		}
 		SymbolLookupTable &lib = libs[i] = ptr.release();
@@ -354,16 +356,15 @@ struct LibLoaderArgs {
 	uintptr_t offsets;
 	int numOffsets;
 
-	LibLoaderArgs(Hijacker& hijacker, const String &fulltbl, int nlibs) : result({0, 0}) {
-		UniquePtr<SharedLib> libSceSysmodule = hijacker.getLib(0x11);
+	LibLoaderArgs(Hijacker& hijacker, const String &fulltbl, int nlibs) :
+			result({0, 0}), usleep(hijacker.getLibKernelFunctionAddress(nid::usleep)),
+			strtab(hijacker.getDataAllocator().allocate(fulltbl.length())),
+			offsets(hijacker.getDataAllocator().allocate(sizeof(uintptr_t) * nlibs)), numOffsets(nlibs) {
+		UniquePtr<SharedLib> libSceSysmodule = hijacker.getLib(LIBSYSMODULE_HANDLE);
 		sceSysmoduleLoadModuleInternal =
 			hijacker.getFunctionAddress(libSceSysmodule.get(), nid::sceSysmoduleLoadModuleInternal);
 		sceSysmoduleLoadModuleByNameInternal =
 			hijacker.getFunctionAddress(libSceSysmodule.get(), nid::sceSysmoduleLoadModuleByNameInternal);
-		usleep = hijacker.getLibKernelFunctionAddress(nid::usleep);
-		strtab = hijacker.getDataAllocator().allocate(fulltbl.length());
-		offsets = hijacker.getDataAllocator().allocate(sizeof(uintptr_t) * nlibs);
-		numOffsets = nlibs;
 	}
 };
 
@@ -385,7 +386,7 @@ bool loadLibraries(Hijacker &hijacker, const Array<String> &names, Array<SymbolL
 			if (id != 0) {
 				positions[i++] = id;
 			} else {
-				positions[i++] = fulltbl.length();
+				positions[i++] = (intptr_t)fulltbl.length();
 				fulltbl += path;
 				fulltbl += '\0';
 			}
@@ -412,8 +413,8 @@ bool loadLibraries(Hijacker &hijacker, const Array<String> &names, Array<SymbolL
 
 		hijacker.resume();
 		LibLoaderArgs::Result state{0, 0};
-		do {
-			usleep(10);
+		do { // NOLINT(cppcoreguidelines-avoid-do-while)
+			usleep(USLEEP_INTERVAL);
 			state = *res;
 		} while (state.state == 0);
 
@@ -428,7 +429,7 @@ bool loadLibraries(Hijacker &hijacker, const Array<String> &names, Array<SymbolL
 	}
 
 	for (size_t i = 0; i < nlibs; i++) {
-		intptr_t handle = positions[i];
+		int handle = (int)positions[i];
 		UniquePtr<SharedLib> ptr = nullptr;
 		if (handle == 0) {
 			// sceSysmoduleLoadModuleInternal was used
@@ -489,15 +490,12 @@ struct AllocatorArgs {
 	uintptr_t info;
 	int numInfo;
 
-	AllocatorArgs(Hijacker& hijacker, int infoCount) : result({0, 0}) {
-		usleep = hijacker.getLibKernelFunctionAddress(nid::usleep);
-		mmap = hijacker.getLibKernelFunctionAddress(nid::mmap);
-		munmap = hijacker.getLibKernelFunctionAddress(nid::munmap);
-		sceKernelJitCreateSharedMemory = hijacker.getLibKernelFunctionAddress(nid::sceKernelJitCreateSharedMemory);
-		errno = hijacker.getLibKernelFunctionAddress(nid::errno);
-		info = hijacker.getDataAllocator().allocate(sizeof(AllocationInfo) * infoCount);
-		numInfo = infoCount;
-	}
+	AllocatorArgs(Hijacker& hijacker, int infoCount) :
+		result({0, 0}), usleep(hijacker.getLibKernelFunctionAddress(nid::usleep)),
+		mmap(hijacker.getLibKernelFunctionAddress(nid::mmap)), munmap(hijacker.getLibKernelFunctionAddress(nid::munmap)),
+		sceKernelJitCreateSharedMemory(hijacker.getLibKernelFunctionAddress(nid::sceKernelJitCreateSharedMemory)),
+		errno(hijacker.getLibKernelFunctionAddress(nid::errno)),
+		info(hijacker.getDataAllocator().allocate(sizeof(AllocationInfo) * infoCount)), numInfo(infoCount) {}
 };
 
 static bool isAlive(int v) {
@@ -520,7 +518,7 @@ static uintptr_t runAllocatorShellcode(Hijacker *hijacker, Array<AllocationInfo>
 	{
 		ScopedSuspender suspender{hijacker};
 
-		usleep(10);
+		usleep(USLEEP_INTERVAL);
 
 		// hold the reference to keep this alive
 		auto frame = hijacker->getTrapFrame();
@@ -535,8 +533,8 @@ static uintptr_t runAllocatorShellcode(Hijacker *hijacker, Array<AllocationInfo>
 
 		hijacker->resume();
 		printf("waiting for allocator to finish\n");
-		do {
-			usleep(10);
+		do { // NOLINT(cppcoreguidelines-avoid-do-while)
+			usleep(USLEEP_INTERVAL);
 			if (!isAlive(pid)) {
 				printf("spawned process died during allocation\n");
 				return 0;
@@ -592,7 +590,7 @@ bool Elf::processProgramHeaders() {
 	}
 	Array<AllocationInfo> infos{loadable};
 	const auto *__restrict phdr = phdrs + text;
-	infos[0] = {phdr->p_paddr, (phdr->p_memsz + 0x3FFF) & 0xFFFFC000, 0, toMmapProt(phdr)};
+	infos[0] = {phdr->p_paddr, (phdr->p_memsz + PAGE_ALIGN_MASK) & ~PAGE_ALIGN_MASK, 0, toMmapProt(phdr)};
 	{
 		for (size_t i = 0, j = 1; i < e_phnum; i++) {
 			const auto *__restrict phdr = phdrs + i;
@@ -601,14 +599,14 @@ bool Elf::processProgramHeaders() {
 					// skip text
 					continue;
 				}
-				if (phdr->p_align != 0x4000) {
+				if (phdr->p_align != PAGE_SIZE) {
 					printf("phdr starting at paddr 0x%llx is not page aligned\n", phdr->p_paddr);
 				}
-				if ((phdr->p_paddr & 0x3FFF) != 0) [[unlikely]] {
+				if ((phdr->p_paddr & PAGE_ALIGN_MASK) != 0) [[unlikely]] {
 					printf("phdr starting at paddr 0x%llx is not page aligned\n", phdr->p_paddr);
 					return false;
 				}
-				infos[j++] = {phdr->p_paddr, (phdr->p_memsz + 0x3FFF) & 0xFFFFC000, 0, toMmapProt(phdr)};
+				infos[j++] = {phdr->p_paddr, (phdr->p_memsz + PAGE_ALIGN_MASK) & ~PAGE_ALIGN_MASK, 0, toMmapProt(phdr)};
 			}
 		}
 	}
@@ -672,14 +670,12 @@ struct KernelRWArgs {
 	uintptr_t setsockopt;
 	uintptr_t errno;
 
-	KernelRWArgs(Hijacker& hijacker) : result({0, 0}) {
+	KernelRWArgs(Hijacker& hijacker) :
+			result({0, 0}), usleep(hijacker.getLibKernelFunctionAddress(nid::usleep)),
+			socket(hijacker.getLibKernelFunctionAddress(nid::socket)), pipe(hijacker.getLibKernelFunctionAddress(nid::pipe)),
+			setsockopt(hijacker.getLibKernelFunctionAddress(nid::setsockopt)), errno(hijacker.getLibKernelFunctionAddress(nid::errno)) {
 		auto &alloc = hijacker.getDataAllocator();
 		files = alloc.allocate(sizeof(int[4]));
-		usleep = hijacker.getLibKernelFunctionAddress(nid::usleep);
-		socket = hijacker.getLibKernelFunctionAddress(nid::socket);
-		pipe = hijacker.getLibKernelFunctionAddress(nid::pipe);
-		setsockopt = hijacker.getLibKernelFunctionAddress(nid::setsockopt);
-		errno = hijacker.getLibKernelFunctionAddress(nid::errno);
 	}
 };
 
@@ -702,7 +698,7 @@ uintptr_t Elf::setupKernelRW() {
 
 		hijacker->resume();
 		while (*res == 0) {
-			usleep(10);
+			usleep(USLEEP_INTERVAL);
 		}
 	}
 
@@ -719,6 +715,8 @@ uintptr_t Elf::setupKernelRW() {
 		return 0;
 	}
 
+	// TODO: Make this functionality available elsewhere. Deal with the magic numbers then.
+	// NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers)
 	auto newtbl = hijacker->getProc()->getFdTbl();
 	auto sock = newtbl.getFileData(files[0]);
 	kwrite<uint32_t>(sock, 0x100);
@@ -732,14 +730,18 @@ uintptr_t Elf::setupKernelRW() {
 	kwrite<uint32_t>(master_inp6_outputopts + 0xc0, 0x13370000);
 	const uintptr_t pipeaddr = kread<uintptr_t>(newtbl.getFile(files[2]));
 
+	// NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
+
+	// NOLINTBEGIN(performance-no-int-to-ptr)
 	struct payload_args result = {
-		.dlsym = (dlsym_t *) hijacker->getLibKernelFunctionAddress(nid::sceKernelDlsym),
-		.rwpipe = ((int *) args.files) + 2,
-		.rwpair = (int *) args.files,
+		.dlsym = reinterpret_cast<dlsym_t *>(hijacker->getLibKernelFunctionAddress(nid::sceKernelDlsym)),
+		.rwpipe = reinterpret_cast<int *>(args.files) + 2,
+		.rwpair = reinterpret_cast<int *>(args.files),
 		.kpipe_addr = pipeaddr,
 		.kdata_base_addr = kernel_base,
-		.payloadout = (int *) alloc.allocate(sizeof(int))
+		.payloadout = reinterpret_cast<int *>(alloc.allocate(sizeof(int)))
 	};
+	// NOLINTEND(performance-no-int-to-ptr)
 
 	uintptr_t addr = alloc.allocate(sizeof(struct payload_args));
 	hijacker->write(addr, &result, sizeof(result));
@@ -763,7 +765,8 @@ bool Elf::load() {
 		int j = 0;
 		while (!hijacker->write(vaddr, data + phdr->p_offset, phdr->p_filesz)) {
 			printf("failed to write section data for phdr with paddr 0x%08llx\n", phdr->p_paddr);
-			if (j++ > 10) {
+			if (j++ > 10) { // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+				// TODO: find out why I did this
 				return false;
 			}
 		}
@@ -856,7 +859,7 @@ bool Elf::processRelocations() {
 				if (libsym == 0) [[unlikely]] {
 					return false;
 				}
-				*(uintptr_t*)(image + rel->r_offset) = libsym + rel->r_addend;
+				*reinterpret_cast<uintptr_t*>(image + rel->r_offset) = libsym + rel->r_addend;
 				break;
 			}
 			case R_X86_64_GLOB_DAT: {
@@ -865,12 +868,12 @@ bool Elf::processRelocations() {
 				if (libsym == 0) [[unlikely]] {
 					return false;
 				}
-				*(uintptr_t*)(image + rel->r_offset) = libsym;
+				*reinterpret_cast<uintptr_t*>(image + rel->r_offset) = libsym;
 				break;
 			}
 			case R_X86_64_RELATIVE: {
 				// imagebase + addend
-				*(uintptr_t*)(image + rel->r_offset) = imagebase + rel->r_addend;
+				*reinterpret_cast<uintptr_t*>(image + rel->r_offset) = imagebase + rel->r_addend;
 				break;
 			}
 			default:
@@ -906,16 +909,18 @@ bool Elf::processPltRelocations() {
 			__builtin_printf("failed to find library symbol %s\n", name);
 			return false;
 		}
-		*(uintptr_t*)(image + rel->r_offset) = libsym;
+		*reinterpret_cast<uintptr_t*>(image + rel->r_offset) = libsym;
 	}
 
 	return true;
 }
 
+// NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers)
+
 namespace {
 
 // see shellcode/libloader.cpp for source
-uint8_t LIBLOADER_SHELLCODE[]{
+const uint8_t LIBLOADER_SHELLCODE[]{
     0x48, 0x83, 0xec, 0x28, 0x48, 0x89, 0x7c, 0x24, 0x20, 0xc7, 0x44, 0x24, 0x1c, 0x00, 0x00, 0x00,
     0x00, 0x8b, 0x44, 0x24, 0x1c, 0x48, 0x8b, 0x4c, 0x24, 0x20, 0x3b, 0x41, 0x30, 0x0f, 0x8d, 0xda,
     0x00, 0x00, 0x00, 0x48, 0x8b, 0x44, 0x24, 0x20, 0x48, 0x8b, 0x40, 0x28, 0x48, 0x63, 0x4c, 0x24,
@@ -937,7 +942,7 @@ uint8_t LIBLOADER_SHELLCODE[]{
 };
 
 // see shellcode/allocator.cpp for source
-uint8_t ALLOCATOR_SHELLCODE[]{
+const uint8_t ALLOCATOR_SHELLCODE[]{
 	0x55, 0x41, 0x57, 0x41, 0x56, 0x41, 0x55, 0x41, 0x54, 0x53, 0x50, 0x44, 0x8b, 0x67, 0x38, 0x48,
 	0x89, 0xfb, 0x45, 0x85, 0xe4, 0x7e, 0x14, 0x48, 0x8b, 0x43, 0x30, 0x41, 0x83, 0xfc, 0x11, 0x73,
 	0x12, 0x31, 0xc9, 0x45, 0x31, 0xf6, 0xe9, 0x11, 0x01, 0x00, 0x00, 0x45, 0x31, 0xf6, 0xe9, 0x29,
@@ -986,7 +991,7 @@ uint8_t ALLOCATOR_SHELLCODE[]{
 	0xbf, 0x40, 0x42, 0x0f, 0x00, 0xff, 0xd3, 0xeb, 0xf7
 };
 
-uint8_t KERNELRW_SHELLCODE[]{
+const uint8_t KERNELRW_SHELLCODE[]{
 	0x41, 0x57, 0x41, 0x56, 0x41, 0x54, 0x53, 0x48, 0x83, 0xec, 0x18, 0x4c, 0x8b, 0x77, 0x18, 0x48,
 	0x89, 0xfb, 0xbf, 0x1c, 0x00, 0x00, 0x00, 0xbe, 0x02, 0x00, 0x00, 0x00, 0xba, 0x11, 0x00, 0x00,
 	0x00, 0x41, 0xff, 0xd6, 0x4c, 0x8b, 0x7b, 0x08, 0xbf, 0x1c, 0x00, 0x00, 0x00, 0xbe, 0x02, 0x00,
@@ -1008,3 +1013,5 @@ uint8_t KERNELRW_SHELLCODE[]{
 };
 
 }
+
+// NOLINTEND(cppcoreguidelines-avoid-magic-numbers)

@@ -11,6 +11,8 @@
 
 class Hijacker {
 
+	static constexpr int LIBKERNEL_HANDLE = 0x2001;
+
 	UniquePtr<SharedObject> obj;
 
 	protected:
@@ -99,7 +101,7 @@ class Hijacker {
 
 		SharedLib *getLibKernel() const {
 			if (libkernel == nullptr) [[unlikely]] {
-				libkernel = obj->getLib(0x2001);
+				libkernel = obj->getLib(LIBKERNEL_HANDLE);
 			}
 			return libkernel.get();
 		}

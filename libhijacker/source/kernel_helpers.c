@@ -10,6 +10,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
+// NOLINTBEGIN(*)
+
 uintptr_t kernel_base;
 
 // Store necessary sockets/pipe for corruption.
@@ -84,3 +86,5 @@ void kernel_copyout(uint64_t ksrc, void *dest, size_t length)
 	// Perform read across pipe
 	_read(_rw_pipe[0], dest, length);
 }
+
+// NOLINTEND(*)

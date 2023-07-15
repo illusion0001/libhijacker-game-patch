@@ -17,8 +17,8 @@ class FileDescriptor {
 		FileDescriptor(int fd) : fd(fd) {}
 		FileDescriptor(const FileDescriptor&) = delete;
 		FileDescriptor& operator=(const FileDescriptor &) = delete;
-		FileDescriptor(FileDescriptor &&rhs) : fd(rhs.fd) { rhs.fd = -1; }
-		FileDescriptor& operator=(FileDescriptor &&rhs) {
+		FileDescriptor(FileDescriptor &&rhs) noexcept : fd(rhs.fd) { rhs.fd = -1; }
+		FileDescriptor& operator=(FileDescriptor &&rhs) noexcept {
 			if (fd != -1) {
 				close(fd);
 			}

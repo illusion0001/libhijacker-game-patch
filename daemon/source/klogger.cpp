@@ -38,7 +38,7 @@ static void run(int s) {
 		}
 
 		klogbuf[0] = '\0';
-		int remaining = read(fd, klogbuf, sizeof(klogbuf));
+		auto remaining = read(fd, klogbuf, sizeof(klogbuf));
 		if (remaining == -1) {
 			// error occured
 			return;
@@ -52,7 +52,7 @@ static void run(int s) {
 				// connection was closed
 				return;
 			}
-			int sent = write(sock, klogbuf, remaining);
+			auto sent = write(sock, klogbuf, remaining);
 			if (sent <= 0) {
 				return;
 			}

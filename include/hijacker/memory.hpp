@@ -15,17 +15,18 @@ class ProcessReference {
 		ProcessReference() = default;
 		ProcessReference(int pid, uintptr_t addr) : addr(addr), pid(pid) {}
 		ProcessReference(const ProcessReference &rhs) : addr(rhs.addr), pid(rhs.pid) {}
-		ProcessReference(ProcessReference&&) = delete;
+		ProcessReference(ProcessReference&&) noexcept = delete;
 		ProcessReference &operator=(const ProcessReference &rhs) {
 			addr = rhs.addr;
 			pid = rhs.pid;
 			return *this;
 		}
-		ProcessReference &operator=(ProcessReference&&) = delete;
+		ProcessReference &operator=(ProcessReference&&) noexcept = delete;
 		ProcessReference &operator=(T value) {
 			dbg::write(pid, addr, &value, sizeof(value));
 			return *this;
 		}
+		~ProcessReference() noexcept = default;
 		operator T() const {
 			T value;
 			dbg::read(pid, addr, &value, sizeof(T));
@@ -41,7 +42,7 @@ class ProcessReference<bool> {
 	public:
 		ProcessReference(int pid, uintptr_t addr) : addr(addr), pid(pid) {}
 		ProcessReference(const ProcessReference &rhs) : addr(rhs.addr), pid(rhs.pid) {}
-		ProcessReference(ProcessReference&&) = delete;
+		ProcessReference(ProcessReference&&) noexcept = delete;
 		ProcessReference &operator=(const ProcessReference &rhs) {
 			addr = rhs.addr;
 			pid = rhs.pid;
@@ -51,8 +52,10 @@ class ProcessReference<bool> {
 			dbg::write(pid, addr, &value, sizeof(value));
 			return *this;
 		}
+		ProcessReference &operator=(ProcessReference&&) noexcept = delete;
+		~ProcessReference() noexcept = default;
 		explicit operator bool() const {
-			bool value;
+			bool value; // NOLINT(cppcoreguidelines-init-variables)
 			dbg::read(pid, addr, &value, sizeof(bool));
 			return value;
 		}
@@ -66,10 +69,6 @@ class ProcessPointer {
 	public:
 		ProcessPointer() : addr(), pid() {}
 		ProcessPointer(int pid, uintptr_t addr) : addr(addr), pid(pid) {}
-		ProcessPointer(const ProcessPointer&) = default;
-		ProcessPointer(ProcessPointer&&) = default;
-		ProcessPointer &operator=(const ProcessPointer&) = default;
-		ProcessPointer &operator=(ProcessPointer&&) = default;
 		ProcessReference<T> operator*() const { return {pid, addr}; }
 		T get() const {
 			T value{};

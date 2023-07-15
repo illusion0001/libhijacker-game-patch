@@ -12,6 +12,12 @@ extern "C" {
 
 }
 
+namespace {
+
+static constexpr size_t UCRED_SIZE = 0x168;
+
+}
+
 template <typename T>
 void kread(uintptr_t addr, T *dst) {
 	kernel_copyout(addr, dst, sizeof(T));
@@ -31,12 +37,16 @@ void kread(uintptr_t addr, uint8_t(&buf)[length]) {
 
 template <typename T>
 void kwrite(uintptr_t addr, const T& value) {
-	kernel_copyin(const_cast<T *>(&value), addr, sizeof(T));
+	kernel_copyin(const_cast<T *>(&value), addr, sizeof(T)); // NOLINT(cppcoreguidelines-pro-type-const-cast)
 }
 
 template <unsigned long length>
 void kwrite(uintptr_t addr, const uint8_t(&buf)[length]) {
-	kernel_copyin(const_cast<uint8_t *>(buf), addr, length);
+	kernel_copyin(const_cast<uint8_t *>(buf), addr, length); // NOLINT(cppcoreguidelines-pro-type-const-cast)
+}
+
+inline void kwrite(uintptr_t addr, const void *src, size_t length) {
+	kernel_copyin(const_cast<void *>(src), addr, length); // NOLINT(cppcoreguidelines-pro-type-const-cast)
 }
 
 template <typename ObjBase, unsigned long size>
@@ -67,13 +77,13 @@ class KernelObject {
 		template<KernelObjectBase Base>
 		friend class KIterable;
 		uint8_t buf[__restrict size];
-		explicit KernelObject() {}
-		KernelObject(uintptr_t addr) : addr(addr) {
+		explicit KernelObject() = default;
+		KernelObject(uintptr_t addr) : addr(addr) { // NOLINT(cppcoreguidelines-pro-type-member-init)
 			#ifdef DEBUG
 			if (addr == 0) [[unlikely]] {
 				fatalf("kernel nullpointer dereference attempted\n");
 				volatile void **tmp = nullptr;
-				*tmp = nullptr;
+				*tmp = nullptr; // NOLINT(clang-analyzer-core.NullDereference)
 			}
 			#endif
 			kernel_copyout(addr, buf, size);
@@ -103,10 +113,11 @@ class KernelObject {
 
 	public:
 		static constexpr size_t length = size;
-		KernelObject(KernelObject &&rhs) = default;
-		KernelObject &operator=(KernelObject &&rhs) = default;
+		KernelObject(KernelObject &&rhs) noexcept = default;
+		KernelObject &operator=(KernelObject &&rhs) noexcept = default;
 		KernelObject(const KernelObject &rhs) = default;
 		KernelObject &operator=(const KernelObject &rhs) = default;
+		~KernelObject() noexcept = default;
 
 		explicit operator bool() const {
 			return addr;
@@ -126,7 +137,7 @@ class KernelObject {
 				fatalf("nullptr dereference\n");
 			}
 			#endif
-			kernel_copyin(const_cast<uint8_t *>(buf), addr, size);
+			kernel_copyin(const_cast<uint8_t *>(buf), addr, size); // NOLINT(cppcoreguidelines-pro-type-const-cast)
 		}
 };
 
@@ -135,11 +146,11 @@ template<typename T>
 class KPointer {
 
 	protected:
-		const uintptr_t addr;
+		uintptr_t addr;
 
 	public:
-		KPointer(decltype(nullptr)) : addr(0) {}
-		KPointer(uintptr_t addr) : addr(addr) {}
+		KPointer(decltype(nullptr)) noexcept : addr(0) {}
+		KPointer(uintptr_t addr) noexcept : addr(addr) {}
 		T operator*() const {
 			T t;
 			kernel_copyout(addr, &t, sizeof(T));
@@ -171,7 +182,7 @@ class KIterable {
 		KIterable(uintptr_t addr) : addr(addr) {}
 
 		UniquePtr<T> operator*() {
-			return new T{addr};
+			return {new T{addr}};
 		}
 
 		bool operator!=(const KIterable<T> &rhs) const { return addr != rhs.addr; }
@@ -194,7 +205,7 @@ class KIterable {
 template<KernelObjectBase T>
 struct KIterator {
 
-	const uintptr_t addr;
+	uintptr_t addr;
 
 	KIterator(uintptr_t addr) : addr(addr) {}
 	KIterable<T> begin() const {
@@ -206,16 +217,18 @@ struct KIterator {
 
 };
 
-class KUcred : public KernelObject<KUcred, 0x168> {
+class KUcred : public KernelObject<KUcred, UCRED_SIZE> {
+
+	static constexpr size_t AUTHID_OFFSET = 0x58;
 
 	public:
 		KUcred(uintptr_t addr) : KernelObject(addr) {}
 
 		uint64_t authid() const {
-			return get<uint64_t, 0x58>();
+			return get<uint64_t, AUTHID_OFFSET>();
 		}
 
 		void authid(uint64_t value) {
-			set<0x58>(value);
+			set<AUTHID_OFFSET>(value);
 		}
 };

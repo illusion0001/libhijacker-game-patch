@@ -36,6 +36,10 @@ class Thread {
 			_Thrd_create(&id,  fun, args);
 		}
 
+		Thread(const Thread&) = delete;
+		Thread &operator=(const Thread&) = delete;
+		Thread(Thread&&) = default;
+		Thread &operator=(Thread&&) = default;
 		~Thread() {
 			if (id != 0) {
 				std::terminate();
@@ -64,6 +68,10 @@ class JThread : public Thread {
 
 	public:
 		JThread(thrd_start_t fun, void *args = nullptr) : Thread{fun, args} {}
+		JThread(const JThread&) = delete;
+		JThread &operator=(const JThread&) = delete;
+		JThread(JThread&&) = default;
+		JThread &operator=(JThread&&) = default;
 		~JThread() {
 			join();
 		}
