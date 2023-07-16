@@ -6,7 +6,7 @@
 #include <unistd.h>
 
 #include "fd.hpp"
-#include "thread.hpp"
+#include "servers.hpp"
 
 extern int runKlogger(void *unused);
 extern int runElfServer(void *unused);
@@ -75,7 +75,7 @@ class Stdout {
 
 extern void makenewapp();
 
-static int runStdoutServer(void *unused) {
+void StdoutServer::run(TcpSocket &sock) {
 	bool madeApp = false;
 	while (true) {
 		Stdout out{};
@@ -86,16 +86,22 @@ static int runStdoutServer(void *unused) {
 		}
 		pollfd fpd = {.fd =  out, .events = POLLHUP, .revents = 0};
 		if (poll(&fpd, 1, INFTIM) == -1) {
-			return 0;
+			return;
 		}
 	}
 }
 
 int main() {
-	JThread stdoutThread{runStdoutServer};
-	JThread kloggerThread{runKlogger};
-	JThread elfServerThread{runElfServer};
-	JThread commandThread{runCommandProcessor};
+	StdoutServer stdoutServer{};
+	KlogServer klogServer{};
+	ElfServer elfServer{};
+	CommandServer commandServer{};
+
+	// finishes on command
+	commandServer.join();
+	elfServer.stop();
+	stdoutServer.stop();
+	klogServer.stop();
 
 	// TODO add elf loader with options for process name and type (daemon/game)
 	// add whatever other crap people may want

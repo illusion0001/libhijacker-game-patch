@@ -475,7 +475,7 @@ class _List_node {
 	friend class List<T>;
 	friend class _List_iterator<T>;
 
-	UniquePtr<_List_node<T>> *next;
+	UniquePtr<_List_node<T>> next;
 	// don't need a doubly linked list
 	T value;
 
@@ -503,18 +503,18 @@ class _List_iterator {
 			return tmp;
 		}
 		_List_iterator<T> &operator++() {
-			it = it->next;
+			it = it->next.get();
 			return *this;
 		}
 		bool operator!=(const _List_iterator<T> &rhs) const {
 			// use reference equality of the nodes
-			return (uintptr_t)it != (uintptr_t)rhs.it;
+			return it != rhs.it;
 		}
 };
 
 template <typename T>
 class List {
-	UniquePtr<_List_node<T>> *head;
+	UniquePtr<_List_node<T>> head;
 	size_t size;
 
 	public:
@@ -526,18 +526,18 @@ class List {
 		T &emplace_front(Types ...values) {
 			// much cheaper to emplace in front
 			size++;
-			head = {new _List_node<T>(head, values...)};
+			head = {new _List_node<T>(head.release(), values...)};
 			return head->value;
 		}
 
 		T &push_front(const T &value) {
 			size++;
-			head = {new _List_node<T>(head, value)};
+			head = {new _List_node<T>(head.release(), value)};
 			return head->value;
 		}
 
 		_List_iterator<T> begin() const {
-			return head;
+			return head.get();
 		}
 
 		_List_iterator<T> end() const {

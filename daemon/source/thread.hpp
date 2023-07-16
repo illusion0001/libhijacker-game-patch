@@ -38,8 +38,17 @@ class Thread {
 
 		Thread(const Thread&) = delete;
 		Thread &operator=(const Thread&) = delete;
-		Thread(Thread&&) = default;
-		Thread &operator=(Thread&&) = default;
+		Thread(Thread &&rhs) noexcept : id(rhs.id) {
+			rhs.id = 0;
+		}
+		Thread &operator=(Thread &&rhs) noexcept {
+			if (id != 0) {
+				std::terminate();
+			}
+			id = rhs.id;
+			rhs.id = 0;
+			return *this;
+		}
 		~Thread() {
 			if (id != 0) {
 				std::terminate();
@@ -70,8 +79,8 @@ class JThread : public Thread {
 		JThread(thrd_start_t fun, void *args = nullptr) : Thread{fun, args} {}
 		JThread(const JThread&) = delete;
 		JThread &operator=(const JThread&) = delete;
-		JThread(JThread&&) = default;
-		JThread &operator=(JThread&&) = default;
+		JThread(JThread&&) noexcept = default;
+		JThread &operator=(JThread&&) noexcept = default;
 		~JThread() {
 			join();
 		}

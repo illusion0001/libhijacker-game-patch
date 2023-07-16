@@ -41,6 +41,11 @@ class Elf : Elf64_Ehdr {
 
 	public:
 		Elf(Hijacker *hijacker, uint8_t *data);
+		Elf(const Elf&) = delete;
+		Elf &operator=(const Elf&) = delete;
+		Elf(Elf&&) noexcept = default;
+		Elf &operator=(Elf&&) noexcept = default;
+		~Elf() noexcept; // external linkage to prevent undefined behavior
 
 		bool launch();
 };

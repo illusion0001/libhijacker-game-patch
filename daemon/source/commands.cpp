@@ -7,85 +7,55 @@
 #include "dbg/dbg.hpp"
 #include "fd.hpp"
 #include "launcher.hpp"
-#include "thread.hpp"
-
-static constexpr int COMMAND_PORT = 9028;
+#include "servers.hpp"
 
 enum Command : int8_t {
 	INVALID_CMD = -1,
 	ACTIVE_CMD = 0,
 	LAUNCH_CMD,
-	PROCLIST_CMD
+	PROCLIST_CMD,
+	KILL_CMD
 };
 
-static void processCommand(const FileDescriptor &fd);
 bool launchApp(const char *titleId, bool block=false);
 
-int runCommandProcessor(void *unused) {
-	// for now this is solely for checking if we are running
-	FileDescriptor sock = socket(AF_INET, SOCK_STREAM, 0);
-	if (sock == -1) {
-		return 0;
-	}
-
-	int value = 1;
-	if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &value, sizeof(int)) < 0) {
-		return 0;
-	}
-
-	struct sockaddr_in server_addr{0, AF_INET, htons(COMMAND_PORT), {}, {}};
-
-	if (bind(sock, (struct sockaddr*)&server_addr, sizeof(server_addr)) != 0) {
-		return 0;
-	}
-
-	if (listen(sock, 1) != 0) {
-		return 0;
-	}
-
-	struct sockaddr client_addr{};
-	socklen_t addr_len = sizeof(client_addr);
-	while (true) {
-		FileDescriptor fd = accept(sock, &client_addr, &addr_len);
-		if (fd != -1) {
-			processCommand(fd);
-		}
-	}
-	return 0;
-}
-
-static void replyError(const FileDescriptor &fd) {
+static void replyError(const TcpSocket &sock) {
 	const Command cmd = INVALID_CMD;
-	fd.write(&cmd, sizeof(cmd));
+	if (!sock.isClosed()) {
+		sock.write(&cmd, sizeof(cmd));
+	}
 }
 
-static void replyOk(const FileDescriptor &fd) {
+static void replyOk(const TcpSocket &sock) {
 	const Command cmd = ACTIVE_CMD;
-	fd.write(&cmd, sizeof(cmd));
+	sock.write(&cmd, sizeof(cmd));
 }
 
-static void processCommand(const FileDescriptor &fd) {
+void CommandServer::run(TcpSocket &sock) {
 	Command cmd = INVALID_CMD;
-	if (!fd.read(&cmd, sizeof(cmd))) {
+	if (!sock.read(&cmd, sizeof(cmd))) {
+		// failure to read is catastrophic
+		sock.close();
 		return;
 	}
 
 	switch (cmd) {
 		case ACTIVE_CMD:
-			replyOk(fd);
+			replyOk(sock);
 			break;
 		case LAUNCH_CMD:
 			// NPXS40000
-			char appId[10];
-			if (!fd.read(appId, sizeof(appId) - 1)) {
-				replyError(fd);
+			static constexpr auto APP_ID_LENGTH = 10;
+			char appId[APP_ID_LENGTH];
+			if (!sock.read(appId, sizeof(appId) - 1)) {
+				replyError(sock);
 				break;
 			}
 			appId[sizeof(appId) - 1] = '\0';
 			if (launchApp(appId)) {
-				replyOk(fd);
+				replyOk(sock);
 			} else {
-				replyError(fd);
+				replyError(sock);
 			}
 			break;
 		case PROCLIST_CMD:
@@ -93,16 +63,20 @@ static void processCommand(const FileDescriptor &fd) {
 				printf("%s: %d %s\n", p.name().c_str(), p.pid(), p.path().c_str());
 			}
 			break;
+		case KILL_CMD:
+			sock.close();
+			break;
 		case INVALID_CMD:
 			[[fallthrough]];
 		default:
-			replyError(fd);
+			replyError(sock);
 			break;
 	}
 }
 
 static void __attribute__((constructor)) initUserService() {
-	int priority = 256;
+	static constexpr auto DEFAULT_PRIORITY = 256;
+	int priority = DEFAULT_PRIORITY;
 	sceUserServiceInitialize(&priority);
 }
 

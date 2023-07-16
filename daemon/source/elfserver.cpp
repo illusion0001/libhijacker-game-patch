@@ -14,10 +14,9 @@
 #include "fd.hpp"
 #include "hijacker/hijacker.hpp"
 #include "hijacker/spawner.hpp"
-#include "thread.hpp"
+#include "servers.hpp"
 #include "util.hpp"
 
-static constexpr int ELF_PORT = 9027;
 //static constexpr int STUPID_C_ERROR_VALUE = -1;
 static constexpr uint32_t ELF_MAGIC = 0x464C457F;
 
@@ -25,8 +24,9 @@ static constexpr uint32_t ELF_MAGIC = 0x464C457F;
 //static const char *SPAWN_ARGS[] = {NULL};
 
 struct AppStatus {
+	static constexpr auto PAD_SIZE = 28;
 	unsigned int id;
-	unsigned char pad[28];
+	unsigned char pad[PAD_SIZE];
 };
 
 struct LocalProcessArgs {
@@ -103,8 +103,8 @@ static UniquePtr<Hijacker> spawn(const uint8_t *elf) {
 	return spawner.spawn();
 }
 
-static void run(int s) {
-	FileDescriptor sock{s};
+void ElfServer::run(TcpSocket &sock) {
+	constexpr auto MAX_NAME_SIZE = 32;
 	ResponseType response = ResponseType::ERROR;
 	ProcessType type = INVALID;
 	if (!sock.read(&type, sizeof(type))) {
@@ -123,7 +123,7 @@ static void run(int s) {
 			return;
 	}
 
-	char name[32];
+	char name[MAX_NAME_SIZE];
 	if (!sock.read(name, sizeof(name))) {
 		return;
 	}
@@ -137,7 +137,7 @@ static void run(int s) {
 	if (!sock.read(buf.get(), sizeof(elfSize))) {
 		return;
 	}
-	if (*(uint32_t *)buf.get() != ELF_MAGIC) {
+	if (*reinterpret_cast<uint32_t *>(buf.get()) != ELF_MAGIC) {
 		sock.write(&response, sizeof(response));
 		sock.println("invalid elf");
 		return;
@@ -155,35 +155,4 @@ static void run(int s) {
 	response = ResponseType::OK;
 
 	sock.write(&response, sizeof(response));
-}
-
-int runElfServer(void *unused) {
-	FileDescriptor sock = socket(AF_INET, SOCK_STREAM, 0);
-	if (sock == -1) {
-		return 0;
-	}
-
-	int value = 1;
-	if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &value, sizeof(int)) < 0) {
-		return 0;
-	}
-
-	struct sockaddr_in server_addr{0, AF_INET, htons(ELF_PORT), {}, {}};
-
-	if (bind(sock, (struct sockaddr*)&server_addr, sizeof(server_addr)) != 0) {
-		return 0;
-	}
-
-	if (listen(sock, 1) != 0) {
-		return 0;
-	}
-
-	struct sockaddr client_addr{};
-	socklen_t addr_len = sizeof(client_addr);
-	while (true) {
-		int fd = accept(sock, &client_addr, &addr_len);
-		if (fd != -1) {
-			run(fd);
-		}
-	}
 }

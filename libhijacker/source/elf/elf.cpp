@@ -182,6 +182,8 @@ struct SymbolLookupTable {
 		}
 };
 
+Elf::~Elf() noexcept {} // must be defined after SymbolLookupTable
+
 Elf::Elf(Hijacker *hijacker, uint8_t *data) :
 		Elf64_Ehdr(*reinterpret_cast<Elf64_Ehdr *>(data)), phdrs(reinterpret_cast<Elf64_Phdr*>(data + e_phoff)),
 		strtab(), strtabLength(), symtab(), symtabLength(), relatbl(), relaLength(),
