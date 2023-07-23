@@ -188,28 +188,27 @@ class Stdout {
 		}
 };
 
-
-extern "C" const uintptr_t __text_start[] __attribute__((weak));
+extern "C" const uint8_t __text_start __attribute__((weak));
 extern "C" const Elf64_Rela __rela_start[] __attribute__((weak));
 extern "C" const Elf64_Rela __rela_stop[] __attribute__((weak));
 
 static bool hasUnprocessedRelocations() {
-	if ((uintptr_t)__rela_start != (uintptr_t)__rela_stop) {
-		const uint8_t *imagebase = (uint8_t *)__text_start;
-		const uintptr_t *ptr = (uintptr_t *)(__rela_start[0].r_offset + imagebase);
+	if (&__rela_start[0] != &__rela_stop[0]) {
+		const Elf64_Rela __restrict *it = __rela_start;
+		auto ptr = reinterpret_cast<const char *const *>(&__text_start + it->r_offset);
 		return *ptr == 0;
 	}
 	return false;
 }
 
 static bool processRelocations() {
-	uint8_t *imagebase = (uint8_t *)__text_start;
+	const uintptr_t imagebase = reinterpret_cast<uintptr_t>(&__text_start);
 	for (const Elf64_Rela __restrict *it = __rela_start; it != __rela_stop; it++) {
 		if (ELF64_R_TYPE(it->r_info) != R_X86_64_RELATIVE) [[unlikely]] {
 			printf("unexpected relocation type %d\n", ELF64_R_TYPE(it->r_info));
 			return false;
 		}
-		*(uint8_t**)(imagebase + it->r_offset) = (uint8_t *)(imagebase + it->r_addend);
+		*reinterpret_cast<uint8_t**>(imagebase + it->r_offset) = reinterpret_cast<uint8_t*>(imagebase + it->r_addend); // NOLINT(*)
 	}
 	return true;
 }
