@@ -63,6 +63,15 @@ void respawn(Args *args) {
 	path[0] = 0x62652F307070612F;
 	path[1] = 0x6E69622E746F6F;
 
+	/*
+	volatile unsigned long long path[5];
+	path[0] = 0x5F6D65747379732F;
+	path[1] = 0x422F7070612F7865;
+	path[2] = 0x3030303030574552;
+	path[3] = 0x622E746F6F62652F;
+	path[4] = 0x6E69;
+	*/
+
 	const char *argv[] = {NULL};
 
 	res = args->sceSystemServiceAddLocalProcess(status.id, (char *)path, argv, (LocalProcessArgs *) &param);

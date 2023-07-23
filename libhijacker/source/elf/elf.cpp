@@ -15,8 +15,16 @@ extern "C" {
 	#include <ps5/payload_main.h>
 	int puts(const char *);
 	int usleep(unsigned int useconds);
+	int munmap(void *addr, uint64_t len);
+	int sceKernelJitCreateSharedMemory(void *addr, size_t length, uint64_t flags, int *p_fd);
+	int *__error();
+	int sceSysmoduleLoadModuleInternal(uint32_t);
+	int sceSysmoduleLoadModuleByNameInternal(const char *fname, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
+	int sceKernelDlsym(int handle, const char* symbol, void** addrp);
 	extern const int _master_sock;
 	extern const int _victim_sock;
+	extern const int _rw_pipe[2];
+	extern const uint64_t _pipe_addr;
 }
 
 namespace {
@@ -32,6 +40,12 @@ constexpr int LIBSYSMODULE_HANDLE = 0X11;
 constexpr unsigned int USLEEP_INTERVAL = 10;
 constexpr size_t PAGE_SIZE = 0x4000;
 constexpr size_t PAGE_ALIGN_MASK = PAGE_SIZE - 1;
+
+constexpr uint32_t MAP_SHARED   = 0x1;
+constexpr uint32_t MAP_PRIVATE   = 0x2;
+constexpr uint32_t MAP_FIXED     = 0x10;
+constexpr uint32_t MAP_ANONYMOUS = 0x1000;
+constexpr int64_t MAP_FAILED = -1;
 
 };
 
@@ -71,7 +85,7 @@ class NidMap {
 
 	int_fast64_t binarySearch(const Nid &key) const {
 		int_fast64_t lo = 0;
-		int_fast64_t hi = size - 1;
+		int_fast64_t hi = static_cast<int_fast64_t>(size) - 1;
 
 		while (lo <= hi) {
 			const auto m = (lo + hi) >> 1;
@@ -173,7 +187,7 @@ struct SymbolLookupTable {
 			return (*this)[nid];
 		}
 
-		operator bool() const {
+		explicit operator bool() const {
 			return lib != nullptr;
 		}
 
@@ -370,7 +384,49 @@ struct LibLoaderArgs {
 	}
 };
 
+static bool loadLibrariesInplace(Hijacker &hijacker, const Array<String> &names, Array<SymbolLookupTable> &libs, const size_t reserved) {
+	const size_t nlibs = names.length();
+
+	for (size_t i = 0; i < nlibs; i++) {
+		const auto nameString = names[i];
+		const StringView name{nameString};
+		auto id = SYSMODULES[name];
+		if (id != 0) {
+			int res = sceSysmoduleLoadModuleInternal(id);
+			if (res != 0) {
+				printf("sceSysmoduleLoadModuleInternal failed 0x%08x\n", (unsigned int)res);
+				return false;
+			}
+			UniquePtr<SharedLib> ptr = hijacker.getLib(nameString);
+			if (ptr == nullptr) {
+				printf("failed to get lib handle for %s\n", nameString.c_str());
+				return false;
+			}
+			SymbolLookupTable &lib = libs[i + reserved] = ptr.release();
+			lib.fillTable();
+		} else {
+			int handle = sceSysmoduleLoadModuleByNameInternal(name.c_str(), 0, 0, 0, 0, 0);
+			if (handle < 0) {
+				printf("sceSysmoduleLoadModuleInternal failed 0x%08x\n", (unsigned int)handle);
+				return false;
+			}
+			UniquePtr<SharedLib> ptr = hijacker.getLib(handle);
+			if (ptr == nullptr) {
+				printf("failed to get lib handle for %s\n", nameString.c_str());
+				return false;
+			}
+			SymbolLookupTable &lib = libs[i + reserved] = ptr.release();
+			lib.fillTable();
+		}
+	}
+	return true;
+}
+
 bool loadLibraries(Hijacker &hijacker, const Array<String> &names, Array<SymbolLookupTable> &libs, const size_t reserved) {
+	if (hijacker.getPid() == getpid()) {
+		puts("loading inplace");
+		return loadLibrariesInplace(hijacker, names, libs, reserved);
+	}
 	const size_t nlibs = names.length();
 	String fulltbl{};
 	const size_t positionsSize = sizeof(uintptr_t) * nlibs;
@@ -447,6 +503,8 @@ bool loadLibraries(Hijacker &hijacker, const Array<String> &names, Array<SymbolL
 		lib.fillTable();
 	}
 
+	puts("finished loading libraries");
+
 	return true;
 }
 
@@ -509,13 +567,74 @@ static bool isAlive(int v) {
 	return false;
 }
 
+static uintptr_t allocateInplace(Array<AllocationInfo> &infos, const size_t loadable) {
+	size_t totalSize = 0;
+
+	for (size_t i = 0; i < loadable; i++) {
+		totalSize += infos[i].length;
+	}
+
+	// should help ensure we get a contiguous range
+	void *mem = mmap(0, totalSize, PROT_READ, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+	if (reinterpret_cast<int64_t>(mem) == MAP_FAILED) [[unlikely]] {
+		int err = *__error();
+		printf("mmap failed %d %s\n", err, strerror(err));
+		return 0;
+	}
+
+	if (munmap(mem, totalSize) == MAP_FAILED) {
+		int err = *__error();
+		printf("munmap failed %d %s\n", err, strerror(err));
+		return 0;
+	}
+
+	const auto length = infos[0].length;
+
+	int fd = -1;
+	int res = sceKernelJitCreateSharedMemory(nullptr, length, PROT_READ|PROT_WRITE|PROT_EXEC, &fd);
+	if (res != 0) [[unlikely]] {
+		int err = *__error();
+		printf("sceKernelJitCreateSharedMemory failed 0x%08x %d %s\n", res, err, strerror(err));
+		return 0;
+	}
+
+	// it's very picky with what it allows for jit
+	const auto imagebase = reinterpret_cast<uintptr_t>(mmap(mem, length, PROT_EXEC, MAP_FIXED | MAP_SHARED, fd, 0));
+	infos[0].result = reinterpret_cast<uintptr_t>(imagebase);
+	if (static_cast<int64_t>(imagebase) == MAP_FAILED) [[unlikely]] {
+		int err = *__error();
+		printf("mmap failed %d %s\n", err, strerror(err));
+		return 0;
+	}
+
+	for (size_t i = 1; i < loadable; i++) {
+		// ensure they are contiguous in loader
+		const size_t length = infos[i].length;
+		void *addr = reinterpret_cast<void*>(infos[i].paddr + imagebase); // NOLINT(*)
+		auto mmapResult = reinterpret_cast<uintptr_t>(mmap(addr, length, static_cast<int>(infos[i].protection), MAP_FIXED | MAP_ANONYMOUS | MAP_PRIVATE, -1, 0));
+		infos[i].result = mmapResult;
+		if (static_cast<int64_t>(mmapResult) == MAP_FAILED) [[unlikely]] {
+			int err = *__error();
+			printf("mmap failed %d %s\n", err, strerror(err));
+			return 0;
+		}
+	}
+
+	return imagebase;
+}
+
 static uintptr_t runAllocatorShellcode(Hijacker *hijacker, Array<AllocationInfo> &infos, const uintptr_t entry, const size_t loadable) {
+	const int pid = hijacker->getPid();
+
+	if (pid == getpid()) {
+		return allocateInplace(infos, loadable);
+	}
+
 	AllocatorArgs args{*hijacker, (int) loadable};
 	const auto argbuf = hijacker->getDataAllocator().allocate(sizeof(args));
 	hijacker->write(argbuf, &args, sizeof(args));
 	hijacker->write(args.info, infos.data(), sizeof(AllocationInfo) * loadable);
 
-	const int pid = hijacker->getPid();
 	puts("running allocator shellcode");
 	{
 		ScopedSuspender suspender{hijacker};
@@ -681,7 +800,30 @@ struct KernelRWArgs {
 	}
 };
 
+static int rwpipe[2]; // NOLINT(*)
+static int rwpair[2]; // NOLINT(*)
+static struct payload_args result; // NOLINT(*)
+
+static uintptr_t setupKernelRWInplace(const Hijacker& hijacker) {
+	rwpipe[0] = _rw_pipe[0];
+	rwpipe[1] = _rw_pipe[1];
+	rwpair[0] = _master_sock;
+	rwpair[1] = _victim_sock;
+	result = {
+		.dlsym = reinterpret_cast<dlsym_t*>(hijacker.getLibKernelFunctionAddress(nid::sceKernelDlsym)), // NOLINT(*)
+		.rwpipe = rwpipe,
+		.rwpair = rwpair,
+		.kpipe_addr = _pipe_addr,
+		.kdata_base_addr = kernel_base,
+		.payloadout = nullptr
+	};
+	return reinterpret_cast<uintptr_t>(&result);
+}
+
 uintptr_t Elf::setupKernelRW() {
+	if (hijacker->getPid() == getpid()) {
+		return setupKernelRWInplace(*hijacker);
+	}
 	KernelRWArgs args{*hijacker};
 	auto &alloc = hijacker->getDataAllocator();
 	const auto argbuf = alloc.allocate(sizeof(args));
@@ -794,6 +936,7 @@ bool Elf::launch() {
 		return false;
 	}
 
+	puts("setting up kernel rw");
 	uintptr_t args = setupKernelRW();
 	if (args == 0) [[unlikely]] {
 		return false;
@@ -810,6 +953,10 @@ bool Elf::launch() {
 }
 
 bool Elf::start(uintptr_t args) {
+	if (hijacker->getPid() == getpid()) {
+		auto fun = reinterpret_cast<int(*)(uintptr_t)>(imagebase + e_entry); // NOLINT(*)
+		return fun(args) == 0;
+	}
 	ScopedSuspender suspender{hijacker};
 	auto frame = hijacker->getTrapFrame();
 

@@ -5,9 +5,11 @@ extern "C" {
 	#include <ps5/kernel.h>
 }
 
+static constexpr size_t BUF_SIZE = 0x10;
+
 String getKernelString(uintptr_t addr) {
 	String res{};
-	char buf[0x10];
+	char buf[BUF_SIZE];
 	while (true) {
 		kernel_copyout(addr + res.length(), buf, sizeof(buf));
 		size_t read = strnlen(buf, sizeof(buf));

@@ -9,5 +9,6 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_ROOT}/lib)	# static libs are archiv
 
 add_subdirectory(crt)
 add_subdirectory(daemon)
+add_subdirectory(daemon_shim)
 add_subdirectory(libhijacker)
 add_subdirectory(spawner)

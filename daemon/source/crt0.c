@@ -11,6 +11,8 @@
 
 // NOLINTBEGIN(*) c sucks so screw linting it
 
+extern int main(int argc, const char **argv);
+
 // Store necessary sockets/pipe for corruption.
 int _rw_pipe[2];
 int _master_sock;
@@ -96,26 +98,25 @@ static void _fini(void) {
 	}
 }
 
-void __attribute__((noreturn)) _start(struct payload_args *__restrict args) {
+int _start(struct payload_args *__restrict args) {
 
 	// zero .bss
 	__builtin_memset(&__bss_start, 0, &__bss_end - &__bss_start);
 
 	// init stdout, stderr and kernelrw first
-	int fd = open("/dev/console", O_WRONLY);
-	dup2(fd, STDOUT);
-	dup2(STDOUT, STDERR);
+	//int fd = open("/dev/console", O_WRONLY);
+	//dup2(fd, STDOUT);
+	//dup2(STDOUT, STDERR);
 	kernel_init_rw(args);
 
 	// preinit and then init
 	_preinit();
 	_init();
 
-	// register _fini
-	atexit(_fini);
-
 	// run main
-	exit(main(0, NULL));
+	int res = main(0, NULL);
+	_fini();
+	return res;
 }
 
 // NOLINTEND(*)

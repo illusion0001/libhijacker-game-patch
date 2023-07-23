@@ -5,7 +5,7 @@ __asm__(
 	".type   daemon_start, @object\n"
 	".align  4\n"
 	"daemon_start:\n"
-    	".incbin \"../bin/daemon.elf\"\n"
+    	".incbin \"../bin/daemon_shim.elf\"\n"
 	"daemon_end:\n"
 	    ".global daemon_size\n"
 	    ".type   daemon_size, @object\n"

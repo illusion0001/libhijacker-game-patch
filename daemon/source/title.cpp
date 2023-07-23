@@ -8,8 +8,19 @@
 #include <sys/stat.h>
 #include "util.hpp"
 
+// 33554432  0x02000000 -> Redis (daemon)
+// 65792     0x00010100 -> bdj
+// 0         0x00000000 -> astro's playroom
+// 67108864  0x04000000 -> rnps bundle
+// 131328    0x00020100 -> Playstation Now
+// 16777216  0x01000000 -> NPXS40087
+// 570425344 0x22000000 -> Remote Play
 static constexpr auto json = R"({
 	"applicationCategoryType": 33554432,
+	"attribute": 536870912,
+	"attribute2": 0,
+	"attribute3": 4,
+	"displayLocation": 158,
 	"localizedParameters": {
 		"defaultLanguage": "en-US",
 		"en-US": {

@@ -24,7 +24,7 @@ class StdoutServer : public TcpServer {
 
 class ElfServer : public TcpServer {
 
-	static constexpr uint16_t PORT = 9027;
+	static constexpr uint16_t PORT = 9029;
 
 	void run(TcpSocket &sock) override;
 

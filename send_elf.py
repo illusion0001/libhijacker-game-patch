@@ -250,6 +250,7 @@ async def logger_client(args: ParsedArgs):
             writer.write_eof()
             await writer.drain()
             await log_task(reader, args.logger, args.silent)
+        print('logger client finished')
 
 
 async def send_spawner(args: ParsedArgs):
@@ -257,6 +258,17 @@ async def send_spawner(args: ParsedArgs):
         async with open_connection(args.host, ORIGINAL_ELF_PORT) as (reader, writer):
             reader._buffer = LineBuffer(reader._buffer)
             writer.write(args.spawner.read_bytes())
+            writer.write_eof()
+            await writer.drain()
+
+
+async def send_daemon(args: ParsedArgs):
+    async with SEM:
+        async with open_connection(args.host, ELF_PORT) as (reader, writer):
+            reader._buffer = LineBuffer(reader._buffer)
+            data = Path('bin/daemon.elf').read_bytes()
+            writer.write(len(data).to_bytes(8, byteorder='little'))
+            writer.write(data)
             writer.write_eof()
             await writer.drain()
 
@@ -274,6 +286,10 @@ async def run_loggers(args: ParsedArgs):
             spawner = asyncio.create_task(send_spawner(args))
             logger = asyncio.create_task(logger_client(args))
             await asyncio.wait((spawner, logger), return_when=asyncio.ALL_COMPLETED)
+            spawner = asyncio.create_task(send_daemon(args))
+            logger = asyncio.create_task(logger_client(args))
+            await asyncio.wait((spawner, logger), return_when=asyncio.ALL_COMPLETED)
+            return
 
         if args.elf:
             if args.name is None:
@@ -293,7 +309,7 @@ def main():
         description='Helper script for sending the spawner, an elf to load into spawned process and for logging',
     )
     parser.add_argument('ip', help='PS5 ip address')
-    parser.add_argument('elf', help='Path to the elf to load into the spawned process')
+    #parser.add_argument('elf', help='Path to the elf to load into the spawned process')
     parser.add_argument(
         '--spawner',
         default='bin/spawner.elf',

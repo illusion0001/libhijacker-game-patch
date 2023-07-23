@@ -417,6 +417,7 @@ class String {
 
 // NOLINTEND(cppcoreguidelines-owning-memory, cppcoreguidelines-pro-type-member-init)
 
+//
 template <typename T>
 class Array {
 

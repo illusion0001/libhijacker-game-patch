@@ -1,5 +1,9 @@
 // Required header
 
+#ifndef _MMAP_DECLARED
+#define _MMAP_DECLARED
+#endif
+
 #include <stdint.h>
 #include <ps5/payload_main.h>
 #include <ps5/kernel.h>
@@ -95,6 +99,13 @@ STUB(strncmp)
 STUB(__error)
 STUB(strerror)
 STUB(sceKernelPrintBacktraceWithModuleInfo)
+
+// these are unused
+STUB(sceSysmoduleLoadModuleInternal)
+STUB(sceSysmoduleLoadModuleByNameInternal)
+STUB(mmap)
+STUB(munmap)
+STUB(sceKernelJitCreateSharedMemory)
 
 #define LINK(lib, fname) sceKernelDlsym(lib, #fname, &f_##fname)
 #define LIBKERNEL_LINK(fname) LINK(libkernel, fname)

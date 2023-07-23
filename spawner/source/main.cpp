@@ -249,5 +249,7 @@ extern "C" int main() {
 		puts("spawn failed retrying...");
 	}
 
+	puts("spawner.elf finished");
+
 	return 0;
 }

@@ -64,6 +64,7 @@ void CommandServer::run(TcpSocket &sock) {
 			}
 			break;
 		case KILL_CMD:
+			replyOk(sock);
 			sock.close();
 			break;
 		case INVALID_CMD:

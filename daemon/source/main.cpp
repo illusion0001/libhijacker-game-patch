@@ -92,7 +92,7 @@ void StdoutServer::run(TcpSocket &sock) {
 }
 
 int main() {
-	StdoutServer stdoutServer{};
+	//StdoutServer stdoutServer{};
 	KlogServer klogServer{};
 	ElfServer elfServer{};
 	CommandServer commandServer{};
@@ -100,7 +100,7 @@ int main() {
 	// finishes on command
 	commandServer.join();
 	elfServer.stop();
-	stdoutServer.stop();
+	//stdoutServer.stop();
 	klogServer.stop();
 
 	// TODO add elf loader with options for process name and type (daemon/game)

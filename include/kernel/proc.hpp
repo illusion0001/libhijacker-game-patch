@@ -103,6 +103,7 @@ class FdTbl {
 class KProc : public KernelObject<KProc, PROC_SIZE> {
 
 	static constexpr size_t UCRED_OFFSET = 0x40;
+	static constexpr size_t PATH_OFFSET = 0x3d8;
 	static constexpr size_t SHARED_OBJECT_OFFSET = 0x3e8;
 	static constexpr size_t PID_OFFSET = 0xbc;
 	static constexpr size_t THREADS_OFFSET = 0x10;
@@ -132,6 +133,10 @@ class KProc : public KernelObject<KProc, PROC_SIZE> {
 		UniquePtr<SharedObject> getSharedObject() const {
 			auto obj = get<uintptr_t, SHARED_OBJECT_OFFSET>();
 			return obj != 0 ? new SharedObject{obj, pid()} : nullptr;
+		}
+
+		String getPath() const {
+			return getString<PATH_OFFSET>();
 		}
 
 		KIterator<KThread> p_threads() const {
