@@ -5,7 +5,7 @@
 static constexpr uint32_t hash(const StringView &str) {
 	uint32_t hash = 0;
 	for (size_t i = 0; i < str.length(); i++) {
-		hash = 31 * hash + (str[i] & 0xff);
+		hash = 31 * hash + (str[i] & 0xff); // NOLINT(*)
 	}
 	return hash;
 }
@@ -26,7 +26,7 @@ struct SysmoduleMapEntry {
 	HashedStringView name;
 	uint32_t id;
 
-	constexpr SysmoduleMapEntry() = default;
+	constexpr SysmoduleMapEntry() : name(), id() {};
 	constexpr SysmoduleMapEntry(const StringView &name, uint32_t id) : name(name), id(id) {}
 
 	constexpr int32_t operator<=>(const SysmoduleMapEntry &rhs) const {

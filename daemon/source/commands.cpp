@@ -14,19 +14,21 @@ enum Command : int8_t {
 	ACTIVE_CMD = 0,
 	LAUNCH_CMD,
 	PROCLIST_CMD,
-	KILL_CMD
+	KILL_CMD,
+	KILL_APP_CMD
 };
 
-bool launchApp(const char *titleId, bool block=false);
+static bool launchApp(const char *titleId, bool block=false);
+static bool killApp(uint32_t appId);
 
-static void replyError(const TcpSocket &sock) {
+static void replyError(TcpSocket &sock) {
 	const Command cmd = INVALID_CMD;
 	if (!sock.isClosed()) {
 		sock.write(&cmd, sizeof(cmd));
 	}
 }
 
-static void replyOk(const TcpSocket &sock) {
+static void replyOk(TcpSocket &sock) {
 	const Command cmd = ACTIVE_CMD;
 	sock.write(&cmd, sizeof(cmd));
 }
@@ -38,6 +40,9 @@ void CommandServer::run(TcpSocket &sock) {
 		sock.close();
 		return;
 	}
+
+
+	printf("cmd: %u\n", cmd);
 
 	switch (cmd) {
 		case ACTIVE_CMD:
@@ -63,10 +68,24 @@ void CommandServer::run(TcpSocket &sock) {
 				printf("%s: %d %s\n", p.name().c_str(), p.pid(), p.path().c_str());
 			}
 			break;
-		case KILL_CMD:
+		/*case KILL_CMD:
 			replyOk(sock);
 			sock.close();
+			break;*/
+		case KILL_APP_CMD: {
+			uint32_t id{};
+			if (!sock.read(&id, sizeof(id))) {
+				replyError(sock);
+				break;
+			}
+			printf("id: 0x%lx\n", id);
+			if (!killApp(id)) {
+				replyError(sock);
+				break;
+			}
+			replyOk(sock);
 			break;
+		}
 		case INVALID_CMD:
 			[[fallthrough]];
 		default:
@@ -81,7 +100,15 @@ static void __attribute__((constructor)) initUserService() {
 	sceUserServiceInitialize(&priority);
 }
 
-bool launchApp(const char *titleId, bool block) {
+extern "C" uint32_t sceLncUtilKillApp(uint32_t appId);
+
+static bool killApp(uint32_t appId) {
+	uint32_t res = sceLncUtilKillApp(appId);
+	printf("sceApplicationKill returned 0x%llx\n", res);
+	return true;
+}
+
+static bool launchApp(const char *titleId, bool block) {
 	puts("launching app");
 	uint32_t id = -1;
 	uint32_t res = sceUserServiceGetForegroundUser(&id);
@@ -90,7 +117,7 @@ bool launchApp(const char *titleId, bool block) {
 		return false;
 	}
 	printf("user id %u\n", id);
-	Flag flag = block ? Flag_None : SkipLaunchCheck;
+	Flag flag = SkipLaunchCheck;
 	LncAppParam param{sizeof(LncAppParam), id, 0, 0, flag};
 	int err = sceLncUtilLaunchApp(titleId, nullptr, &param);
 	printf("sceLncUtilLaunchApp returned 0x%llx\n", (uint32_t)err);

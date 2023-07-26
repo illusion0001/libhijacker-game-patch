@@ -63,17 +63,17 @@ class TcpSocket {
 			return fd;
 		}
 
-		bool read(void *buf, size_t buflen) const noexcept;
+		bool read(void *buf, size_t buflen) noexcept;
 
-		bool write(const void *buf, size_t buflen) const noexcept;
+		bool write(const void *buf, size_t buflen) noexcept;
 
 		template <size_t N>
-		bool write(const char (&buf)[N]) const noexcept {
+		bool write(const char (&buf)[N]) noexcept {
 			return write(buf, N-1);
 		}
 
 		template <size_t N>
-		bool println(const char (&buf)[N]) const noexcept {
+		bool println(const char (&buf)[N]) noexcept {
 			if (!write(buf)) [[unlikely]] {
 				return false;
 			}
@@ -81,7 +81,7 @@ class TcpSocket {
 		}
 
 		template <size_t N>
-		int puts(const char (&buf)[N]) const noexcept {
+		int puts(const char (&buf)[N]) noexcept {
 			if (println(buf)) {
 				return N;
 			}
@@ -111,7 +111,9 @@ class ServerSocket {
 			int conn = ::accept(fd, &client_addr, &addr_len);
 			if (conn == STUPID_C_ERROR_VALUE) {
 				int err = errno;
-				printf("accept failed %d %s\n", err, strerror(err));
+				if (err != EBADF) {
+					printf("accept failed %d %s\n", err, strerror(err));
+				}
 			}
 			return conn;
 		}
@@ -119,7 +121,9 @@ class ServerSocket {
 		bool bind(struct sockaddr_in *server_addr) noexcept {
 			if (::bind(fd, reinterpret_cast<struct sockaddr*>(server_addr), sizeof(sockaddr_in)) == STUPID_C_ERROR_VALUE) {
 				int err = errno;
-				printf("bind failed %d %s\n", err, strerror(err));
+				if (err != EBADF) {
+					printf("bind failed %d %s\n", err, strerror(err));
+				}
 				return false;
 			}
 			return true;
@@ -128,7 +132,9 @@ class ServerSocket {
 		bool listen(int backlog) noexcept {
 			if (::listen(fd, backlog) == STUPID_C_ERROR_VALUE) {
 				int err = errno;
-				printf("listen failed %d %s\n", err, strerror(err));
+				if (err != EBADF) {
+					printf("listen failed %d %s\n", err, strerror(err));
+				}
 				return false;
 			}
 			return true;
@@ -138,7 +144,9 @@ class ServerSocket {
 			auto result = ::setsockopt(fd, level, optname, optval, optlen);
 			if (result == STUPID_C_ERROR_VALUE) [[unlikely]] {
 				int err = errno;
-				printf("setsockopt failed %d %s\n", err, strerror(err));
+				if (err != EBADF) {
+					printf("setsockopt failed %d %s\n", err, strerror(err));
+				}
 				return false;
 			}
 			return true;

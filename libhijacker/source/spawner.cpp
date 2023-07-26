@@ -121,7 +121,6 @@ UniquePtr<Hijacker> Spawner::spawn() {
 	// TODO: time from here until the stack pointer is set
 	UniquePtr<Hijacker> spawned = nullptr;
 	while (spawned == nullptr) {
-		usleep(5); // NOLINT(*)
 		spawned = Hijacker::getHijacker(id);
 	}
 

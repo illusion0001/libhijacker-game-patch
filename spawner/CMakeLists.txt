@@ -62,7 +62,7 @@ set(CMAKE_C_FLAGS "--target=x86_64-freebsd-pc-elf -O0 -march=znver2 -mavx2 -DPPR
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_POSIX_SOURCE -D_POSIX_C_SOURCE=200112 -D__BSD_VISIBLE=1 -D__XSI_VISIBLE=500")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-builtin -nostdlib -Wall") #  -nostartfiles
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
-set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -DDEBUG -gfull -gdwarf-2 -O0 -march=znver2 -mavx2 -Wall -Wextra -Wmove -Wmost -Werror -pedantic -pedantic-errors -fno-exceptions ")
+set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -DDEBUG -gfull -gdwarf-2 -O3 -march=znver2 -mavx2 -Wall -Wextra -Wmove -Wmost -Werror -pedantic -pedantic-errors -fno-exceptions ")
 set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} -Wno-unused-command-line-argument")
 
 target_sources(${PROJECT_NAME} PRIVATE ${SrcFiles})

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import argparse
 import asyncio
 import re
 import sys
@@ -88,10 +87,12 @@ async def log_task(reader: asyncio.StreamReader, logger: Union[DummyLogger, aiof
 
 
 async def logger_client(host: str):
-    async with SEM:
-        async with open_connection(host, LOGGER_PORT) as (reader, _), get_logger(Path('daemon_log.txt')) as logger:
-            reader._buffer = LineBuffer(reader._buffer)
-            await log_task(reader, logger)
+    async with get_logger(Path('daemon_log.txt')) as logger:
+        while True:
+            async with SEM:
+                async with open_connection(host, LOGGER_PORT) as (reader, _):
+                    reader._buffer = LineBuffer(reader._buffer)
+                    await log_task(reader, logger)
 
 
 

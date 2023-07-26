@@ -152,19 +152,23 @@ class ParsedArgs:
 
 
 @asynccontextmanager
-async def open_connection(host: str, port: int):
+async def open_connection(host: str, port: int, wait=True):
+    reader = None
+    writer = None
     while True:
         try:
             reader, writer = await asyncio.open_connection(host, port)
         except OSError:
             await asyncio.sleep(1)
-            continue
+            if wait:
+                continue
         try:
             yield reader, writer
             break
         finally:
-            await writer.drain()
-            writer.close()
+            if writer is not None:
+                await writer.drain()
+                writer.close()
 
 
 async def send_elf(args: ParsedArgs):
@@ -231,13 +235,12 @@ async def has_homebrew_daemon(host: str) -> bool:
     # checks if the homebrew daemon is already running on the PS5
     async with SEM:
         try:
-            reader, writer = await asyncio.open_connection(host, COMMAND_PORT)
-            try:
+            async with open_connection(host, COMMAND_PORT, wait=False) as (reader, writer):
+                if writer is None:
+                    return False
                 writer.write(b'\x00')
                 response = await reader.read(1)
                 return response == b'\x00'
-            finally:
-                writer.close()
         except OSError:
             return False
 
@@ -255,11 +258,14 @@ async def logger_client(args: ParsedArgs):
 
 async def send_spawner(args: ParsedArgs):
     async with SEM:
-        async with open_connection(args.host, ORIGINAL_ELF_PORT) as (reader, writer):
+        async with open_connection(args.host, ORIGINAL_ELF_PORT, wait=False) as (reader, writer):
+            if writer is None:
+                return
             reader._buffer = LineBuffer(reader._buffer)
             writer.write(args.spawner.read_bytes())
             writer.write_eof()
             await writer.drain()
+        await logger_client(args)
 
 
 async def send_daemon(args: ParsedArgs):
@@ -283,13 +289,11 @@ async def run_loggers(args: ParsedArgs):
     async with args:
         has_daemon = await has_homebrew_daemon(args.host)
         if not has_daemon:
-            spawner = asyncio.create_task(send_spawner(args))
-            logger = asyncio.create_task(logger_client(args))
-            await asyncio.wait((spawner, logger), return_when=asyncio.ALL_COMPLETED)
-            spawner = asyncio.create_task(send_daemon(args))
-            logger = asyncio.create_task(logger_client(args))
-            await asyncio.wait((spawner, logger), return_when=asyncio.ALL_COMPLETED)
-            return
+            await send_spawner(args)
+            await send_daemon(args)
+            #spawner = asyncio.create_task(send_daemon(args))
+            #logger = asyncio.create_task(logger_client(args))
+            #await asyncio.wait((spawner, logger), return_when=asyncio.ALL_COMPLETED)
 
         if args.elf:
             if args.name is None:

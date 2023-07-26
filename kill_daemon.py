@@ -3,7 +3,7 @@ import asyncio
 import sys
 from contextlib import asynccontextmanager
 
-COMMAND_PORT = 9028
+COMMAND_PORT = 9048
 KILL_CMD = b'\x03'
 RESPONSE_OK = 0
 RESPONSE_ERROR = 255
@@ -25,15 +25,8 @@ async def open_connection(host: str, port: int):
 
 
 async def kill(host: str):
-    async with open_connection(host, COMMAND_PORT) as (reader, writer):
-        writer.write(KILL_CMD)
-        await writer.drain()
-        reply = await reader.read()
-        if reply[0] == RESPONSE_OK:
-            print(f'kill command accepted')
-        else:
-            print('failed to send kill command')
-            print(f'reply: {reply}')
+    async with open_connection(host, COMMAND_PORT) as (_, _):
+        pass
 
 
 if __name__ == '__main__':

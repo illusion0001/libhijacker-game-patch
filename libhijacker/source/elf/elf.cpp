@@ -202,7 +202,7 @@ Elf::Elf(Hijacker *hijacker, uint8_t *data) :
 		Elf64_Ehdr(*reinterpret_cast<Elf64_Ehdr *>(data)), phdrs(reinterpret_cast<Elf64_Phdr*>(data + e_phoff)),
 		strtab(), strtabLength(), symtab(), symtabLength(), relatbl(), relaLength(),
 		plt(), pltLength(), hijacker(hijacker), textOffset(), imagebase(),
-		data(data), libs(nullptr) {
+		data(data), libs(nullptr), mappedMemory(nullptr), jitFd(-1) {
 	// TODO check the elf magic stupid
 	//hexdump(data, sizeof(Elf64_Ehdr));
 }
@@ -424,7 +424,6 @@ static bool loadLibrariesInplace(Hijacker &hijacker, const Array<String> &names,
 
 bool loadLibraries(Hijacker &hijacker, const Array<String> &names, Array<SymbolLookupTable> &libs, const size_t reserved) {
 	if (hijacker.getPid() == getpid()) {
-		puts("loading inplace");
 		return loadLibrariesInplace(hijacker, names, libs, reserved);
 	}
 	const size_t nlibs = names.length();
@@ -567,8 +566,10 @@ static bool isAlive(int v) {
 	return false;
 }
 
-static uintptr_t allocateInplace(Array<AllocationInfo> &infos, const size_t loadable) {
+static uintptr_t allocateInplace(Array<AllocationInfo> &infos, const size_t loadable, Array<Elf::MappedMemory> &mappedMemory, int &jitFd) {
 	size_t totalSize = 0;
+
+	mappedMemory = {loadable};
 
 	for (size_t i = 0; i < loadable; i++) {
 		totalSize += infos[i].length;
@@ -590,8 +591,8 @@ static uintptr_t allocateInplace(Array<AllocationInfo> &infos, const size_t load
 
 	const auto length = infos[0].length;
 
-	int fd = -1;
-	int res = sceKernelJitCreateSharedMemory(nullptr, length, PROT_READ|PROT_WRITE|PROT_EXEC, &fd);
+	jitFd = -1;
+	int res = sceKernelJitCreateSharedMemory(nullptr, length, PROT_READ|PROT_WRITE|PROT_EXEC, &jitFd);
 	if (res != 0) [[unlikely]] {
 		int err = *__error();
 		printf("sceKernelJitCreateSharedMemory failed 0x%08x %d %s\n", res, err, strerror(err));
@@ -599,13 +600,15 @@ static uintptr_t allocateInplace(Array<AllocationInfo> &infos, const size_t load
 	}
 
 	// it's very picky with what it allows for jit
-	const auto imagebase = reinterpret_cast<uintptr_t>(mmap(mem, length, PROT_EXEC, MAP_FIXED | MAP_SHARED, fd, 0));
+	const auto imagebase = reinterpret_cast<uintptr_t>(mmap(mem, length, PROT_EXEC, MAP_FIXED | MAP_SHARED, jitFd, 0));
 	infos[0].result = reinterpret_cast<uintptr_t>(imagebase);
 	if (static_cast<int64_t>(imagebase) == MAP_FAILED) [[unlikely]] {
 		int err = *__error();
 		printf("mmap failed %d %s\n", err, strerror(err));
 		return 0;
 	}
+
+	mappedMemory[0] = {reinterpret_cast<void*>(imagebase), length}; // NOLINT(*)
 
 	for (size_t i = 1; i < loadable; i++) {
 		// ensure they are contiguous in loader
@@ -618,6 +621,7 @@ static uintptr_t allocateInplace(Array<AllocationInfo> &infos, const size_t load
 			printf("mmap failed %d %s\n", err, strerror(err));
 			return 0;
 		}
+		mappedMemory[i] = {reinterpret_cast<void*>(mmapResult), length}; //NOLINT(*)
 	}
 
 	return imagebase;
@@ -625,10 +629,6 @@ static uintptr_t allocateInplace(Array<AllocationInfo> &infos, const size_t load
 
 static uintptr_t runAllocatorShellcode(Hijacker *hijacker, Array<AllocationInfo> &infos, const uintptr_t entry, const size_t loadable) {
 	const int pid = hijacker->getPid();
-
-	if (pid == getpid()) {
-		return allocateInplace(infos, loadable);
-	}
 
 	AllocatorArgs args{*hijacker, (int) loadable};
 	const auto argbuf = hijacker->getDataAllocator().allocate(sizeof(args));
@@ -732,9 +732,11 @@ bool Elf::processProgramHeaders() {
 		}
 	}
 
-
-
-	imagebase = runAllocatorShellcode(hijacker, infos, entry, loadable);
+	if (hijacker->getPid() == getpid()) {
+		imagebase = allocateInplace(infos, loadable, mappedMemory, jitFd);
+	} else {
+		imagebase = runAllocatorShellcode(hijacker, infos, entry, loadable);
+	}
 
 	if (imagebase == 0) {
 		return false;
@@ -955,7 +957,12 @@ bool Elf::launch() {
 bool Elf::start(uintptr_t args) {
 	if (hijacker->getPid() == getpid()) {
 		auto fun = reinterpret_cast<int(*)(uintptr_t)>(imagebase + e_entry); // NOLINT(*)
-		return fun(args) == 0;
+		bool res = fun(args) == 0;
+		for (const auto &mem : mappedMemory) {
+			munmap(mem.mem, mem.len);
+		}
+		close(jitFd);
+		return res;
 	}
 	ScopedSuspender suspender{hijacker};
 	auto frame = hijacker->getTrapFrame();

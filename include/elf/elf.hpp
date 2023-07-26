@@ -15,6 +15,13 @@ constexpr auto i = sizeof(Elf64_Dyn);
 
 class Elf : Elf64_Ehdr {
 
+	public:
+	struct MappedMemory {
+		void *mem;
+		size_t len;
+	};
+
+	private:
 	const Elf64_Phdr *__restrict phdrs;
 	const char *__restrict strtab;
 	size_t strtabLength;
@@ -29,6 +36,8 @@ class Elf : Elf64_Ehdr {
 	uintptr_t imagebase;
 	uint8_t *data;
 	Array<SymbolLookupTable> libs;
+	Array<MappedMemory> mappedMemory;
+	int jitFd;
 
 	bool processProgramHeaders();
 	bool parseDynamicTable();

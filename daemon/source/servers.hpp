@@ -81,3 +81,23 @@ class CommandServer : public TcpServer {
 
 		~CommandServer() noexcept override = default;
 };
+
+class AbortServer : public TcpServer {
+
+	static constexpr uint16_t PORT = 9048;
+
+	void run(TcpSocket &sock) override;
+
+	public:
+		AbortServer() noexcept : TcpServer(PORT) {}
+
+		AbortServer(const AbortServer&) = delete;
+
+		AbortServer &operator=(const AbortServer&) = delete;
+
+		AbortServer(AbortServer &&rhs) noexcept = default;
+
+		AbortServer &operator=(AbortServer &&rhs) noexcept = default;
+
+		~AbortServer() noexcept override = default;
+};

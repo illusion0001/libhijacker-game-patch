@@ -50,6 +50,7 @@ enum class ResponseType : int8_t {
 	ERROR = -1
 };
 
+/*
 extern bool launchApp(const char *titleId, bool block=false);
 
 static int runSpawnThread(void *unused) {
@@ -59,6 +60,7 @@ static int runSpawnThread(void *unused) {
 	}
 	return 0;
 }
+*/
 
 static UniquePtr<Hijacker> spawn(const uint8_t *elf) {
 	Spawner spawner{};
@@ -94,7 +96,7 @@ static UniquePtr<Hijacker> spawn(const uint8_t *elf) {
 	close(param.fds[1]);
 	*/
 	const int pid = dbg::getAllPids()[0];
-	JThread spawnThread{runSpawnThread};
+	//JThread spawnThread{runSpawnThread};
 	while (pid == dbg::getAllPids()[0]);
 
 

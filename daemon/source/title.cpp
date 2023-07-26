@@ -1,5 +1,5 @@
 
-
+#include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include "util.hpp"
 
+/*
 // 33554432  0x02000000 -> Redis (daemon)
 // 65792     0x00010100 -> bdj
 // 0         0x00000000 -> astro's playroom
@@ -16,11 +17,11 @@
 // 16777216  0x01000000 -> NPXS40087
 // 570425344 0x22000000 -> Remote Play
 static constexpr auto json = R"({
-	"applicationCategoryType": 33554432,
-	"attribute": 536870912,
+	"applicationCategoryType": 65792,
+	"attribute": 1652558392,
 	"attribute2": 0,
 	"attribute3": 4,
-	"displayLocation": 158,
+	"displayLocation": 155,
 	"localizedParameters": {
 		"defaultLanguage": "en-US",
 		"en-US": {
@@ -30,6 +31,7 @@ static constexpr auto json = R"({
 	"titleId": "BREW00000"
 }
 )"_sv;
+*/
 
 
 #include <sys/mount.h>
@@ -45,6 +47,7 @@ struct NonStupidIovec {
 
 constexpr NonStupidIovec operator"" _iov(const char *str, unsigned long len) { return {str, len+1}; }
 
+
 static bool remount(const char *dev, const char *path) {
 	NonStupidIovec iov[]{
 		"fstype"_iov, "exfatfs"_iov,
@@ -59,16 +62,58 @@ static bool remount(const char *dev, const char *path) {
 	return nmount(reinterpret_cast<struct iovec *>(iov), iovlen, MNT_UPDATE) == 0;
 }
 
+/*
 static constexpr int STUPID_C_ERROR = -1;
 static constexpr int MKDIR_FLAGS = 0666;
 
 // NOLINTBEGIN(cppcoreguidelines-owning-memory)
+
+static bool copyfile(const char *from, const char *to) {
+	struct stat st{};
+	if (stat(from, &st) == STUPID_C_ERROR) {
+		puts(strerror(errno));
+		return false;
+	}
+	UniquePtr<uint8_t[]> buf = new uint8_t[st.st_size];
+	FILE *fp = fopen(from, "rb");
+	if (fp == nullptr) {
+		puts("open failed");
+		puts(strerror(errno));
+		return false;
+	}
+	fread(buf.get(), 1, st.st_size, fp);
+	fclose(fp);
+	fp = fopen(to, "wb+");
+	if (fp == nullptr) {
+		puts("open failed");
+		puts(strerror(errno));
+		return false;
+	}
+	fwrite(buf.get(), 1, st.st_size, fp);
+	fclose(fp);
+	return true;
+}
+*/
+
+/*
+static bool mkdir(const char *path) {
+	if (::mkdir(path, MKDIR_FLAGS) == STUPID_C_ERROR) {
+		const int err = errno;
+		if (err != EEXIST) {
+			puts(strerror(errno));
+			return false;
+		}
+	}
+	return true;
+}
+*/
 
 void makenewapp() {
 	if (!remount("/dev/ssd0.system_ex", "/system_ex")) {
 		puts(strerror(errno));
 		return;
 	}
+	/*
 	if (mkdir("/system_ex/app/BREW00000", MKDIR_FLAGS) == STUPID_C_ERROR) {
 		const int err = errno;
 		if (err != EEXIST) {
@@ -76,36 +121,13 @@ void makenewapp() {
 			return;
 		}
 	}
-	struct stat st{};
-	if (stat("/system_ex/app/NPXS40028/eboot.bin", &st) == STUPID_C_ERROR) {
-		puts(strerror(errno));
+	if (!copyfile("/system_ex/app/NPXS40093/eboot.bin", "/system_ex/app/BREW00000/eboot.bin")) {
 		return;
 	}
-	UniquePtr<uint8_t[]> buf = new uint8_t[st.st_size];
-	FILE *fp = fopen("/system_ex/app/NPXS40028/eboot.bin", "rb");
-	if (fp == nullptr) {
-		puts("open failed");
-		puts(strerror(errno));
+	if (!mkdir("/system_ex/app/BREW00000/sce_sys")) {
 		return;
 	}
-	fread(buf.get(), 1, st.st_size, fp);
-	fclose(fp);
-	fp = fopen("/system_ex/app/BREW00000/eboot.bin", "wb+");
-	if (fp == nullptr) {
-		puts("open failed");
-		puts(strerror(errno));
-		return;
-	}
-	fwrite(buf.get(), 1, st.st_size, fp);
-	fclose(fp);
-	if (mkdir("/system_ex/app/BREW00000/sce_sys", MKDIR_FLAGS) == STUPID_C_ERROR) {
-		const int err = errno;
-		if (err != EEXIST) {
-			puts(strerror(errno));
-			return;
-		}
-	}
-	fp = fopen("/system_ex/app/BREW00000/sce_sys/param.json", "w+");
+	FILE *fp = fopen("/system_ex/app/BREW00000/sce_sys/param.json", "w+");
 	if (fp == nullptr) {
 		puts("open failed");
 		puts(strerror(errno));
@@ -113,6 +135,56 @@ void makenewapp() {
 	}
 	fwrite(json.c_str(), 1, json.length(), fp);
 	fclose(fp);
+	if (!mkdir("/system_ex/app/BREW00000/psm")) {
+		return;
+	}
+	if (!mkdir("/system_ex/app/BREW00000/psm/Application")) {
+		return;
+	}
+	if (!copyfile("/system_ex/app/NPXS40093/psm/Application/app.exe.sprx", "/system_ex/app/BREW00000/psm/Application/app.exe.sprx")) {
+		return;
+	}
+	if (!copyfile("/system_ex/app/NPXS40140/psm/Application/Sce.Vsh.DiscPlayer.dll.sprx", "/system_ex/app/BREW00000/psm/Application/Sce.Vsh.DiscPlayer.dll.sprx")) {
+		return;
+	}
+	if (!copyfile("/system_ex/app/NPXS40140/sce_sys/icon0.png", "/system_ex/app/BREW00000/sce_sys/icon0.png")) {
+		return;
+	}
+	if (!copyfile("/system_ex/app/NPXS40140/sce_sys/pic1.DDS", "/system_ex/app/BREW00000/sce_sys/pic1.DDS")) {
+		return;
+	}
+	*/
+	/*if (!mkdir("/system_ex/app/BREW00000/psm/Application/resource")) {
+		return;
+	}
+
+	if (!copyfile("/system_ex/app/NPXS40093/psm/Application/resource/Sce.Cdlg.HmdSetup.rco", "/system_ex/app/BREW00000/psm/Application/resource/Sce.Cdlg.HmdSetup.rco")) {
+		return;
+	}
+	if (!copyfile("/system_ex/app/NPXS40093/psm/Application/resource/Sce.Cdlg.Message.rco", "/system_ex/app/BREW00000/psm/Application/resource/Sce.Cdlg.Message.rco")) {
+		return;
+	}
+	if (!copyfile("/system_ex/app/NPXS40093/psm/Application/resource/Sce.Cdlg.NetCtlAp.rco", "/system_ex/app/BREW00000/psm/Application/resource/Sce.Cdlg.NetCtlAp.rco")) {
+		return;
+	}
+	if (!copyfile("/system_ex/app/NPXS40093/psm/Application/resource/Sce.Cdlg.NpEula.rco", "/system_ex/app/BREW00000/psm/Application/resource/Sce.Cdlg.NpEula.rco")) {
+		return;
+	}
+	if (!copyfile("/system_ex/app/NPXS40093/psm/Application/resource/Sce.Cdlg.NpSnsFacebook.rco", "/system_ex/app/BREW00000/psm/Application/resource/Sce.Cdlg.NpSnsFacebook.rco")) {
+		return;
+	}
+	if (!copyfile("/system_ex/app/NPXS40093/psm/Application/resource/Sce.Cdlg.PlayGo.rco", "/system_ex/app/BREW00000/psm/Application/resource/Sce.Cdlg.PlayGo.rco")) {
+		return;
+	}
+	if (!copyfile("/system_ex/app/NPXS40093/psm/Application/resource/Sce.Cdlg.SaveData.rco", "/system_ex/app/BREW00000/psm/Application/resource/Sce.Cdlg.SaveData.rco")) {
+		return;
+	}
+	if (!copyfile("/system_ex/app/NPXS40093/psm/Application/resource/Sce.Cdlg.SocialScreen.rco", "/system_ex/app/BREW00000/psm/Application/resource/Sce.Cdlg.SocialScreen.rco")) {
+		return;
+	}
+	if (!copyfile("/system_ex/app/NPXS40093/psm/Application/resource/Sce.Cdlg.VrService.rco", "/system_ex/app/BREW00000/psm/Application/resource/Sce.Cdlg.VrService.rco")) {
+		return;
+	}*/
 }
 
 // NOLINTEND(cppcoreguidelines-owning-memory)
