@@ -58,3 +58,5 @@ class Elf : Elf64_Ehdr {
 
 		bool launch();
 };
+
+bool isAlive(int v);

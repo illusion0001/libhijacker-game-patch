@@ -7,6 +7,7 @@
 #include "kernel/kernel.hpp"
 #include "offsets.hpp"
 #include "util.hpp"
+#include "notify.hpp"
 #include <elf.h>
 #include <unistd.h>
 
@@ -92,10 +93,10 @@ static bool runElf(Hijacker *hijacker) {
 	Elf elf{hijacker, daemon_start};
 
 	if (elf.launch()) {
-		puts("launch succeeded");
+		printf_notification("daemon launch succeeded");
 		return true;
 	}
-	puts("launch failed");
+	printf_notification("daemon launch failed");
 	return false;
 }
 
@@ -106,7 +107,7 @@ static bool spawn(Hijacker *hijacker) {
 	auto redis = spawner.bootstrap(*hijacker);
 
 	if (redis == nullptr) {
-		puts("failed to spawn new redis server process");
+		printf_notification("failed to spawn new redis server process");
 		return false;
 	}
 	puts("getting saved stack pointer");
@@ -223,15 +224,16 @@ static constexpr size_t QAFLAGS_SIZE = 16;
 extern "C" int main() {
 	Stdout dummy{};
 	///clearFramePointer();
-	puts("main entered");
+	printf_notification("libhijacker spawner %s entered", __FUNCTION__);
 	if (hasUnprocessedRelocations()) {
 		puts("fixing unprocessed relocations for spawner.elf");
 		processRelocations();
 	}
 
-	uint8_t qaflags[QAFLAGS_SIZE];
+	uint8_t qaflags[QAFLAGS_SIZE] = {0};
 	kread<QAFLAGS_SIZE>(kernel_base + offsets::qa_flags(), qaflags);
-	qaflags[1] |= 1;
+	qaflags[1] |= 2;
+	qaflags[2] |= 1;
 	kwrite<QAFLAGS_SIZE>(kernel_base + offsets::qa_flags(), qaflags);
 
 	if (dbg::getProcesses().length() == 0) {
@@ -255,7 +257,7 @@ extern "C" int main() {
 	// forcefully trying like this can cause a panic on shutdown after x amount of failed attempts
 	while (!spawn(hijacker.get())) {
 		if (Hijacker::getHijacker("SceRedisServer"_sv) == nullptr) {
-			puts("SceRedisServer died, restart required");
+			printf_notification("SceRedisServer died, system restart required");
 			break;
 		}
 		puts("spawn failed retrying...");

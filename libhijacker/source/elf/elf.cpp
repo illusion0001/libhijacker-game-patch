@@ -557,7 +557,7 @@ struct AllocatorArgs {
 		info(hijacker.getDataAllocator().allocate(sizeof(AllocationInfo) * infoCount)), numInfo(infoCount) {}
 };
 
-static bool isAlive(int v) {
+bool isAlive(int v) {
 	for (int pid : dbg::getAllPids()) {
 		if (pid == v) {
 			return true;
@@ -661,7 +661,10 @@ static uintptr_t runAllocatorShellcode(Hijacker *hijacker, Array<AllocationInfo>
 				return 0;
 			}
 			hijacker->read(argbuf, &args, sizeof(args));
-			printf("state: %i\n", args.result.state);
+			if (args.result.state)
+			{
+				printf("state: %i\n", args.result.state);
+			}
 		} while (args.result.state == 0);
 
 		if (args.result.state != 1) [[unlikely]] {

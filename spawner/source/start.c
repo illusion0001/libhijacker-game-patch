@@ -72,40 +72,42 @@ int __attribute__ ((naked)) dup2(int oldd, int newd) {
 }
 
 
-STUB(getpid)
-STUB(memset)
-STUB(putchar)
-STUB(memcpy)
-STUB(memcmp)
-STUB(strcmp)
-STUB(socket)
-STUB(bind)
-STUB(listen)
-STUB(accept)
-STUB(setsockopt)
-STUB(_write)
-STUB(_read)
-STUB(printf)
-STUB(_ZdaPv)
-STUB(_Znam)
-STUB(_Znwm)
-STUB(_ZdlPv)
-STUB(strstr)
-STUB(strlen)
-STUB(strnlen)
-STUB(sysctlbyname)
-STUB(strncpy)
-STUB(strncmp)
-STUB(__error)
-STUB(strerror)
-STUB(sceKernelPrintBacktraceWithModuleInfo)
+STUB(getpid);
+STUB(memset);
+STUB(putchar);
+STUB(memcpy);
+STUB(memcmp);
+STUB(strcmp);
+STUB(socket);
+STUB(bind);
+STUB(listen);
+STUB(accept);
+STUB(setsockopt);
+STUB(_write);
+STUB(_read);
+STUB(printf);
+STUB(_ZdaPv);
+STUB(_Znam);
+STUB(_Znwm);
+STUB(_ZdlPv);
+STUB(strstr);
+STUB(strlen);
+STUB(strnlen);
+STUB(sysctlbyname);
+STUB(strncpy);
+STUB(strncmp);
+STUB(__error);
+STUB(strerror);
+STUB(vsnprintf);
+STUB(sceKernelPrintBacktraceWithModuleInfo);
+STUB(sceKernelSendNotificationRequest);
 
 // these are unused
-STUB(sceSysmoduleLoadModuleInternal)
-STUB(sceSysmoduleLoadModuleByNameInternal)
-STUB(mmap)
-STUB(munmap)
-STUB(sceKernelJitCreateSharedMemory)
+STUB(sceSysmoduleLoadModuleInternal);
+STUB(sceSysmoduleLoadModuleByNameInternal);
+STUB(mmap);
+STUB(munmap);
+STUB(sceKernelJitCreateSharedMemory);
 
 #define LINK(lib, fname) sceKernelDlsym(lib, #fname, &f_##fname)
 #define LIBKERNEL_LINK(fname) LINK(libkernel, fname)
@@ -136,6 +138,7 @@ void _start(struct payload_args *args) {
 	LIBKERNEL_LINK(sysctlbyname);
 	LIBKERNEL_LINK(__error);
 	LIBKERNEL_LINK(sceKernelPrintBacktraceWithModuleInfo);
+	LIBKERNEL_LINK(sceKernelSendNotificationRequest);
 
 
 
@@ -158,6 +161,7 @@ void _start(struct payload_args *args) {
 	LIBC_LINK(strncpy);
 	LIBC_LINK(strncmp);
 	LIBC_LINK(strerror);
+	LIBC_LINK(vsnprintf);
 
 	kernel_base = args->kdata_base_addr;
 	kernel_init_rw(args->rwpair[0], args->rwpair[1], args->rwpipe, args->kpipe_addr);
