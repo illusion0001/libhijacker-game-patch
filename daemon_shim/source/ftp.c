@@ -53,9 +53,23 @@ typedef struct ftp_command {
 /**
  * Data structure used to send UI notifications on the PS5.
  **/
-typedef struct notify_request {
-  char useless1[45];
-  char message[3075];
+typedef struct notify_request
+{
+  int32_t type;            // 0x00
+  int32_t req_id;          // 0x04
+  int32_t priority;        // 0x08
+  int32_t msg_id;          // 0x0C
+  int32_t target_id;       // 0x10
+  int32_t user_id;         // 0x14
+  int32_t unk1;            // 0x18
+  int32_t unk2;            // 0x1C
+  int32_t app_id;          // 0x20
+  int32_t error_num;       // 0x24
+  int32_t unk3;            // 0x28
+  char use_icon_image_uri; // 0x2C
+  char message[1024];      // 0x2D
+  char uri[1024];          // 0x42D
+  char unkstr[1024];       // 0x82D
 } notify_request_t;
 
 
@@ -305,12 +319,10 @@ ftp_serve(uint16_t port) {
     inet_ntop(AF_INET, &(in->sin_addr), ip, sizeof(ip));
 
     bzero(&req, sizeof(req));
-    sprintf(req.message, "Serving FTP on %s:%d (%s)",
+    snprintf(req.message, sizeof(req.message), "Serving FTP on %s:%d (%s)",
 	    ip, port, ifa->ifa_name);
 
-#ifdef __PROSPERO__
     sceKernelSendNotificationRequest(0, &req, sizeof(req), 0);
-#endif
     puts(req.message);
   }
 
@@ -347,8 +359,10 @@ ftp_serve(uint16_t port) {
   while(atomic_load(&g_running)) {
     if((connfd=accept(g_srvfd, (struct sockaddr*)&client_addr, &addr_len)) < 0) {
       if(errno == 0xa3) {
-		close(g_srvfd);
-        printf("Server closing due to system suspension\n");
+		    close(g_srvfd);
+        bzero(&req, sizeof(req));
+        snprintf(req.message, sizeof(req.message), "Server closing due to system suspension\n");
+        sceKernelSendNotificationRequest(0, &req, sizeof(req), 0);
         return EXIT_SUCCESS;
 	  }
       perror("accept");
@@ -359,8 +373,11 @@ ftp_serve(uint16_t port) {
   }
 
   close(g_srvfd);
-  printf("Server killed\n");
-
+  bzero(&req, sizeof(req));
+  snprintf(req.message, sizeof(req.message), "Server killed");
+  sceKernelSendNotificationRequest(0, &req, sizeof(req), 0);
+  puts(req.message);
+  
   return EXIT_SUCCESS;
 }
 

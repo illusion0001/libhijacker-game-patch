@@ -1,0 +1,6 @@
+[submodule "extern/pfd_sfo_tools"]
+	path = extern/pfd_sfo_tools
+	url = https://github.com/illusion0001/pfd_sfo_tools.git
+[submodule "extern/tiny-json"]
+	path = extern/tiny-json
+	url = https://github.com/rafagafe/tiny-json.git

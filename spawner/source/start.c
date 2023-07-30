@@ -129,7 +129,9 @@ STUB(strncpy)
 STUB(strncmp)
 STUB(__error)
 STUB(strerror)
+STUB(vsnprintf)
 STUB(sceKernelPrintBacktraceWithModuleInfo)
+STUB(sceKernelSendNotificationRequest)
 STUB(waitpid)
 STUB(perror)
 STUB(pthread_create)
@@ -187,6 +189,7 @@ void _start(struct payload_args *args) {
 	LIBKERNEL_LINK(pthread_create);
 	LIBKERNEL_LINK(pthread_join);
 	LIBKERNEL_LINK(kill);
+	LIBKERNEL_LINK(sceKernelSendNotificationRequest);
 
 
 	LIBC_LINK(_Znwm);
@@ -209,6 +212,7 @@ void _start(struct payload_args *args) {
 	LIBC_LINK(strncpy);
 	LIBC_LINK(strncmp);
 	LIBC_LINK(strerror);
+	LIBC_LINK(vsnprintf);
 
 	LIBC_LINK(fopen);
 	LIBC_LINK(fwrite);
