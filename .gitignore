@@ -19,3 +19,6 @@ CMakeCache.txt
 aerolib.csv
 stubber/main.exe
 stubber/out/
+**/*.ninja
+klog.txt
+log.txt

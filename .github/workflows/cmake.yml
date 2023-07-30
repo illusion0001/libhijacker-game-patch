@@ -1,6 +1,22 @@
 name: CMake
 
-on: [ push, pull_request, workflow_dispatch ]
+on:
+  push:
+    paths-ignore:
+      - '**/*.md'
+      - '**/*.txt'
+  pull_request:
+    paths-ignore:
+      - '**/*.md'
+      - '**/*.txt'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -32,6 +48,9 @@ jobs:
 
     - name: Checkout
       uses: actions/checkout@v3
+      with:
+        submodules: recursive
+        fetch-depth: 0
 
     - name: Checkout PS5SDK
       uses: actions/checkout@v3
@@ -39,6 +58,11 @@ jobs:
         repository: illusion0001/PS5SDK
         ref: nand-clang-16
         path: ${{ env.PS5SDK }}
+
+    - name: Set commit version
+      run: |
+        echo "commit_ver=1.$(git rev-list HEAD --count)" >> $GITHUB_ENV
+        echo "commit_hash=$(echo ${GITHUB_SHA} | cut -c1-8)" >> $GITHUB_ENV
 
     - name: Build SDK
       working-directory: ${{ env.PS5SDK }}
@@ -59,9 +83,19 @@ jobs:
       run: bash ./build.sh
 
     - name: Upload artifacts
+      if: true
       uses: actions/upload-artifact@v3
       with:
-        name: libhijacker
+        name: libhijacker_${{ env.commit_ver }}-${{ env.commit_hash }}
         path: |
           bin/*.elf
           ${{ github.workspace }}/*.py
+
+    - name: Create Release
+      if: github.event_name == 'workflow_dispatch'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        zip libhijacker_${{ env.commit_ver }}-${{ env.commit_hash }}.zip bin/*.elf ./*.py
+        echo "Please check [readme](https://github.com/illusion0001/libhijacker/blob/game-patch/README.md) for more information." > info.md
+        gh release create ${{ env.commit_ver }} libhijacker_${{ env.commit_ver }}-${{ env.commit_hash }}.zip --target ${{ GITHUB.SHA }} -t "${{ env.commit_ver }}" -F info.md
