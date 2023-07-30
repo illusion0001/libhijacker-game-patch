@@ -289,9 +289,13 @@ async def klog_client(args: ParsedArgs):
 async def run_loggers(args: ParsedArgs):
     async with args:
         has_daemon = await has_homebrew_daemon(args.host)
+        print(f'has_daemon: {has_daemon}')
         if not has_daemon:
+            print(f'start send_spawner(args)')
             await send_spawner(args)
+            print(f'start send_daemon(args)')
             await send_daemon(args)
+            print('finished')
             #spawner = asyncio.create_task(send_daemon(args))
             #logger = asyncio.create_task(logger_client(args))
             #await asyncio.wait((spawner, logger), return_when=asyncio.ALL_COMPLETED)
@@ -361,6 +365,7 @@ def main():
         if args.elf and not args.elf.exists():
             print(f'{args.elf} does not exist')
             return
+        print(f'{__file__}: start')
         asyncio.run(run_loggers(args))
     except KeyboardInterrupt:
         pass
