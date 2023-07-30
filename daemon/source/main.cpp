@@ -9,10 +9,11 @@
 #include "hijacker/hijacker.hpp"
 #include "servers.hpp"
 #include "util.hpp"
+#include "notify.hpp"
 
-extern int runKlogger(void *unused);
-extern int runElfServer(void *unused);
-extern int runCommandProcessor(void *unused);
+#include <pthread.h>
+#include "game_patch_thread.hpp"
+
 extern void makenewapp();
 
 void AbortServer::run(TcpSocket &sock) {
@@ -170,6 +171,17 @@ bool patchSyscore() {
 
 int main() {
 	puts("daemon entered");
+	printf_notification("libhijacker daemon started successfully.\n"
+						"Original project: https://github.com/astrelsky/libhijacker");
+	printf_notification("libhijacker - astrelsky\n"
+						"Fork with Game Patch Support - illusion\n"
+						"Check Readme for supported titles and it's versions.");
+	// remove this when it's possible to load elf into games at boot
+	pthread_t game_patch_thread_id = nullptr;
+	pthread_create(&game_patch_thread_id, nullptr, GamePatch_Thread, nullptr);
+
+	g_game_patch_thread_running = true;
+
 	AbortServer abortServer{};
 	KlogServer klogServer{};
 	ElfServer elfServer{};
@@ -189,6 +201,8 @@ int main() {
 	// finishes on connect
 	abortServer.join();
 	puts("abort thread finished");
+	g_game_patch_thread_running = false;
+	puts("g_game_patch_thread_running = false");
 	commandServer.stop();
 	puts("command server done");
 	puts("stopping elf server");
@@ -197,6 +211,8 @@ int main() {
 	puts("stopping klog server");
 	klogServer.stop();
 	puts("klog server done");
+	pthread_join(game_patch_thread_id, nullptr);
+	puts("game patch thread finished");
 
 	// TODO add elf loader with options for process name and type (daemon/game)
 	// add whatever other crap people may want

@@ -108,6 +108,7 @@ class KProc : public KernelObject<KProc, PROC_SIZE> {
 	static constexpr size_t PID_OFFSET = 0xbc;
 	static constexpr size_t THREADS_OFFSET = 0x10;
 	static constexpr size_t FD_OFFSET = 0x48;
+	static constexpr size_t TITLEID_OFFSET = 0x470;
 	static constexpr size_t SELFINFO_OFFSET = 0x588;
 	static constexpr size_t SELFINFO_NAME_OFFSET = 0x59C;
 
@@ -175,6 +176,11 @@ class KProc : public KernelObject<KProc, PROC_SIZE> {
 			if (reload) {
 				this->reload();
 			}
+		}
+
+		String titleId() const
+		{
+			return getKernelString(address() + TITLEID_OFFSET);
 		}
 };
 

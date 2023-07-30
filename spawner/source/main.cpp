@@ -9,6 +9,7 @@
 #include "kernel/proc.hpp"
 #include "offsets.hpp"
 #include "util.hpp"
+#include "notify.hpp"
 #include <elf.h>
 #include <sys/_pthreadtypes.h>
 #include <sys/_stdint.h>
@@ -104,10 +105,10 @@ static bool runElf(Hijacker *hijacker) {
 	}
 
 	if (elf.launch()) {
-		puts("launch succeeded");
+		printf_notification("daemon launch succeeded");
 		return true;
 	}
-	puts("launch failed");
+	printf_notification("daemon launch failed");
 	return false;
 }
 
@@ -545,7 +546,7 @@ extern "C" int main() {
 	Stdout dummy{};
 	//ptrace(PT_ATTACH, pid, 0, 0);
 	///clearFramePointer();
-	puts("main entered");
+	printf_notification("libhijacker spawner %s entered", __FUNCTION__);
 	if (hasUnprocessedRelocations()) {
 		puts("fixing unprocessed relocations for spawner.elf");
 		processRelocations();
@@ -625,7 +626,7 @@ extern "C" int main() {
 	}
 
 	if (!load(spawned)) {
-		puts("failed to load elf into new process");
+		printf_notification("failed to load elf into new process");
 		using ftype = uint32_t (*)(uint32_t);
 		auto sceLncUtilKillApp = (ftype) getSceLncUtilKillApp(); // NOLINT(*)
 		sceLncUtilKillApp(appId);
