@@ -41,6 +41,7 @@ size_t allproc() {
 		case V320:
 		case V321:
 			allprocOffset = 0x276DC58;
+			break;
 		case V402:
 		case V403:
 		case V450:
