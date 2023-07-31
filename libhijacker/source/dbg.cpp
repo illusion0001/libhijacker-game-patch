@@ -13,8 +13,10 @@ extern "C" {
 }
 
 static constexpr uint64_t DEBUGGER_AUTHID = 0x4800000000000006;
+static constexpr int LIBKERNEL_HANDLE = 0x2001;
+static constexpr int SYSCALL_OFFSET = 7;
 typedef void (*p_mdbg_call)(void *, void *, void *);
-extern "C" p_mdbg_call _mdbg = nullptr;
+extern "C" p_mdbg_call _mdbg = nullptr; // NOLINT(*)
 
 extern "C" int sceKernelDlsym(int handle, const char* symbol, void** addrp);
 extern "C" int *__error();
@@ -71,10 +73,18 @@ public:
 		id = kread<uint64_t>(ucred + AUTHID_OFFSET);
 		kwrite(ucred + AUTHID_OFFSET, authid);
 	}
+	DbgAuthidSwapper(const DbgAuthidSwapper&) = delete;
+	DbgAuthidSwapper &operator=(const DbgAuthidSwapper&) = delete;
+	DbgAuthidSwapper(DbgAuthidSwapper &&rhs) noexcept : id(rhs.id) { rhs.id = 0; }
+	DbgAuthidSwapper &operator=(DbgAuthidSwapper &&rhs) noexcept = delete;
 	~DbgAuthidSwapper() {
-		uintptr_t proc = getCurrentProc();
-		uintptr_t ucred = kread<uintptr_t>(proc + UCRED_OFFSET);
-		kwrite(ucred + AUTHID_OFFSET, id);
+		if (id != 0) {
+			uintptr_t proc = getCurrentProc();
+			if (proc != 0) {
+				uintptr_t ucred = kread<uintptr_t>(proc + UCRED_OFFSET);
+				kwrite(ucred + AUTHID_OFFSET, id);
+			}
+		}
 	}
 };
 
@@ -82,9 +92,9 @@ int __attribute__((noinline)) mdbg_call(DbgArg1 &arg1, DbgArg2 &arg2, DbgArg3 &a
 
 	if (!_mdbg) [[unlikely]] {
 		uint8_t *addr = 0;
-		int res = sceKernelDlsym(0x2001, "get_authinfo", (void **) &addr);
+		int res = sceKernelDlsym(LIBKERNEL_HANDLE, "get_authinfo", reinterpret_cast<void**>(&addr));
 		if (res > -1 && addr) {
-			_mdbg = (p_mdbg_call)(addr + 7);
+			_mdbg = reinterpret_cast<p_mdbg_call>(addr + SYSCALL_OFFSET);
 		} else {
 			puts("failed to get get_authinfo for mdbg_call");
 		}
@@ -133,19 +143,39 @@ void ThreadInfo::fillInfo() {
 	mdbg_call(arg1, arg2, arg3);
 }
 
+static void logState(const DbgArg3 &arg) {
+	// NOLINTBEGIN(*)
+	uint64_t state = -1;
+	if (arg.err == 0) {
+		state = arg.length & 7;
+		if ((arg.length & 0x10) != 0) {
+			state |= 8;
+		}
+	}
+	if (state == 7 || state == 0) {
+		puts("idk what this means other than we're screwed");
+	}
+	printf("state: 0x%08llx\n", state);
+	// NOLINTEND(*)
+}
+
 void suspend(int pid) {
+	puts("suspending");
 	DbgArg1 arg1{1, DbgCommand::ARG2_CMD};
 	DbgKickProcessArg arg2{pid};
 	DbgArg3 arg3{};
 	mdbg_call(arg1, arg2, arg3);
+	logState(arg3);
 }
 
 void resume(int pid) {
+	puts("resuming");
 	// this is the same as suspend but is separate for easier debugging
 	DbgArg1 arg1{1, DbgCommand::ARG2_CMD};
 	DbgKickProcessArg arg2{pid};
 	DbgArg3 arg3{};
 	mdbg_call(arg1, arg2, arg3);
+	logState(arg3);
 }
 
 void read(int pid, uintptr_t src, void *dst, size_t length) {
@@ -161,7 +191,7 @@ void read(int pid, uintptr_t src, void *dst, size_t length) {
 
 bool write(int pid, uintptr_t dst, const void *src, size_t length) {
 	DbgArg1 arg1{1, DbgCommand::WRITE_CMD};
-	DbgReadArg arg2{pid, dst, const_cast<void *>(src), length};
+	DbgReadArg arg2{pid, dst, const_cast<void *>(src), length}; // NOLINT(*)
 	DbgArg3 arg3{};
 	mdbg_call(arg1, arg2, arg3);
 	if (arg3.length != length) {

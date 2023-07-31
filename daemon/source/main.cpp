@@ -28,6 +28,12 @@ int main() {
 	ElfServer elfServer{};
 	CommandServer commandServer{};
 
+	// FIXME: ewww
+	abortServer.TcpServer::run();
+	klogServer.TcpServer::run();
+	elfServer.TcpServer::run();
+	commandServer.TcpServer::run();
+
 	// finishes on connect
 	abortServer.join();
 	puts("abort thread finished");

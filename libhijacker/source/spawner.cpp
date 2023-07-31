@@ -122,6 +122,7 @@ UniquePtr<Hijacker> Spawner::spawn() {
 	UniquePtr<Hijacker> spawned = nullptr;
 	while (spawned == nullptr) {
 		spawned = Hijacker::getHijacker(id);
+		usleep(10); // NOLINT(*)
 	}
 
 	uintptr_t base = 0;

@@ -26,18 +26,23 @@ struct BaseTcpServer;
 class TcpSocket {
 
 	int fd;
+	int server;
 
 	public:
-		TcpSocket(int sock) noexcept : fd(sock) {}
+		explicit TcpSocket() noexcept : fd(-1), server(-1) {}
+		TcpSocket(int sock, int server) noexcept : fd(sock), server(server) {}
 		TcpSocket(const TcpSocket&) = delete;
 		TcpSocket &operator=(const TcpSocket&) = delete;
-		TcpSocket(TcpSocket &&rhs) noexcept : fd(rhs.fd) {
+		TcpSocket(TcpSocket &&rhs) noexcept : fd(rhs.fd), server(rhs.server) {
 			rhs.fd = -1;
+			rhs.server = -1;
 		}
 		TcpSocket &operator=(TcpSocket &&rhs) noexcept {
 			close();
 			fd = rhs.fd;
+			server = rhs.server;
 			rhs.fd = -1;
+			rhs.server = -1;
 			return *this;
 		}
 		~TcpSocket() noexcept {
@@ -101,7 +106,7 @@ class ServerSocket {
 			int res = poll(&pfd, 1, INFTIM);
 			if (res == STUPID_C_ERROR_VALUE || res == 0 || pfd.revents & POLLHUP) {
 				// error occured
-				return -1;
+				return TcpSocket{};
 			}
 
 			// we are ready to accept
@@ -115,7 +120,7 @@ class ServerSocket {
 					printf("accept failed %d %s\n", err, strerror(err));
 				}
 			}
-			return conn;
+			return {conn, fd};
 		}
 
 		bool bind(struct sockaddr_in *server_addr) noexcept {
@@ -237,22 +242,20 @@ struct BaseTcpServer {
 
 }
 
-class TcpServer : private BaseTcpServer, public JThread {
+class TcpServer : protected BaseTcpServer {
+
+	JThread thread;
 
 	static int start(void *self) noexcept {
 		static_cast<TcpServer *>(self)->start();
 		return 0;
 	}
 
-	void start() noexcept {
+	virtual void start() noexcept {
 		while (!isClosed()) {
 			TcpSocket sock = accept();
 			if (sock) {
 				run(sock);
-				if (sock.isClosed()) {
-					// closing the socket is a signal to shutdown
-					close();
-				}
 			}
 		}
 	}
@@ -267,7 +270,7 @@ class TcpServer : private BaseTcpServer, public JThread {
 		static constexpr int STUPID_C_ERROR_VALUE = -1;
 
 	public:
-		TcpServer(uint16_t port) noexcept : BaseTcpServer(port), JThread(start, this) {}
+		TcpServer(uint16_t port) noexcept : BaseTcpServer(port), thread() {}
 
 		TcpServer(const TcpServer&) = delete;
 
@@ -287,5 +290,13 @@ class TcpServer : private BaseTcpServer, public JThread {
 
 		void close() noexcept {
 			serverSock.close();
+		}
+
+		void run() noexcept {
+			thread = JThread(start, this);
+		}
+
+		void join() noexcept {
+			thread.join();
 		}
 };

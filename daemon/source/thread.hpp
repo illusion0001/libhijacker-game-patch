@@ -30,7 +30,7 @@ class Thread {
 	thrd_t id;
 
 	public:
-		Thread() = default;
+		explicit Thread() = default;
 
 		Thread(thrd_start_t fun, void *args) : id{0} {
 			_Thrd_create(&id,  fun, args);
@@ -76,6 +76,7 @@ class Thread {
 class JThread : public Thread {
 
 	public:
+		explicit JThread() noexcept : Thread() {}
 		JThread(thrd_start_t fun, void *args = nullptr) : Thread{fun, args} {}
 		JThread(const JThread&) = delete;
 		JThread &operator=(const JThread&) = delete;

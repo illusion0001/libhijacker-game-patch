@@ -88,6 +88,13 @@ class AbortServer : public TcpServer {
 
 	void run(TcpSocket &sock) override;
 
+	void start() noexcept override {
+		TcpSocket sock = accept();
+		if (sock) {
+			run(sock);
+		}
+	}
+
 	public:
 		AbortServer() noexcept : TcpServer(PORT) {}
 

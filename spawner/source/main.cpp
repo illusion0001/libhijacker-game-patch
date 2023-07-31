@@ -5,6 +5,7 @@
 #include "kernel.hpp"
 #include "hijacker.hpp"
 #include "kernel/kernel.hpp"
+#include "offsets.hpp"
 #include "util.hpp"
 #include <elf.h>
 #include <unistd.h>
@@ -213,6 +214,9 @@ static bool processRelocations() {
 	return true;
 }
 
+extern "C" const uintptr_t kernel_base;
+static constexpr size_t QAFLAGS_SIZE = 16;
+
 extern "C" int main() {
 	Stdout dummy{};
 	///clearFramePointer();
@@ -221,6 +225,12 @@ extern "C" int main() {
 		puts("fixing unprocessed relocations for spawner.elf");
 		processRelocations();
 	}
+
+	uint8_t qaflags[QAFLAGS_SIZE];
+	kread<QAFLAGS_SIZE>(kernel_base + offsets::qa_flags(), qaflags);
+	qaflags[1] |= 1;
+	kwrite<QAFLAGS_SIZE>(kernel_base + offsets::qa_flags(), qaflags);
+
 	if (dbg::getProcesses().length() == 0) {
 		puts("This kernel version is not yet supported :(");
 		return -1;
