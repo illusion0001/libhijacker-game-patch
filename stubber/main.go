@@ -23,10 +23,6 @@ const AEROLIB_ENTRIES = 94275
 
 var CMAKE_FILENAME = "CMakeLists.txt"
 
-type CmakeEntry struct {
-	name string
-}
-
 func createFile(path string) *os.File {
 	err := os.MkdirAll(filepath.Dir(path), 0)
 	if err != nil {
@@ -52,8 +48,8 @@ func getOutputFile(path string) string {
 	if err != nil {
 		panic(err)
 	}
-	out := strings.TrimSuffix(path, ".sprx") + ".c"
-	return filepath.Join(getOutputPath(), out)
+	out := strings.TrimSuffix(filepath.Base(path), ".sprx") + ".c"
+	return filepath.Join(filepath.Join(getOutputPath(), path), out)
 }
 
 func getOutputFolder(path string) string {
@@ -61,7 +57,13 @@ func getOutputFolder(path string) string {
 	if err != nil {
 		panic(err)
 	}
-	return filepath.Join(getOutputPath(), path)
+	path = filepath.Join(getOutputPath(), path)
+
+	path, err = filepath.Rel("out", path)
+	if err != nil {
+		panic(err)
+	}
+	return path
 }
 
 func (p *ElfProcessor) process() {
@@ -91,47 +93,14 @@ func (p *ElfProcessor) getProjectKey(path string) string {
 	return path
 }
 
-func (p *ElfProcessor) getEntry(key string) chan CmakeEntry {
-	p.entryLock.RLock()
-	defer p.entryLock.RUnlock()
-	entry, ok := p.entries[key]
-	if !ok {
-		return nil
-	}
-	return entry
-}
-
-func (p *ElfProcessor) setEntry(key string, entry chan CmakeEntry) {
-	p.entryLock.Lock()
-	defer p.entryLock.Unlock()
-	p.entries[key] = entry
-}
-
-func (p *ElfProcessor) makeCmake(path string) {
-	p.projectwg.Add(1)
-	defer p.projectwg.Done()
-
+func (p *ElfProcessor) makeCmake(path string) *os.File {
 	key := p.getProjectKey(path)
-	cmake := make(chan CmakeEntry)
-	p.setEntry(key, cmake)
-
-	dir := filepath.Join(getOutputPath(), key)
-	var out *os.File = nil
-	defer func() {
-		if out != nil {
-			out.Close()
-		}
-	}()
-
-	for entry := range cmake {
-		if out == nil {
-			out = createFile(filepath.Join(dir, CMAKE_FILENAME))
-		}
-		name := getOutputLibraryName(entry.name)
-		out.WriteString(fmt.Sprintf("add_library(%s SHARED lib%s.c)\n", name, name))
-	}
+	path = filepath.Join(getOutputPath(), filepath.Join(path, CMAKE_FILENAME))
+	out := createFile(path)
+	p.entries[key] = out
 	out.WriteString("set(CMAKE_C_FLAGS \"${CMAKE_C_FLAGS} -g0 -nodefaultlibs -nostdlib -fno-omit-frame-pointer ")
 	out.WriteString("-fno-builtin-function -fno-builtin -Wno-builtin-requires-header -Wno-incompatible-library-redeclaration\")\n")
+	return out
 }
 
 func (p *ElfProcessor) getFiles(path string, d fs.DirEntry, err error) error {
@@ -139,12 +108,11 @@ func (p *ElfProcessor) getFiles(path string, d fs.DirEntry, err error) error {
 		panic(err)
 	}
 
+	name := d.Name()
+
 	if d.IsDir() {
-		go p.makeCmake(getOutputFolder(path))
 		return nil
 	}
-
-	name := d.Name()
 
 	if strings.HasSuffix(name, ".dll.sprx") {
 		return nil
@@ -161,6 +129,23 @@ func (p *ElfProcessor) getFiles(path string, d fs.DirEntry, err error) error {
 	if !strings.HasPrefix(name, "lib") {
 		return nil
 	}
+
+	if strings.Contains(path, "NPXS") {
+		// skip so we don't have to deal with empty libs
+		return nil
+	}
+
+	name = getOutputLibraryName(name)
+
+	output := getOutputFolder(path)
+
+	cmake, ok := p.entries[output]
+
+	if !ok {
+		cmake = p.makeCmake(output)
+	}
+
+	cmake.WriteString(fmt.Sprintf("add_library(%s SHARED lib%s.c)\n", name, name))
 	p.files <- path
 	return nil
 }
@@ -209,11 +194,12 @@ func globCmake(root string) []string {
 	return files
 }
 
-func makeRootCmake() {
+func makeRootCmake(p *ElfProcessor) {
 	// system and system_ex
 
 	func() {
-		out, err := os.Create(filepath.Join(getOutputPath(), "toolchain.cmake"))
+		path := filepath.Join(getOutputPath(), "toolchain.cmake")
+		out, err := os.Create(path)
 		if err != nil {
 			panic(err)
 		}
@@ -223,10 +209,8 @@ func makeRootCmake() {
 	}()
 
 	func() {
-		out, err := os.Create(filepath.Join(getOutputPath(), CMAKE_FILENAME))
-		if err != nil {
-			panic(err)
-		}
+		f := filepath.Join(getOutputPath(), CMAKE_FILENAME)
+		out := createFile(f)
 		defer out.Close()
 
 		out.WriteString(rootCmake)
@@ -255,6 +239,7 @@ func main() {
 	}
 
 	p := newElfProcessor()
+	defer p.Close()
 
 	start := time.Now()
 
@@ -264,14 +249,14 @@ func main() {
 
 	filepath.WalkDir(getInputPath(), p.getFiles)
 
-	close(p.files)
+	p.CloseChannels()
 	p.filewg.Wait()
 
 	for key := range p.entries {
-		close(p.entries[key])
+		p.entries[key].Close()
 	}
 	p.projectwg.Wait()
-	makeRootCmake()
+	makeRootCmake(p)
 	end := time.Now()
 	elapsed := end.Sub(start)
 	fmt.Printf("processed %d ELF files and %d symbols in %s\n\n", p.nfiles.Load(), p.nsymbols.Load(), elapsed)

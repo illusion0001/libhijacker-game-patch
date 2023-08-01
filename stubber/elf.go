@@ -5,6 +5,8 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -19,12 +21,13 @@ type Elf struct {
 type ElfProcessor struct {
 	db        map[string]string
 	files     chan string
-	entries   map[string]chan CmakeEntry
-	entryLock sync.RWMutex
+	projects  chan string
+	entries   map[string]*os.File
 	filewg    sync.WaitGroup
 	projectwg sync.WaitGroup
 	nsymbols  atomic.Uint64
 	nfiles    atomic.Uint64
+	rootCmake *os.File
 }
 
 const DYN_SIZE = 0x10
@@ -179,17 +182,29 @@ func getDynamicInfo(fp *Elf) *DynamicInfo {
 func newElfProcessor() *ElfProcessor {
 	aerolib := readAerolib()
 	files := make(chan string, 16)
-	entries := make(map[string]chan CmakeEntry, 4)
+	projects := make(chan string, 16)
+	entries := make(map[string]*os.File, 4)
+	rootCmake := createFile(filepath.Join(getOutputPath(), CMAKE_FILENAME))
 	return &ElfProcessor{
 		db:        aerolib,
 		files:     files,
+		projects:  projects,
 		entries:   entries,
-		entryLock: sync.RWMutex{},
 		filewg:    sync.WaitGroup{},
 		projectwg: sync.WaitGroup{},
 		nsymbols:  atomic.Uint64{},
 		nfiles:    atomic.Uint64{},
+		rootCmake: rootCmake,
 	}
+}
+
+func (p *ElfProcessor) Close() {
+	p.rootCmake.Close()
+}
+
+func (p *ElfProcessor) CloseChannels() {
+	close(p.files)
+	close(p.projects)
 }
 
 func isBlacklistedFunction(fn string) bool {
@@ -205,9 +220,6 @@ func isBlacklistedFunction(fn string) bool {
 func (p *ElfProcessor) processElf(fp *Elf) {
 	defer fp.Close()
 	p.nfiles.Add(1)
-
-	key := p.getProjectKey(fp.dest)
-	p.getEntry(key) <- CmakeEntry{getOutputLibraryName(fp.dest)}
 
 	out := createFile(fp.dest)
 	defer out.Close()
