@@ -57,12 +57,6 @@ func getOutputFolder(path string) string {
 	if err != nil {
 		panic(err)
 	}
-	path = filepath.Join(getOutputPath(), path)
-
-	path, err = filepath.Rel("out", path)
-	if err != nil {
-		panic(err)
-	}
 	return path
 }
 
