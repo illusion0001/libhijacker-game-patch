@@ -1,3 +1,4 @@
+#include <arpa/inet.h>
 #include <errno.h>
 #include <netinet/in.h>
 #include <poll.h>
@@ -17,6 +18,8 @@ extern int runElfServer(void *unused);
 extern int runCommandProcessor(void *unused);
 
 static constexpr int ELF_PORT = 9027;
+static constexpr int KERNELRW_PORT = 9030;
+static constexpr int STUPID_C_ERROR_VALUE = -1;
 
 extern "C" ssize_t _read(int, void *, size_t);
 extern void printBacktrace();
@@ -179,12 +182,86 @@ class FileDescriptor {
 
 extern "C" void *start_ftp(void*);
 
+static void *kernelRWHandler(void *unused) noexcept {
+	(void)unused;
+	FileDescriptor server = socket(AF_INET, SOCK_STREAM, 0);
+	if (server == STUPID_C_ERROR_VALUE) {
+		perror("kernelRWHandler socket");
+		return nullptr;
+	}
+	int value = 1;
+	if (setsockopt(server, SOL_SOCKET, SO_REUSEADDR, &value, sizeof(int)) == STUPID_C_ERROR_VALUE) {
+		perror("kernelRWHandler setsockopt");
+		return nullptr;
+	}
+
+	struct sockaddr_in server_addr{0, AF_INET, htons(KERNELRW_PORT), {inet_addr("127.0.0.1")}, {}};
+
+	if (bind(server, reinterpret_cast<sockaddr *>(&server_addr), sizeof(server_addr)) == STUPID_C_ERROR_VALUE) {
+		perror("kernelRWHandler bind");
+		return nullptr;
+	}
+
+	if (listen(server, 1) == STUPID_C_ERROR_VALUE) {
+		perror("kernelRWHandler listen");
+		return nullptr;
+	}
+
+	while (true) {
+		struct sockaddr client_addr{};
+		socklen_t addr_len = sizeof(client_addr);
+		FileDescriptor conn = ::accept(server, &client_addr, &addr_len);
+		if (conn == STUPID_C_ERROR_VALUE) {
+			perror("kernelRWHandler accept");
+			continue;
+		}
+
+		int pid = 0;
+		int sockets[2]{};
+		ssize_t n = read(conn, &pid, sizeof(pid));
+		if (n == STUPID_C_ERROR_VALUE) {
+			perror("kernelRWHandler read");
+			continue;
+		}
+		if (n != sizeof(pid)) {
+			puts("kernelRWHandler didn't read enough data for pid");
+			continue;
+		}
+		n = read(conn, sockets, sizeof(sockets));
+		if (n == STUPID_C_ERROR_VALUE) {
+			perror("kernelRWHandler read");
+			continue;
+		}
+		if (n != sizeof(sockets)) {
+			puts("kernelRWHandler didn't read enough data for sockets");
+			continue;
+		}
+		if (!createReadWriteSockets(pid, sockets)) {
+			printf("failed to create kernelrw sockets for pid %d\n", pid);
+			continue;
+		}
+		n = write(conn, &kernel_base, sizeof(kernel_base));
+		if (n == STUPID_C_ERROR_VALUE) {
+			perror("kernelRWHandler write");
+			continue;
+		}
+		if (n != sizeof(sockets)) {
+			puts("kernelRWHandler didn't write enough data for response");
+			continue;
+		}
+	}
+	return nullptr;
+}
+
 int main() {
-	pthread_t trd = nullptr;
-	pthread_create(&trd, NULL, start_ftp, nullptr);
+	pthread_t ftp = nullptr;
+	pthread_t krw = nullptr;
+	pthread_create(&ftp, nullptr, start_ftp, nullptr);
+	pthread_create(&krw, nullptr, kernelRWHandler, nullptr);
 	while (true) {
 		auto hijacker = Hijacker::getHijacker(getpid());
 		runElf(hijacker.get(), ELF_PORT);
 	}
-	pthread_join(trd, nullptr);
+	pthread_join(ftp, nullptr);
+	pthread_join(krw, nullptr);
 }

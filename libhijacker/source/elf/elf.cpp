@@ -861,22 +861,13 @@ uintptr_t Elf::setupKernelRW() {
 		return 0;
 	}
 
-	// TODO: Make this functionality available elsewhere. Deal with the magic numbers then.
-	// NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers)
-	auto newtbl = hijacker->getProc()->getFdTbl();
-	auto sock = newtbl.getFileData(files[0]);
-	kwrite<uint32_t>(sock, 0x100);
-	auto pcb = kread<uintptr_t>(sock + 0x18);
-	auto master_inp6_outputopts = kread<uintptr_t>(pcb + 0x120);
-	sock = newtbl.getFileData(files[1]);
-	kwrite<uint32_t>(sock, 0x100);
-	pcb = kread<uintptr_t>(sock + 0x18);
-	auto victim_inp6_outputopts = kread<uintptr_t>(pcb + 0x120);
-	kwrite(master_inp6_outputopts + 0x10, victim_inp6_outputopts + 0x10);
-	kwrite<uint32_t>(master_inp6_outputopts + 0xc0, 0x13370000);
-	const uintptr_t pipeaddr = kread<uintptr_t>(newtbl.getFile(files[2]));
+	if (!createReadWriteSockets(hijacker->getProc(), files)) {
+		puts("failed to create kernelrw sockets");
+		return 0;
+	}
 
-	// NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
+	auto newtbl = hijacker->getProc()->getFdTbl();
+	const uintptr_t pipeaddr = kread<uintptr_t>(newtbl.getFile(files[2]));
 
 	// NOLINTBEGIN(performance-no-int-to-ptr)
 	struct payload_args result = {

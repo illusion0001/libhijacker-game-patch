@@ -36,6 +36,8 @@ along with this program; see the file COPYING. If not, see
 
 #include "cmd.h"
 
+// NOLINTBEGIN(*)
+
 
 /**
  * Build an iovec structure for nmount().
@@ -786,3 +788,5 @@ int
 ftp_cmd_unknown(ftp_env_t *env, const char* arg) {
   return ftp_active_printf(env, "502 Command not recognized\r\n");
 }
+
+// NOLINTEND(*)

@@ -84,8 +84,8 @@ class FileDescriptor {
 		void release() { fd = -1; }
 };
 
-extern "C" unsigned int daemon_size;
-extern "C" uint8_t daemon_start[];
+extern "C" const unsigned int daemon_size;
+extern "C" uint8_t daemon_start[]; // NOLINT(*)
 
 static bool runElf(Hijacker *hijacker) {
 
@@ -137,7 +137,6 @@ static bool spawn(Hijacker *hijacker) {
 }
 
 static int initStdout() {
-	socklen_t addr_len;
 	{
 		FileDescriptor sock = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -152,7 +151,7 @@ static int initStdout() {
 
 		struct sockaddr_in server_addr{0, AF_INET, htons(LOGGER_PORT), {}, {}};
 
-		if (bind(sock, (struct sockaddr*)&server_addr, sizeof(server_addr)) != 0) {
+		if (bind(sock, reinterpret_cast<struct sockaddr*>(&server_addr), sizeof(server_addr)) != 0) {
 			return -1;
 		}
 
@@ -161,7 +160,7 @@ static int initStdout() {
 		}
 
 		struct sockaddr client_addr{};
-		addr_len = sizeof(client_addr);
+		socklen_t addr_len = sizeof(client_addr);
 		int conn = accept(sock, &client_addr, &addr_len);
 		if (conn != -1) {
 			return conn;
@@ -181,6 +180,10 @@ class Stdout {
 				close(fd);
 			}
 		}
+		Stdout(const Stdout&) = delete;
+		Stdout &operator=(const Stdout&) = delete;
+		Stdout(Stdout&&) = delete;
+		Stdout &operator=(Stdout&&) = delete;
 		~Stdout() {
 			if (fd != -1) {
 				close(STDOUT);
