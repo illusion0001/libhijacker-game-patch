@@ -178,7 +178,7 @@ void resume(int pid) {
 	logState(arg3);
 }
 
-void read(int pid, uintptr_t src, void *dst, size_t length) {
+bool read(int pid, uintptr_t src, void *dst, size_t length) {
 	DbgArg1 arg1{1, DbgCommand::READ_CMD};
 	DbgReadArg arg2{pid, src, dst, length};
 	DbgArg3 arg3{};
@@ -186,7 +186,9 @@ void read(int pid, uintptr_t src, void *dst, size_t length) {
 	if (arg3.length != length) {
 		int err = arg3.err != -1 ? (int) arg3.err : errno;
 		printf("read failed %d: %s\n", err, strerror(err));
+		return false;
 	}
+	return true;
 }
 
 bool write(int pid, uintptr_t dst, const void *src, size_t length) {
