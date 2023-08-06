@@ -158,10 +158,11 @@ void suspend(int pid);
 void resume(int pid);
 
 
-void read(int pid, uintptr_t addr, void *dst, size_t length);
+bool read(int pid, uintptr_t addr, void *dst, size_t length);
 inline UniquePtr<uint8_t[]> read(int pid, uintptr_t addr, size_t length) {
 	UniquePtr<uint8_t[]> buf{new uint8_t[length]};
 	read(pid, addr, buf.get(), length);
+	// maybe std::pair for status
 	return buf;
 }
 
