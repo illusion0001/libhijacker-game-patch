@@ -161,7 +161,7 @@ void resume(int pid);
 bool read(int pid, uintptr_t addr, void *dst, size_t length);
 inline UniquePtr<uint8_t[]> read(int pid, uintptr_t addr, size_t length) {
 	UniquePtr<uint8_t[]> buf{new uint8_t[length]};
-	if (!read(pid, addr, buf.get(), length));
+	if (!read(pid, addr, buf.get(), length))
 	{
 		return nullptr;
 	}
