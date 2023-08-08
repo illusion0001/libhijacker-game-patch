@@ -26,6 +26,7 @@ along with this program; see the file COPYING. If not, see
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/syscall.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -39,56 +40,8 @@ along with this program; see the file COPYING. If not, see
 // NOLINTBEGIN(*)
 
 
-/**
- * Build an iovec structure for nmount().
- **/
-static void
-freebsd_build_iovec(struct iovec **iov, int *iovlen, const char *name, const char *v) {
-  int i;
-
-  if(*iovlen < 0) {
-    return;
-  }
-
-  i = *iovlen;
-  *iov = realloc(*iov, sizeof(**iov) * (i + 2));
-  if(*iov == 0) {
-    *iovlen = -1;
-    return;
-  }
-
-  (*iov)[i].iov_base = strdup(name);
-  (*iov)[i].iov_len = strlen(name) + 1;
-  i++;
-
-  (*iov)[i].iov_base = v ? strdup(v) : 0;
-  (*iov)[i].iov_len = v ? strlen(v) + 1 : 0;
-  i++;
-
-  *iovlen = i;
-}
-
-
-/**
- * Remount a given path with write permissions.
- *
- * TODO: is there a memory leak to plug?
- **/
-int
-sce_remount(const char *dev, const char *path) {
-  struct iovec* iov = 0;
-  int iovlen = 0;
-
-  freebsd_build_iovec(&iov, &iovlen, "fstype", "exfatfs");
-  freebsd_build_iovec(&iov, &iovlen, "fspath", path);
-  freebsd_build_iovec(&iov, &iovlen, "from", dev);
-  freebsd_build_iovec(&iov, &iovlen, "large", "yes");
-  freebsd_build_iovec(&iov, &iovlen, "timezone", "static");
-  freebsd_build_iovec(&iov, &iovlen, "async", 0);
-  freebsd_build_iovec(&iov, &iovlen, "ignoreacl", 0);
-
-  return nmount(iov, iovlen, MNT_UPDATE);
-}
+#define IOVEC_ENTRY(x) {x ? x : 0, \
+			x ? strlen(x)+1 : 0}
 
 
 /**
@@ -787,6 +740,77 @@ ftp_cmd_unavailable(ftp_env_t *env, const char* arg) {
 int
 ftp_cmd_unknown(ftp_env_t *env, const char* arg) {
   return ftp_active_printf(env, "502 Command not recognized\r\n");
+}
+
+void
+sce_remount() {
+  struct iovec iov_sys[] = {
+    IOVEC_ENTRY("from"),      IOVEC_ENTRY("/dev/ssd0.system"),
+    IOVEC_ENTRY("fspath"),    IOVEC_ENTRY("/system"),
+    IOVEC_ENTRY("fstype"),    IOVEC_ENTRY("exfatfs"),
+    IOVEC_ENTRY("large"),     IOVEC_ENTRY("yes"),
+    IOVEC_ENTRY("timezone"),  IOVEC_ENTRY("static"),
+    IOVEC_ENTRY("async"),     IOVEC_ENTRY(NULL),
+    IOVEC_ENTRY("ignoreacl"), IOVEC_ENTRY(NULL),
+  };
+  size_t len_sys = sizeof(iov_sys) / sizeof(struct iovec);
+
+  struct iovec iov_sysex[] = {
+    IOVEC_ENTRY("from"),      IOVEC_ENTRY("/dev/ssd0.system_ex"),
+    IOVEC_ENTRY("fspath"),    IOVEC_ENTRY("/system_ex"),
+    IOVEC_ENTRY("fstype"),    IOVEC_ENTRY("exfatfs"),
+    IOVEC_ENTRY("large"),     IOVEC_ENTRY("yes"),
+    IOVEC_ENTRY("timezone"),  IOVEC_ENTRY("static"),
+    IOVEC_ENTRY("async"),     IOVEC_ENTRY(NULL),
+    IOVEC_ENTRY("ignoreacl"), IOVEC_ENTRY(NULL),
+  };
+  size_t len_sysex = sizeof(iov_sysex) / sizeof(struct iovec);
+
+  nmount(iov_sys, len_sys, MNT_UPDATE);
+  nmount(iov_sysex, len_sysex, MNT_UPDATE);
+}
+
+/**
+ * Remount read-only mount points with write permissions.
+ **/
+int
+ftp_cmd_MTRW(ftp_env_t *env, const char* arg) {
+
+#ifdef __PROSPERO__
+  struct iovec iov_sys[] = {
+    IOVEC_ENTRY("from"),      IOVEC_ENTRY("/dev/ssd0.system"),
+    IOVEC_ENTRY("fspath"),    IOVEC_ENTRY("/system"),
+    IOVEC_ENTRY("fstype"),    IOVEC_ENTRY("exfatfs"),
+    IOVEC_ENTRY("large"),     IOVEC_ENTRY("yes"),
+    IOVEC_ENTRY("timezone"),  IOVEC_ENTRY("static"),
+    IOVEC_ENTRY("async"),     IOVEC_ENTRY(NULL),
+    IOVEC_ENTRY("ignoreacl"), IOVEC_ENTRY(NULL),
+  };
+  size_t len_sys = sizeof(iov_sys) / sizeof(struct iovec);
+
+  struct iovec iov_sysex[] = {
+    IOVEC_ENTRY("from"),      IOVEC_ENTRY("/dev/ssd0.system_ex"),
+    IOVEC_ENTRY("fspath"),    IOVEC_ENTRY("/system_ex"),
+    IOVEC_ENTRY("fstype"),    IOVEC_ENTRY("exfatfs"),
+    IOVEC_ENTRY("large"),     IOVEC_ENTRY("yes"),
+    IOVEC_ENTRY("timezone"),  IOVEC_ENTRY("static"),
+    IOVEC_ENTRY("async"),     IOVEC_ENTRY(NULL),
+    IOVEC_ENTRY("ignoreacl"), IOVEC_ENTRY(NULL),
+  };
+  size_t len_sysex = sizeof(iov_sysex) / sizeof(struct iovec);
+
+  if(syscall(SYS_nmount, iov_sys, len_sys, MNT_UPDATE)) {
+    return ftp_perror(env);
+  }
+
+  if(syscall(SYS_nmount, iov_sysex, len_sysex, MNT_UPDATE)) {
+    return ftp_perror(env);
+  }
+
+  return ftp_active_printf(env, "226 /system and /system_ex remounted\r\n");
+#else
+  return ftp_cmd_unavailable(env, arg);
+#endif
 }
 
 // NOLINTEND(*)

@@ -40,10 +40,6 @@ void free(void*);
 
 #define FTP_PORT 1337
 
-#ifndef EWOULDBLOCK
-#define EWOULDBLOCK EAGAIN
-#endif
-
 
 /**
  * Map names of commands to function entry points.
@@ -73,6 +69,7 @@ int sceKernelSendNotificationRequest(int, notify_request_t*, size_t, int);
  * Global server state.
  **/
 static atomic_bool g_running;
+static int         g_srvfd;
 
 
 /**
@@ -102,7 +99,7 @@ static ftp_command_t commands[] = {
 
   // custom commands
   {"KILL", ftp_cmd_KILL},
-  //{"MTRW", ftp_cmd_MTRW},
+  {"MTRW", ftp_cmd_MTRW},
 
   // not yet implemnted
   {"XCUP", ftp_cmd_unavailable},
@@ -259,6 +256,10 @@ ftp_thread(void *args) {
     close(env.passive_fd);
   }
 
+  if(!atomic_load(&g_running)) {
+    shutdown(g_srvfd, SHUT_RDWR);
+  }
+
   if(env.data_fd > 0) {
     close(env.data_fd);
   }
@@ -281,9 +282,7 @@ ftp_serve(uint16_t port) {
   notify_request_t req;
   socklen_t addr_len;
   pthread_t trd;
-  int sockfd;
   int connfd;
-  int flags;
 
   if(getifaddrs(&ifaddr) == -1) {
     perror("getifaddrs");
@@ -317,23 +316,13 @@ ftp_serve(uint16_t port) {
 
   freeifaddrs(ifaddr);
 
-  if((sockfd=socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+  if((g_srvfd=socket(AF_INET, SOCK_STREAM, 0)) < 0) {
     perror("socket");
     return EXIT_FAILURE;
   }
 
-  if(setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0) {
+  if(setsockopt(g_srvfd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0) {
     perror("setsockopt");
-    return EXIT_FAILURE;
-  }
-
-  if((flags=fcntl(sockfd, F_GETFL)) < 0) {
-    perror("fcntl");
-    return EXIT_FAILURE;
-  }
-
-  if(fcntl(sockfd, F_SETFL, flags | O_NONBLOCK) < 0) {
-    perror("fcntl");
     return EXIT_FAILURE;
   }
 
@@ -342,12 +331,12 @@ ftp_serve(uint16_t port) {
   server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
   server_addr.sin_port = htons(port);
 
-  if(bind(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) != 0) {
+  if(bind(g_srvfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) != 0) {
     perror("bind");
     return EXIT_FAILURE;
   }
 
-  if(listen(sockfd, 5) != 0) {
+  if(listen(g_srvfd, 5) != 0) {
     perror("listen");
     return EXIT_FAILURE;
   }
@@ -356,49 +345,31 @@ ftp_serve(uint16_t port) {
   atomic_init(&g_running, true);
 
   while(atomic_load(&g_running)) {
-    if((connfd=accept(sockfd, (struct sockaddr*)&client_addr, &addr_len)) < 0) {
-      if(errno != EWOULDBLOCK) {
-	perror("accept");
-      }
-      usleep(50 * 1000);
-      continue;
-    }
-
-    if((flags=fcntl(connfd, F_GETFL)) < 0) {
-      perror("fcntl");
-      continue;
-    }
-
-    if(fcntl(connfd, F_SETFL, flags & ~O_NONBLOCK) < 0) {
-      perror("fcntl");
+    if((connfd=accept(g_srvfd, (struct sockaddr*)&client_addr, &addr_len)) < 0) {
+      perror("accept");
       continue;
     }
 
     pthread_create(&trd, NULL, ftp_thread, (void*)(long)connfd);
   }
 
-  close(sockfd);
+  close(g_srvfd);
   printf("Server killed\n");
 
   return EXIT_SUCCESS;
 }
 
-extern int sce_remount(const char *dev, const char *path);
+
+extern void sce_remount();
 
 
 /**
  * Launch payload.
  **/
 int start_ftp() {
-	if(sce_remount("/dev/ssd0.system", "/system")) {
-    	perror("sce_remount system");
-		return -1;
-	}
-	if(sce_remount("/dev/ssd0.system_ex", "/system_ex")) {
-		perror("sce_remount system_ex");
-		return -1;
-	}
+	sce_remount();
     return ftp_serve(FTP_PORT);
 }
+
 
 // NOLINTEND(*)
