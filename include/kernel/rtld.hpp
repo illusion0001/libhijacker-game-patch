@@ -5,6 +5,7 @@
 #include "util.hpp"
 #include <ps5/kernel.h>
 #include <sys/_stdint.h>
+#include <sys/types.h>
 
 extern "C" {
 	#include <elf.h>
@@ -330,14 +331,18 @@ class RtldMeta : public KernelObject<RtldMeta, RTLD_META_SIZE> {
 	static constexpr size_t SYMTAB_SIZE_OFFSET = 0x30;
 	static constexpr size_t STRTAB_OFFSET = 0x38;
 	static constexpr size_t STRTAB_SIZE_OFFSET = 0x40;
+	static constexpr size_t PLTTAB_OFFSET = 0x48;
+	static constexpr size_t PLTTAB_SIZE_OFFSET = 0x50;
 
 	// mutable members for caching
 	mutable UniquePtr<rtld::ElfSymbolTable> symTable;
 	mutable UniquePtr<rtld::ElfStringTable> strTable;
+	mutable Array<Elf64_Rela> pltTbl;
 
 	public:
 		uintptr_t imageBase;
-		RtldMeta(uintptr_t imageBase, uintptr_t addr) : KernelObject(addr), symTable(nullptr), strTable(nullptr), imageBase(imageBase) {}
+		RtldMeta(uintptr_t imageBase, uintptr_t addr) :
+			KernelObject(addr), symTable(nullptr), strTable(nullptr), pltTbl(nullptr), imageBase(imageBase) {}
 
 		size_t totalSize() const {
 			return get<size_t, TOTAL_SIZE_OFFSET>();
@@ -352,7 +357,7 @@ class RtldMeta : public KernelObject<RtldMeta, RTLD_META_SIZE> {
 		}
 
 		size_t nSymbols() const {
-			return get<size_t, SYMTAB_SIZE_OFFSET>() / sizeof(Elf64_Sym);
+			return symtabSize() / sizeof(Elf64_Sym);
 		}
 
 		uintptr_t strtab() const {
@@ -361,6 +366,18 @@ class RtldMeta : public KernelObject<RtldMeta, RTLD_META_SIZE> {
 
 		size_t strtabSize() const {
 			return get<size_t, STRTAB_SIZE_OFFSET>();
+		}
+
+		uintptr_t plttab() const {
+			return get<uintptr_t, PLTTAB_OFFSET>();
+		}
+
+		size_t pltTblSize() const {
+			return get<size_t, PLTTAB_SIZE_OFFSET>();
+		}
+
+		size_t nPlt() const {
+			return pltTblSize() / sizeof(Elf64_Rela);
 		}
 
 		const rtld::ElfSymbolTable &getSymbolTable() const {
@@ -375,6 +392,14 @@ class RtldMeta : public KernelObject<RtldMeta, RTLD_META_SIZE> {
 				strTable = newStringTable(this);
 			}
 			return *strTable;
+		}
+
+		const Array<Elf64_Rela> &getPltTable() const {
+			if (pltTbl == nullptr) {
+				pltTbl = Array<Elf64_Rela>(nPlt());
+				kernel_copyout(plttab(), pltTbl.begin(), pltTblSize());
+			}
+			return pltTbl;
 		}
 };
 
@@ -478,6 +503,16 @@ class rtld::ElfSymbolTable {
 
 		const Elf64_Sym *getSymbol(size_t i) const {
 			return symbols.get() + i;
+		}
+
+		ssize_t getSymbolIndex(const Nid &nid) const {
+			const ssize_t len = static_cast<ssize_t>(size);
+			for (ssize_t i = 0; i < len; i++) {
+				if (meta->getStringTable().getNid(symbols[i].st_name) == nid) {
+					return i;
+				}
+			}
+			return -1;
 		}
 
 		const ElfSymbol operator[](const Nid &nid) const {

@@ -1,6 +1,10 @@
 #include "dbg.hpp"
+#include "dbg/dbg.hpp"
+#include "hijacker/hijacker.hpp"
 #include "kernel.hpp"
+#include "nid.hpp"
 #include "util.hpp"
+#include <stdarg.h>
 
 extern "C" {
 #include <ps5/kernel.h>
@@ -12,9 +16,8 @@ extern "C" {
 #include <unistd.h>
 }
 
-static constexpr uint64_t DEBUGGER_AUTHID = 0x4800000000000006;
 static constexpr int LIBKERNEL_HANDLE = 0x2001;
-static constexpr int SYSCALL_OFFSET = 7;
+static constexpr int SYSCALL_OFFSET = 10;
 typedef void (*p_mdbg_call)(void *, void *, void *);
 extern "C" p_mdbg_call _mdbg = nullptr; // NOLINT(*)
 
@@ -34,20 +37,7 @@ int __attribute__((naked, noinline)) syscall_mdbg_call(void *arg1, void *arg2, v
 
 static uintptr_t getCurrentProc() {
 
-	pid_t pid = getpid();
-
-	/*
-	uintptr_t pidhashtbl = kread<uintptr_t>(kernel_base + OFFSET_KERNEL_PID_HASHTBL);
-	uintptr_t proc = kread<uintptr_t>(pidhashtbl + ((pid & 0xff) * 8));
-	while (proc != 0) {
-		int cid = kread<int>(proc + OFFSET_KERNEL_PROC_P_PID);
-		if (cid == pid) {
-			return proc;
-		}
-		proc = kread<uintptr_t>(proc);
-	}
-	*/
-
+	const pid_t pid = getpid();
 	uintptr_t proc = kread<uintptr_t>(kernel_base + offsets::allproc());
 	while (proc != 0) {
 		int cid = kread<int>(proc + PID_OFFSET);
@@ -61,47 +51,20 @@ static uintptr_t getCurrentProc() {
 
 namespace dbg {
 
-class DbgAuthidSwapper {
-
-	uint64_t id;
-	static constexpr int AUTHID_OFFSET = 0x58;
-
-public:
-	DbgAuthidSwapper(uint64_t authid) {
-		uintptr_t proc = getCurrentProc();
-		uintptr_t ucred = kread<uintptr_t>(proc + UCRED_OFFSET);
-		id = kread<uint64_t>(ucred + AUTHID_OFFSET);
-		kwrite(ucred + AUTHID_OFFSET, authid);
+// this only needs to be manually called from the bootstrap spawner elf
+void __attribute__((constructor)) _dbg_init() {
+	uint8_t *addr = 0;
+	int res = sceKernelDlsym(LIBKERNEL_HANDLE, "get_authinfo", reinterpret_cast<void**>(&addr));
+	if (res > -1 && addr) {
+		_mdbg = reinterpret_cast<p_mdbg_call>(addr + SYSCALL_OFFSET);
+	} else {
+		puts("failed to get get_authinfo for mdbg_call");
 	}
-	DbgAuthidSwapper(const DbgAuthidSwapper&) = delete;
-	DbgAuthidSwapper &operator=(const DbgAuthidSwapper&) = delete;
-	DbgAuthidSwapper(DbgAuthidSwapper &&rhs) noexcept : id(rhs.id) { rhs.id = 0; }
-	DbgAuthidSwapper &operator=(DbgAuthidSwapper &&rhs) noexcept = delete;
-	~DbgAuthidSwapper() {
-		if (id != 0) {
-			uintptr_t proc = getCurrentProc();
-			if (proc != 0) {
-				uintptr_t ucred = kread<uintptr_t>(proc + UCRED_OFFSET);
-				kwrite(ucred + AUTHID_OFFSET, id);
-			}
-		}
-	}
-};
+}
 
 int __attribute__((noinline)) mdbg_call(DbgArg1 &arg1, DbgArg2 &arg2, DbgArg3 &arg3) {
-
-	if (!_mdbg) [[unlikely]] {
-		uint8_t *addr = 0;
-		int res = sceKernelDlsym(LIBKERNEL_HANDLE, "get_authinfo", reinterpret_cast<void**>(&addr));
-		if (res > -1 && addr) {
-			_mdbg = reinterpret_cast<p_mdbg_call>(addr + SYSCALL_OFFSET);
-		} else {
-			puts("failed to get get_authinfo for mdbg_call");
-		}
-	}
-
 	if (_mdbg) [[likely]] {
-		DbgAuthidSwapper swapper{DEBUGGER_AUTHID};
+		AuthidSwapper swapper{DEBUGGER_AUTHID};
 		return syscall_mdbg_call(&arg1, &arg2, &arg3);
 	}
 	puts("_mdbg is null");
@@ -109,20 +72,20 @@ int __attribute__((noinline)) mdbg_call(DbgArg1 &arg1, DbgArg2 &arg2, DbgArg3 &a
 }
 
 IdArray getAllPids() {
+	static constexpr size_t LENGTH = 10000;
 	DbgArg1 arg1{1, DbgCommand::PROCESS_LIST_CMD};
-	static constexpr size_t length = 10000;
-	UniquePtr<int[]> buf{new int[length]};
-	DbgGetPidsArg arg2{buf.get(), length};
+	UniquePtr<int[]> buf{new int[LENGTH]};
+	DbgGetPidsArg arg2{buf.get(), LENGTH};
 	DbgArg3 arg3{};
 	mdbg_call(arg1, arg2, arg3);
 	return {buf.get(), arg3.length};
 }
 
 IdArray getAllTids(int pid) {
+	static constexpr size_t LENGTH = 0x2000;
 	DbgArg1 arg1{1, DbgCommand::THREAD_LIST_CMD};
-	static constexpr size_t length = 0x2000;
-	UniquePtr<int[]> buf{new int[length]};
-	DbgGetTidsArg arg2{pid, buf.get(), length};
+	UniquePtr<int[]> buf{new int[LENGTH]};
+	DbgGetTidsArg arg2{pid, buf.get(), LENGTH};
 	DbgArg3 arg3{};
 	mdbg_call(arg1, arg2, arg3);
 	return {buf.get(), arg3.length};
@@ -204,5 +167,121 @@ bool write(int pid, uintptr_t dst, const void *src, size_t length) {
 	return true;
 }
 
+uint64_t setAuthId(uint64_t authid) {
+	static constexpr int AUTHID_OFFSET = 0x58;
+	uintptr_t proc = getCurrentProc();
+	uintptr_t ucred = kread<uintptr_t>(proc + UCRED_OFFSET);
+	uint64_t id = kread<uint64_t>(ucred + AUTHID_OFFSET);
+	kwrite(ucred + AUTHID_OFFSET, authid);
+	return id;
+}
 
-} // mdbg
+uintptr_t Tracer::call(const Registers &backup, Registers &jmp) const noexcept {
+	static constexpr uint8_t INT3 = 0xcc;
+	uint8_t int3 = INT3;
+	uint8_t inst[1]{};
+	dbg::read(pid, backup.rip(), inst, sizeof(inst));
+	dbg::write(pid, backup.rip(), &int3, sizeof(int3));
+	jmp.rsp(jmp.rsp() - sizeof(uintptr_t));
+
+	if (!setRegisters(jmp)) {
+		return -1;
+	}
+
+	const auto rip = backup.rip();
+	dbg::write(pid, jmp.rsp(), &rip, sizeof(rip));
+
+	// call the function
+	run();
+
+	if (!getRegisters(jmp)) {
+		dbg::write(pid, jmp.rsp(), inst, sizeof(inst));
+		return -1;
+	}
+
+	dbg::write(pid, jmp.rsp(), inst, sizeof(inst));
+
+	// restore registers
+	if (!setRegisters(backup)) {
+		return -1;
+	}
+
+	return jmp.rax();
+}
+
+uintptr_t Tracer::syscall(const Registers &backup, Registers &jmp) const noexcept {
+	if (syscall_addr == 0) [[unlikely]] {
+		auto hijacker = Hijacker::getHijacker(pid);
+		auto addr = hijacker->getLibKernelFunctionAddress(nid::get_authinfo);
+		if (addr != 0) {
+			addr += SYSCALL_OFFSET;
+		}
+		syscall_addr = addr;
+	}
+
+	jmp.rip(syscall_addr);
+
+	if (!setRegisters(jmp)) {
+		return -1;
+	}
+
+	// execute the syscall instruction
+	step();
+	if (!getRegisters(jmp)) {
+		setRegisters(backup);
+		return -1;
+	}
+
+	// restore registers
+	if (!setRegisters(backup)) {
+		return -1;
+	}
+
+	return jmp.rax();
+}
+
+void Tracer::perror(const char *msg) const noexcept {
+	if (errno_addr == 0) [[unlikely]] {
+		auto hijacker = Hijacker::getHijacker(pid);
+		errno_addr = hijacker->getLibKernelAddress(nid::_errno);
+		if (errno_addr == 0) [[unlikely]] {
+			puts("failed to get errno address");
+			return;
+		}
+	}
+	int err = 0;
+	read(pid, errno_addr, &err, sizeof(err));
+	printf("%s: %s\n", msg, strerror(err));
+}
+
+int Tracer::pipe(int fildes[2]) const noexcept {
+	const Registers backup = getRegisters();
+	Registers jmp = backup;
+	const auto rsp = jmp.rsp() - sizeof(int[2]);
+	jmp.rax(PIPE);
+	jmp.rsp(rsp);
+	jmp.rdi(rsp);
+	int err = static_cast<int>(syscall(backup, jmp));
+	if (err < 0) {
+		return err;
+	}
+	dbg::read(pid, rsp, fildes, sizeof(int[2]));
+	return 0;
+}
+
+int Tracer::setsockopt(int s, int level, int optname, const void *optval, unsigned int optlen) const noexcept {
+	const Registers backup = getRegisters();
+	Registers jmp = backup;
+	const auto rsp = jmp.rsp() - optlen;
+	jmp.rax(SETSOCKOPT);
+	jmp.rsp(rsp);
+	jmp.rdi(s); jmp.rsi(level); jmp.rdx(optname); jmp.r10(rsp); jmp.r8(optlen);
+	dbg::write(pid, rsp, optval, optlen);
+	int err = static_cast<int>(syscall(backup, jmp));
+	if (err < 0) {
+		return err;
+	}
+	return 0;
+}
+
+} // dbg

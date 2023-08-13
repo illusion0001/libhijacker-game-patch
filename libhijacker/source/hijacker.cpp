@@ -87,7 +87,7 @@ void Hijacker::jailbreak() const {
 	copyin(ucred + 0x83, attr_store, 0x1);		 // cr_sceAttr[0]
 }
 
-uintptr_t Hijacker::getFunctionAddress(SharedLib *lib, const Nid &fname) const {
+uintptr_t Hijacker::getFunctionAddress(const SharedLib *lib, const Nid &fname) const noexcept {
 	RtldMeta *meta = lib->getMetaData();
 	rtld::ElfSymbol sym = meta->getSymbolTable()[fname];
 	#ifdef DEBUG

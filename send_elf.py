@@ -159,8 +159,8 @@ async def open_connection(host: str, port: int, wait=True):
         try:
             reader, writer = await asyncio.open_connection(host, port)
         except OSError:
-            await asyncio.sleep(1)
             if wait:
+                await asyncio.sleep(1)
                 continue
         try:
             yield reader, writer

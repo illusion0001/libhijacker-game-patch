@@ -46,16 +46,6 @@ namespace {
 	extern const uint8_t SHELLCODE[282];
 }
 
-namespace nid {
-
-static inline constexpr Nid sceSystemServiceGetAppStatus{"t5ShV0jWEFE"};
-static inline constexpr Nid sceSystemServiceAddLocalProcess{"0cl8SuwosPQ"};
-static inline constexpr Nid socketpair{"MZb0GKT3mo8"};
-static inline constexpr Nid usleep{"QcteRwbsnV0"};
-static inline constexpr Nid errno{"9BcDykPmo1I"};
-
-}
-
 struct Args {
 	struct Result {
 		int32_t state;
@@ -69,7 +59,7 @@ struct Args {
 
 	Args(Hijacker &hijacker) :
 			result({0, 0}), socketpair(hijacker.getLibKernelFunctionAddress(nid::socketpair)),
-			usleep(hijacker.getLibKernelFunctionAddress(nid::usleep)), errno(hijacker.getLibKernelFunctionAddress(nid::errno)) {
+			usleep(hijacker.getLibKernelFunctionAddress(nid::usleep)), errno(hijacker.getLibKernelFunctionAddress(nid::_errno)) {
 		UniquePtr<SharedLib> libSceSystemService = hijacker.getLib(SYSTEM_SERVICE_HANDLE);
 		SharedLib *lib = libSceSystemService.get();
 		sceSystemServiceGetAppStatus = hijacker.getFunctionAddress(lib, nid::sceSystemServiceGetAppStatus);

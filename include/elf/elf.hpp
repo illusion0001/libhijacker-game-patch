@@ -22,6 +22,7 @@ class Elf : Elf64_Ehdr {
 	};
 
 	private:
+	dbg::Tracer tracer;
 	const Elf64_Phdr *__restrict phdrs;
 	const char *__restrict strtab;
 	size_t strtabLength;

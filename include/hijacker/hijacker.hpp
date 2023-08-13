@@ -22,7 +22,7 @@ class Hijacker {
 
 	private:
 		mutable UniquePtr<SharedLib> libkernel;
-	protected:
+	public:
 		uintptr_t pSavedRsp = 0;
 	private:
 		mutable int mainThreadId = -1;
@@ -47,11 +47,12 @@ class Hijacker {
 			return meta ? meta->getMetaData() : nullptr;
 		}
 
+		public:
 		uintptr_t getLibKernelBase() const {
 			RtldMeta *meta = getLibKernelMetaData();
 			return meta ? meta->imageBase : 0;
 		}
-
+	private:
 		int getMainThreadId() const;
 
 	public:
@@ -120,9 +121,14 @@ class Hijacker {
 
 		UniquePtr<TrapFrame> getTrapFrame() const;
 		void jailbreak() const;
-		uintptr_t getFunctionAddress(SharedLib *lib, const Nid &fname) const;
+		uintptr_t getFunctionAddress(const SharedLib *lib, const Nid &fname) const noexcept;
+
 		uintptr_t getLibKernelFunctionAddress(const Nid &fname) const {
 			return getFunctionAddress(getLibKernel(), fname);
+		}
+
+		uintptr_t getLibKernelAddress(const Nid &fname) const {
+			return getLibKernelFunctionAddress(fname);
 		}
 
 		ProcessMemoryAllocator &getDataAllocator() {
@@ -155,6 +161,11 @@ class Hijacker {
 
 		bool write(uintptr_t vaddr, const void *buf, size_t size) {
 			return dbg::write(getPid(), vaddr, buf, size);
+		}
+
+		template <typename T>
+		bool write(uintptr_t vaddr, const T &value) {
+			return write(vaddr, &value, sizeof(vaddr));
 		}
 
 		template <typename T>

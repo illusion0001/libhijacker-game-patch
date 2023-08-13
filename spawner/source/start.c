@@ -71,7 +71,14 @@ int __attribute__ ((naked)) dup2(int oldd, int newd) {
 	__asm__ volatile("jmp *f_dup2(%rip)");
 }
 
+static __attribute__ ((used)) void *f_kill = nullptr;
+int __attribute__ ((naked))	kill(__pid_t pid, int n) {
+	__asm__ volatile("jmp *f_kill(%rip)");
+}
 
+;
+
+STUB(sceUserServiceGetForegroundUser)
 STUB(getpid)
 STUB(memset)
 STUB(putchar)
@@ -99,9 +106,16 @@ STUB(strncmp)
 STUB(__error)
 STUB(strerror)
 STUB(sceKernelPrintBacktraceWithModuleInfo)
+STUB(ptrace)
+STUB(waitpid)
+STUB(perror)
+STUB(pthread_create)
+STUB(pthread_join)
+
+STUB(sceSysmoduleLoadModuleInternal)
+
 
 // these are unused
-STUB(sceSysmoduleLoadModuleInternal)
 STUB(sceSysmoduleLoadModuleByNameInternal)
 STUB(mmap)
 STUB(munmap)
@@ -136,7 +150,11 @@ void _start(struct payload_args *args) {
 	LIBKERNEL_LINK(sysctlbyname);
 	LIBKERNEL_LINK(__error);
 	LIBKERNEL_LINK(sceKernelPrintBacktraceWithModuleInfo);
-
+	LIBKERNEL_LINK(ptrace);
+	LIBKERNEL_LINK(waitpid);
+	LIBKERNEL_LINK(pthread_create);
+	LIBKERNEL_LINK(pthread_join);
+	LIBKERNEL_LINK(kill);
 
 
 	LIBC_LINK(_Znwm);
@@ -151,6 +169,7 @@ void _start(struct payload_args *args) {
 	LIBC_LINK(memcmp);
 	LIBC_LINK(strcmp);
 	LIBC_LINK(printf);
+	LIBC_LINK(perror);
 
 	LIBC_LINK(strstr);
 	LIBC_LINK(strlen);
@@ -158,6 +177,11 @@ void _start(struct payload_args *args) {
 	LIBC_LINK(strncpy);
 	LIBC_LINK(strncmp);
 	LIBC_LINK(strerror);
+
+	int libSceSysmodule = sceKernelLoadStartModule("libSceSysmodule.sprx", 0, 0, 0, 0, 0);
+
+	LINK(libSceSysmodule, sceSysmoduleLoadModuleInternal);
+	LINK(libSceSysmodule, sceSysmoduleLoadModuleByNameInternal);
 
 	kernel_base = args->kdata_base_addr;
 	kernel_init_rw(args->rwpair[0], args->rwpair[1], args->rwpipe, args->kpipe_addr);
