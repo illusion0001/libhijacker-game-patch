@@ -127,27 +127,6 @@ static bool load(UniquePtr<Hijacker> &redis) {
 	return false;
 }
 
-static bool spawn(Hijacker *hijacker) {
-	Spawner spawner{*hijacker};
-
-	puts("spawning new SceRedisServer process");
-	auto redis = spawner.bootstrap(*hijacker);
-
-	if (redis == nullptr) {
-		puts("failed to spawn new redis server process");
-		return false;
-	}
-	return load(redis);
-}
-
-[[maybe_unused]] static void __attribute__((naked, noinline)) clearFramePointer() {
-	// this clears the frame pointer so we stop the backtrace at the start of our code
-	__asm__ volatile(
-		"mov $0, %rbp\n"
-		"ret\n"
-	);
-}
-
 static int initStdout() {
 	{
 		FileDescriptor sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -406,7 +385,7 @@ static void *getSceLncUtilLaunchApp() {
 	}
 	for (const auto &lib : hijacker->getLibs()) {
 		if (lib->getPath().endswith("libSceSystemService.sprx"_sv)) {
-			return (void*)hijacker->getFunctionAddress(lib.get(), nid);
+			return (void*)hijacker->getFunctionAddress(lib.get(), nid); // NOLINT(*)
 		}
 	}
 	return nullptr;
@@ -420,7 +399,7 @@ static void *getSceLncUtilKillApp() {
 	}
 	for (const auto &lib : hijacker->getLibs()) {
 		if (lib->getPath().endswith("libSceSystemService.sprx"_sv)) {
-			return (void*)hijacker->getFunctionAddress(lib.get(), nid);
+			return (void*)hijacker->getFunctionAddress(lib.get(), nid); // NOLINT(*)
 		}
 	}
 	return nullptr;
@@ -433,11 +412,11 @@ struct LaunchArgs {
 };
 
 static void *doLaunchApp(void *ptr) {
-	UniquePtr<LaunchArgs> args = (LaunchArgs *)ptr;
+	UniquePtr<LaunchArgs> args = reinterpret_cast<LaunchArgs*>(ptr);
 	Flag flag = Flag_None;
 	LncAppParam param{sizeof(LncAppParam), args->id, 0, 0, flag};
 	using ftype = int (*)(const char* tid, const char* argv[], LncAppParam* param);
-	int (*sceLncUtilLaunchApp)(const char* tid, const char* argv[], LncAppParam* param) = (ftype) getSceLncUtilLaunchApp();
+	int (*sceLncUtilLaunchApp)(const char* tid, const char* argv[], LncAppParam* param) = reinterpret_cast<ftype>(getSceLncUtilLaunchApp());
 	if (sceLncUtilLaunchApp == nullptr) {
 		puts("failed to get address of sceLncUtilLaunchApp");
 		return nullptr;
@@ -474,14 +453,14 @@ static pthread_t launchApp(const char *titleId, int *appId) {
 	static constexpr auto DEFAULT_PRIORITY = 256;
 	int priority = DEFAULT_PRIORITY;
 	uint32_t (*sceUserServiceInitialize)(int*) = nullptr;
-	sceKernelDlsym(libUserService, "sceUserServiceInitialize", (void**)&sceUserServiceInitialize);
+	sceKernelDlsym(libUserService, "sceUserServiceInitialize", reinterpret_cast<void**>(&sceUserServiceInitialize));
 	if (sceUserServiceInitialize == nullptr) {
 		puts("failed to resolve sceUserServiceInitialize");
 		return nullptr;
 	}
 	sceUserServiceInitialize(&priority);
 	uint32_t (*sceUserServiceGetForegroundUser)(uint32_t *) = nullptr;
-	sceKernelDlsym(libUserService, "sceUserServiceGetForegroundUser", (void**)&sceUserServiceGetForegroundUser);
+	sceKernelDlsym(libUserService, "sceUserServiceGetForegroundUser", reinterpret_cast<void**>(&sceUserServiceGetForegroundUser));
 	if (sceUserServiceGetForegroundUser == nullptr) {
 		puts("failed to resolve sceUserServiceGetForegroundUser");
 		return nullptr;
@@ -495,6 +474,8 @@ static pthread_t launchApp(const char *titleId, int *appId) {
 
 	uint32_t libSystemService = getLibSystemService();
 	printf("libSystemService 0x%08lx\n", libSystemService);
+
+	// the thread will clean this up
 	LaunchArgs *args = new LaunchArgs{titleId, id, appId}; // NOLINT(*)
 	pthread_t td = nullptr;
 	pthread_create(&td, nullptr, doLaunchApp, args);
@@ -545,14 +526,6 @@ static uintptr_t getNanosleepOffset(const Hijacker &hijacker) {
 	return addr - hijacker.getLibKernelBase();
 }
 
-static reg getRegs(int pid) {
-	reg result{};
-	if (ptrace(PT_GETREGS, pid, (caddr_t)&result, 0) < 0) {
-		perror("ptrace getRegs");
-	}
-	return result;
-}
-
 namespace dbg {
 
 extern void _dbg_init();
@@ -581,6 +554,9 @@ extern "C" int main() {
 	const uintptr_t nanosleepOffset = getNanosleepOffset(*syscore.hijacker);
 	//puts("spawning daemon");
 	puts("waiting for new process to spawn");
+
+	const int lastPid = dbg::getAllPids()[0];
+
 	int appId = 0;
 	pthread_t td = launchApp("BREW00000", &appId);
 	if (td == nullptr) {
@@ -588,61 +564,29 @@ extern "C" int main() {
 		return 0;
 	}
 
-	const int lastPid = dbg::getAllPids()[0];
-
+	// get the pid of the new process as soon as it is created
 	int pid = lastPid;
 	while (pid == lastPid) {
 		usleep(1000); // NOLINT(*)
 		pid = dbg::getAllPids()[0];
 	}
 
-	//syscore.hijacker = Hijacker::getHijacker(pid);
+	// attach to the new process
+	dbg::Tracer tracer{pid};
 
-	uint64_t id = dbg::setAuthId(dbg::PTRACE_ID);
+	// run until execve finishes and sends the signal
+	tracer.run();
 
-	int err = ptrace(PT_ATTACH, pid, 0, 0);
-	if (err < 0) {
-		perror("ptrace");
-		dbg::setAuthId(id);
-		return 0;
-	}
-
-	int status = 0;
-	if (waitpid(pid, &status, 0) < 0) {
-		perror("waitpid");
-		dbg::setAuthId(id);
-		return -1;
-	}
-
-	printf("status %d\n", status);
-	puts("attatched");
-	dumpPids();
-
-	err = ptrace(PT_CONTINUE, pid, (caddr_t)1, 0);
-	if (err < 0) {
-		perror("ptrace");
-		dbg::setAuthId(id);
-		return 0;
-	}
-
-	if (waitpid(pid, &status, 0) < 0) {
-		perror("waitpid");
-		dbg::setAuthId(id);
-		return -1;
-	}
 
 	UniquePtr<Hijacker> spawned = nullptr;
-	puts("waiting for process to spawn");
 	while (spawned == nullptr) {
+		// this should grab it first try but I haven't confirmed yet
 		spawned = Hijacker::getHijacker(pid);
-		//dumpPids();
 	}
 
-	printf("status %d\n", status);
-	puts("continued");
-	reg r = getRegs(pid);
+	auto r = tracer.getRegisters();
 	printf("libkernel imagebase: 0x%08llx\n", spawned->getLibKernelBase());
-	printf("rip: 0x%08llx\n", r.r_rip);
+	r.dump();
 	dumpPids();
 
 	puts("spawned process obtained");
@@ -652,6 +596,7 @@ extern "C" int main() {
 
 	uintptr_t base = 0;
 	while (base == 0) {
+		// this should also work first try but not confirmed
 		base = spawned->getLibKernelBase();
 	}
 
@@ -663,47 +608,10 @@ extern "C" int main() {
 
 	// insert a software breakpoint at the entry point
 	// sadly this didn't work :(
-	/*
-	static constexpr uint8_t INT3 = 0xcc;
-	uint8_t breakpoint[]{INT3};
-	const uintptr_t entry = base + ENTRYPOINT_OFFSET;
-	dbg::write(pid, entry, breakpoint, sizeof(breakpoint));
-
-	while (true) {
-		err = ptrace(PT_CONTINUE, pid, (caddr_t)1, 0);
-		if (err < 0) {
-			perror("ptrace");
-			dbg::setAuthId(id);
-			return 0;
-		}
-
-		if (waitpid(pid, &status, 0) < 0) {
-			perror("waitpid");
-			dbg::setAuthId(id);
-			return -1;
-		}
-		reg r = getRegs(pid);
-		uint8_t inst = 0;
-		dbg::read(pid, r.r_rip-1, sizeof(inst));
-		if (inst == INT3) {
-			puts("stopped at software breakpoint");
-			break;
-		}
-		printf("rip: 0x%08llx\n", r.r_rip);
-	}
-	*/
+	// it won't work because we need to detatch which will cause it to exit
 
 	// force the entrypoint to an infinite loop so that it doesn't start until we're ready
 	dbg::write(pid, base + ENTRYPOINT_OFFSET, loop.data, sizeof(loop.data));
-
-	err = ptrace(PT_DETACH, pid, 0, 0);
-	if (err < 0) {
-		perror("ptrace");
-		dbg::setAuthId(id);
-		return 0;
-	}
-
-	dbg::setAuthId(id);
 
 	pthread_join(td, nullptr);
 
