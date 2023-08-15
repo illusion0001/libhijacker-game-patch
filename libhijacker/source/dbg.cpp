@@ -177,29 +177,26 @@ uint64_t setAuthId(uint64_t authid) {
 }
 
 uintptr_t Tracer::call(const Registers &backup, Registers &jmp) const noexcept {
-	static constexpr uint8_t INT3 = 0xcc;
-	uint8_t int3 = INT3;
-	uint8_t inst[1]{};
-	dbg::read(pid, backup.rip(), inst, sizeof(inst));
-	dbg::write(pid, backup.rip(), &int3, sizeof(int3));
+	if (libkernel_base == 0) [[unlikely]] {
+		auto hijacker = Hijacker::getHijacker(pid);
+		libkernel_base = hijacker->getLibKernelBase();
+	}
+
 	jmp.rsp(jmp.rsp() - sizeof(uintptr_t));
 
 	if (!setRegisters(jmp)) {
 		return -1;
 	}
 
-	const auto rip = backup.rip();
-	dbg::write(pid, jmp.rsp(), &rip, sizeof(rip));
+	// set the return address to the `INT3` at the start of libkernel
+	dbg::write(pid, jmp.rsp(), &libkernel_base, sizeof(libkernel_base));
 
 	// call the function
 	run();
 
 	if (!getRegisters(jmp)) {
-		dbg::write(pid, jmp.rsp(), inst, sizeof(inst));
 		return -1;
 	}
-
-	dbg::write(pid, jmp.rsp(), inst, sizeof(inst));
 
 	// restore registers
 	if (!setRegisters(backup)) {

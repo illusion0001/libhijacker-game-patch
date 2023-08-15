@@ -415,6 +415,7 @@ class Tracer {
 	static constexpr int SETSOCKOPT = 105;
 
 	mutable uintptr_t syscall_addr;
+	mutable uintptr_t libkernel_base;
 	mutable uintptr_t errno_addr;
 	int pid;
 
@@ -475,7 +476,7 @@ class Tracer {
 	uintptr_t syscall(const Registers &backup, Registers &jmp) const noexcept;
 
 	public:
-		Tracer(int pid) noexcept : syscall_addr(0), errno_addr(0), pid(pid) {
+		Tracer(int pid) noexcept : syscall_addr(0), libkernel_base(0), errno_addr(0), pid(pid) {
 			if (ptrace(PT_ATTACH, pid, 0, 0) < 0) {
 				::perror("ptrace PT_ATTACH Tracer::Tracer");
 			} else {
@@ -484,8 +485,9 @@ class Tracer {
 		}
 		Tracer(const Tracer&) = delete;
 		Tracer &operator=(const Tracer&) = delete;
-		Tracer(Tracer &&rhs) noexcept : syscall_addr(rhs.syscall_addr), errno_addr(rhs.errno_addr), pid(rhs.pid) {
+		Tracer(Tracer &&rhs) noexcept : syscall_addr(rhs.syscall_addr), libkernel_base(rhs.libkernel_base), errno_addr(rhs.errno_addr), pid(rhs.pid) {
 			rhs.syscall_addr = 0;
+			rhs.libkernel_base = 0;
 			rhs.pid = 0;
 		}
 		Tracer &operator=(Tracer &&rhs) noexcept {
@@ -495,9 +497,11 @@ class Tracer {
 				}
 			}
 			syscall_addr = rhs.syscall_addr;
+			libkernel_base = rhs.libkernel_base;
 			errno_addr = rhs.errno_addr;
 			pid = rhs.pid;
 			rhs.syscall_addr = 0;
+			rhs.libkernel_base = 0;
 			rhs.errno_addr = 0;
 			rhs.pid = 0;
 			return *this;
