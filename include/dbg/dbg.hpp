@@ -424,10 +424,6 @@ class Tracer {
 		return ::ptrace(request, pid, addr, data);
 	}
 
-	bool getRegisters(Registers &r) const noexcept {
-		return ptrace(PT_GETREGS, pid, reinterpret_cast<caddr_t>(&r), 0) >= 0;
-	}
-
 	uintptr_t call(uintptr_t addr, uintptr_t a) const noexcept {
 		const Registers backup = getRegisters();
 		Registers jmp = backup;
@@ -509,7 +505,7 @@ class Tracer {
 		~Tracer() noexcept {
 			if (pid != 0) {
 				puts("Tracer::~Tracer");
-				usleep(10000000);
+				usleep(1000000); // NOLINT(*)
 				if (ptrace(PT_DETACH, pid, 0, 0) < 0) {
 					::perror("ptrace PT_DETACH Tracer::~Tracer");
 				}
@@ -531,6 +527,10 @@ class Tracer {
 			return r;
 		}
 
+		bool getRegisters(Registers &r) const noexcept {
+			return ptrace(PT_GETREGS, pid, reinterpret_cast<caddr_t>(&r), 0) >= 0;
+		}
+
 		bool setRegisters(const Registers &regs) const noexcept {
 			struct reg *r = const_cast<Registers*>(&regs); // NOLINT(*)
 			return ptrace(PT_SETREGS, pid, reinterpret_cast<caddr_t>(r), 0) >= 0;
@@ -541,9 +541,12 @@ class Tracer {
 			return wait();
 		}
 
-		int run() const noexcept { // continue is a keyword :/
+		int run(bool wait=true) const noexcept { // continue is a keyword :/
 			ptrace(PT_CONTINUE, pid, reinterpret_cast<caddr_t>(1), 0);
-			return wait();
+			if (wait) {
+				return this->wait();
+			}
+			return 0;
 		}
 
 		int kill() noexcept {

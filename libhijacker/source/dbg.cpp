@@ -180,6 +180,10 @@ uintptr_t Tracer::call(const Registers &backup, Registers &jmp) const noexcept {
 	if (libkernel_base == 0) [[unlikely]] {
 		auto hijacker = Hijacker::getHijacker(pid);
 		libkernel_base = hijacker->getLibKernelBase();
+		if (libkernel_base == 0) [[unlikely]] {
+			puts("failed to get libkernel base");
+			return -1;
+		}
 	}
 
 	jmp.rsp(jmp.rsp() - sizeof(uintptr_t));

@@ -107,10 +107,17 @@ static bool runElf(Hijacker *hijacker) {
 	return false;
 }
 
+static void dumpPids() {
+	for (const auto &p : dbg::getProcesses()) {
+		printf("%d %s\n", p.pid(), p.name().c_str());
+	}
+}
+
 static bool load(UniquePtr<Hijacker> &redis) {
 	puts("getting saved stack pointer");
 	while (redis->getSavedRsp() == 0) {
-		usleep(1);
+		dumpPids();
+		//usleep(1);
 	}
 	puts("setting process name");
 	redis->getProc()->setName("HomebrewDaemon"_sv);
@@ -482,12 +489,6 @@ static pthread_t launchApp(const char *titleId, int *appId) {
 	return td;
 }
 
-static void dumpPids() {
-	for (const auto &p : dbg::getProcesses()) {
-		printf("%d %s\n", p.pid(), p.name().c_str());
-	}
-}
-
 static constexpr uintptr_t ENTRYPOINT_OFFSET = 0x70;
 static constexpr size_t LOOB_BUILDER_SIZE = 30;
 static constexpr size_t LOOP_BUILDER_TARGET_OFFSET = 11;
@@ -571,51 +572,55 @@ extern "C" int main() {
 		pid = dbg::getAllPids()[0];
 	}
 
-	// attach to the new process
-	dbg::Tracer tracer{pid};
-
-	// run until execve finishes and sends the signal
-	tracer.run();
-
-
 	UniquePtr<Hijacker> spawned = nullptr;
-	while (spawned == nullptr) {
-		// this should grab it first try but I haven't confirmed yet
-		spawned = Hijacker::getHijacker(pid);
+
+	{
+		// attach to the new process
+		dbg::Tracer tracer{pid};
+
+		// run until execve finishes and sends the signal
+		tracer.run();
+
+
+		while (spawned == nullptr) {
+			// this should grab it first try but I haven't confirmed yet
+			spawned = Hijacker::getHijacker(pid);
+		}
+
+		auto r = tracer.getRegisters();
+		printf("libkernel imagebase: 0x%08llx\n", spawned->getLibKernelBase());
+		r.dump();
+		dumpPids();
+
+		puts("spawned process obtained");
+
+		puts("success");
+		//dbg::setAuthId(id);
+
+		uintptr_t base = 0;
+		while (base == 0) {
+			// this should also work first try but not confirmed
+			base = spawned->getLibKernelBase();
+		}
+
+		const uintptr_t rsp = spawned->getDataAllocator().allocate(8);
+		loop.setStackPointer(rsp);
+		loop.setTarget(base + nanosleepOffset);
+		base = spawned->imagebase();
+		spawned->pSavedRsp = rsp;
+
+		// insert a software breakpoint at the entry point
+		// sadly this didn't work :(
+		// it won't work because we need to detatch which will cause it to exit
+
+		// force the entrypoint to an infinite loop so that it doesn't start until we're ready
+		dbg::write(pid, base + ENTRYPOINT_OFFSET, loop.data, sizeof(loop.data));
+
+		//pthread_join(td, nullptr);
+
+		puts("finished");
+
 	}
-
-	auto r = tracer.getRegisters();
-	printf("libkernel imagebase: 0x%08llx\n", spawned->getLibKernelBase());
-	r.dump();
-	dumpPids();
-
-	puts("spawned process obtained");
-
-	puts("success");
-	//dbg::setAuthId(id);
-
-	uintptr_t base = 0;
-	while (base == 0) {
-		// this should also work first try but not confirmed
-		base = spawned->getLibKernelBase();
-	}
-
-	const uintptr_t rsp = spawned->getDataAllocator().allocate(8);
-	loop.setStackPointer(rsp);
-	loop.setTarget(base + nanosleepOffset);
-	base = spawned->imagebase();
-	spawned->pSavedRsp = rsp;
-
-	// insert a software breakpoint at the entry point
-	// sadly this didn't work :(
-	// it won't work because we need to detatch which will cause it to exit
-
-	// force the entrypoint to an infinite loop so that it doesn't start until we're ready
-	dbg::write(pid, base + ENTRYPOINT_OFFSET, loop.data, sizeof(loop.data));
-
-	pthread_join(td, nullptr);
-
-	puts("finished");
 
 	if (!load(spawned)) {
 		puts("failed to load elf into new process");

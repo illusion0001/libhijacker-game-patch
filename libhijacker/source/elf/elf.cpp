@@ -326,7 +326,7 @@ bool Elf::parseDynamicTable() {
 	libs = {handleCount + names.length()};
 
 	if (names.length() > 0) {
-		puts("loading libraries (single stepping is very slow)");
+		puts("loading libraries");
 		if (!loadLibraries(*hijacker, tracer, names, libs, handleCount)) {
 			__builtin_printf("failed to load libraries\n");
 			return false;
@@ -335,7 +335,10 @@ bool Elf::parseDynamicTable() {
 
 	puts("filling symbol tables");
 	for (auto i = 0; i < handleCount; i++) {
-		auto ptr = hijacker->getLib(*(preLoadedHandles + i));
+		printf("filling %d/%d\n", i, handleCount);
+		printf("lib 0x%08lx\n", preLoadedHandles[i]);
+		auto ptr = hijacker->getLib(preLoadedHandles[i]);
+		printf("lib 0x%08lx ptr 0x%p\n", preLoadedHandles[i], (void*)ptr.get());
 		if (ptr == nullptr) [[unlikely]] {
 			printf("failed to get lib for 0x%x\n", (unsigned int) preLoadedHandles[i]);
 			return false;
@@ -733,7 +736,11 @@ bool Elf::start(uintptr_t args) {
 	regs.rsp(hijacker->getSavedRsp());
 	regs.rip(imagebase + e_entry);
 	tracer.setRegisters(regs);
-	tracer.run();
+	while (true) {
+		regs.dump();
+		tracer.step();
+		tracer.getRegisters(regs);
+	}
 	puts("great success");
 	return true;
 }

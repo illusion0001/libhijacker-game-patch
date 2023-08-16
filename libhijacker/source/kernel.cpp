@@ -61,6 +61,7 @@ bool createReadWriteSockets(const UniquePtr<KProc> &proc, const int *sockets) no
 		return false;
 	}
 	kwrite(master_inp6_outputopts + 0x10, victim_inp6_outputopts + 0x10);
+	__builtin_printf("master_inp6_outputopts: 0x%08llx\n", master_inp6_outputopts);
 	kwrite<uint32_t>(master_inp6_outputopts + 0xc0, 0x13370000);
 	return true;
 	// NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
