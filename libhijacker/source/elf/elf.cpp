@@ -335,10 +335,7 @@ bool Elf::parseDynamicTable() {
 
 	puts("filling symbol tables");
 	for (auto i = 0; i < handleCount; i++) {
-		printf("filling %d/%d\n", i, handleCount);
-		printf("lib 0x%08lx\n", preLoadedHandles[i]);
 		auto ptr = hijacker->getLib(preLoadedHandles[i]);
-		printf("lib 0x%08lx ptr 0x%p\n", preLoadedHandles[i], (void*)ptr.get());
 		if (ptr == nullptr) [[unlikely]] {
 			printf("failed to get lib for 0x%x\n", (unsigned int) preLoadedHandles[i]);
 			return false;
@@ -734,6 +731,7 @@ bool Elf::start(uintptr_t args) {
 	(void) args;
 	dbg::Registers regs = tracer.getRegisters();
 	regs.rsp(hijacker->getSavedRsp());
+	printf("imagebase: 0x%08llx\n", imagebase);
 	regs.rip(imagebase + e_entry);
 	tracer.setRegisters(regs);
 	while (true) {

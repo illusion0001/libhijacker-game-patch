@@ -554,7 +554,6 @@ extern "C" int main() {
 	auto syscore = patchSyscore();
 	const uintptr_t nanosleepOffset = getNanosleepOffset(*syscore.hijacker);
 	//puts("spawning daemon");
-	puts("waiting for new process to spawn");
 
 	const int lastPid = dbg::getAllPids()[0];
 
@@ -565,6 +564,8 @@ extern "C" int main() {
 		return 0;
 	}
 
+	puts("waiting for new process to spawn");
+
 	// get the pid of the new process as soon as it is created
 	int pid = lastPid;
 	while (pid == lastPid) {
@@ -573,7 +574,7 @@ extern "C" int main() {
 	}
 
 	UniquePtr<Hijacker> spawned = nullptr;
-
+	dbg::AuthidSwapper idSwapper{dbg::PTRACE_ID};
 	{
 		// attach to the new process
 		dbg::Tracer tracer{pid};

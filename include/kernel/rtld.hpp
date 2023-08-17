@@ -443,9 +443,6 @@ class rtld::ElfSymbol : public Elf64_Sym {
 		ElfSymbol(const RtldMeta *meta, const Elf64_Sym &sym) : Elf64_Sym(sym), meta(meta) {}
 
 		StringView name() const {
-			if (meta == nullptr) [[unlikely]] {
-				puts("null meta in ElfSymbol");
-			}
 			return meta->getStringTable()[st_name];
 		}
 
@@ -455,16 +452,10 @@ class rtld::ElfSymbol : public Elf64_Sym {
 		}
 
 		uintptr_t vaddr() const {
-			if (meta == nullptr) [[unlikely]] {
-				puts("null meta in ElfSymbol");
-			}
 			return meta->imageBase + st_value;
 		}
 
 		Nid nid() const {
-			if (meta == nullptr) [[unlikely]] {
-				puts("null meta in ElfSymbol");
-			}
 			return meta->getStringTable().getNid(st_name);
 		}
 

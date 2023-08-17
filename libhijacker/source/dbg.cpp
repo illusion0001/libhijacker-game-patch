@@ -255,13 +255,16 @@ void Tracer::perror(const char *msg) const noexcept {
 	printf("%s: %s\n", msg, strerror(err));
 }
 
-int Tracer::pipe(int fildes[2]) const noexcept {
+int Tracer::pipe(int *fildes) const noexcept {
+	fildes[0] = -1;
+	fildes[1] = -1;
 	const Registers backup = getRegisters();
 	Registers jmp = backup;
-	const auto rsp = jmp.rsp() - sizeof(int[2]);
-	jmp.rax(PIPE);
-	jmp.rsp(rsp);
+	const auto rsp = jmp.rsp() - sizeof(long[2]);
+	dbg::write(pid, rsp, fildes, sizeof(int[2]));
+	jmp.rax(PIPE2);
 	jmp.rdi(rsp);
+	jmp.rsi(0);
 	int err = static_cast<int>(syscall(backup, jmp));
 	if (err < 0) {
 		return err;

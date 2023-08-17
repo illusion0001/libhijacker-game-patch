@@ -391,11 +391,11 @@ struct Registers : reg { // these are helpers as it is annoying that register_t 
 		printf("r8:  0x%08llx\n", r8());
 		printf("r9:  0x%08llx\n", r9());
 		printf("r10: 0x%08llx\n", r10());
-		printf("r10: 0x%08llx\n", r11());
-		printf("r10: 0x%08llx\n", r12());
-		printf("r10: 0x%08llx\n", r13());
-		printf("r10: 0x%08llx\n", r14());
-		printf("r10: 0x%08llx\n", r15());
+		printf("r11: 0x%08llx\n", r11());
+		printf("r12: 0x%08llx\n", r12());
+		printf("r13: 0x%08llx\n", r13());
+		printf("r14: 0x%08llx\n", r14());
+		printf("r15: 0x%08llx\n", r15());
 		printf("rbp: 0x%08llx\n", rbp());
 		printf("rsp: 0x%08llx\n", rsp());
 		printf("rip: 0x%08llx\n", rip());
@@ -412,6 +412,7 @@ class Tracer {
 	static constexpr int CLOSE = 6;
 	static constexpr int SOCKET = 97;
 	static constexpr int PIPE = 42;
+	static constexpr int PIPE2 = 687;
 	static constexpr int SETSOCKOPT = 105;
 
 	mutable uintptr_t syscall_addr;
@@ -576,9 +577,7 @@ class Tracer {
 			jmp.rax(static_cast<uintptr_t>(num));
 			// using C cast since it isn't known what cast is required
 			jmp.setArgs(((uintptr_t) args)...);  // NOLINT(*)
-			if constexpr(sizeof...(Args) >= 4) {
-				jmp.r10(jmp.rcx());
-			}
+			jmp.r10(jmp.rcx());
 			return (R) syscall(backup, jmp); // NOLINT(*)
 		}
 
@@ -610,7 +609,7 @@ class Tracer {
 			return syscall<int, int, int, int>(SOCKET, domain, type, protocol);
 		}
 
-		int pipe(int fildes[2]) const noexcept;
+		int pipe(int *fildes) const noexcept;
 
 		int setsockopt(int s, int level, int optname, const void *optval, unsigned int optlen) const noexcept;
 
