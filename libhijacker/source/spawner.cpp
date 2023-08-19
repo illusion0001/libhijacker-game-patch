@@ -9,11 +9,11 @@
 // this always seems to be the case
 static constexpr uintptr_t ENTRYPOINT_OFFSET = 0x70;
 static constexpr int SYSTEM_SERVICE_HANDLE = 38;
+static constexpr size_t LOOB_BUILDER_SIZE = 30;
+static constexpr size_t LOOP_BUILDER_TARGET_OFFSET = 11;
+static constexpr size_t LOOP_BUILDER_STACK_PTR_OFFSET = 5;
 
 struct LoopBuilder {
-	static constexpr size_t LOOB_BUILDER_SIZE = 39;
-	static constexpr size_t LOOP_BUILDER_TARGET_OFFSET = 11;
-	static constexpr size_t LOOP_BUILDER_STACK_PTR_OFFSET = 5;
 	uint8_t data[LOOB_BUILDER_SIZE];
 
 	void setTarget(uintptr_t addr) {
@@ -33,18 +33,12 @@ static inline constexpr LoopBuilder SLEEP_LOOP{
 	//loop:
 	//	MOV RAX, _nanosleep
 	0x48, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	// MOV RDI, 1000000000 // 1 second
+	// MOV EDI, 1000000000 // 1 second
 	0x48, 0xc7, 0xc7, 0x00, 0xca, 0x9a, 0x3b,
-	// MOV RSI, 0
-	0x48, 0xc7, 0xc6, 0x00, 0x00, 0x00, 0x00,
-	// PUSH RDI
-	0x57,
-	// PUSH RSI
-	0x56,
 	// CALL RAX
 	0xff, 0xd0,
 	// JMP loop
-	0xeb, 0xe2
+	0xeb, 0xeb
 };
 
 namespace {

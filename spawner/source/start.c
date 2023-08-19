@@ -76,7 +76,7 @@ int __attribute__ ((naked))	kill(__pid_t pid, int n) {
 	__asm__ volatile("jmp *f_kill(%rip)");
 }
 
-;
+void *f_get_authinfo = nullptr;
 
 STUB(sceUserServiceGetForegroundUser)
 STUB(getpid)
@@ -93,6 +93,8 @@ STUB(setsockopt)
 STUB(_write)
 STUB(_read)
 STUB(open)
+STUB(mkdir)
+STUB(stat)
 STUB(printf)
 STUB(_ZdaPv)
 STUB(_Znam)
@@ -115,6 +117,10 @@ STUB(pthread_join)
 
 STUB(sceSysmoduleLoadModuleInternal)
 
+STUB(fopen)
+STUB(fwrite)
+STUB(fclose)
+STUB(fread)
 
 // these are unused
 STUB(sceSysmoduleLoadModuleByNameInternal)
@@ -144,11 +150,14 @@ void _start(struct payload_args *args) {
 	LIBKERNEL_LINK(accept);
 	LIBKERNEL_LINK(usleep);
 	LIBKERNEL_LINK(getpid);
+	LIBKERNEL_LINK(get_authinfo);
 
 	LIBKERNEL_LINK(_write);
 	LIBKERNEL_LINK(_read);
 	LIBKERNEL_LINK(open);
 	LIBKERNEL_LINK(close);
+	LIBKERNEL_LINK(mkdir);
+	LIBKERNEL_LINK(stat);
 	LIBKERNEL_LINK(sysctlbyname);
 	LIBKERNEL_LINK(__error);
 	LIBKERNEL_LINK(sceKernelPrintBacktraceWithModuleInfo);
@@ -179,6 +188,11 @@ void _start(struct payload_args *args) {
 	LIBC_LINK(strncpy);
 	LIBC_LINK(strncmp);
 	LIBC_LINK(strerror);
+
+	LIBC_LINK(fopen);
+	LIBC_LINK(fwrite);
+	LIBC_LINK(fclose);
+	LIBC_LINK(fread);
 
 	int libSceSysmodule = sceKernelLoadStartModule("libSceSysmodule.sprx", 0, 0, 0, 0, 0);
 

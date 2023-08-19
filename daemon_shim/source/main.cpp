@@ -17,31 +17,13 @@ extern int runKlogger(void *unused);
 extern int runElfServer(void *unused);
 extern int runCommandProcessor(void *unused);
 
+static constexpr int SUSPENDING_ERRNO = 0xa3;
 static constexpr int ELF_PORT = 9027;
 static constexpr int KERNELRW_PORT = 9030;
 static constexpr int STUPID_C_ERROR_VALUE = -1;
 
 extern "C" ssize_t _read(int, void *, size_t);
 extern void printBacktrace();
-
-enum SystemEventType : uint32_t {
-	RESUME_EVENT = 0x10000000
-};
-
-struct SystemEvent {
-	static constexpr size_t UNKNOWN_LENGTH = 0x2000;
-	SystemEventType type;
-	uint8_t unknown[UNKNOWN_LENGTH];
-};
-
-struct SystemStatus {
-	static constexpr size_t UNKNOWN_LENGTH = 0xfc;
-	uint32_t numEvents;
-	uint8_t unknown[UNKNOWN_LENGTH];
-};
-
-extern "C" uint32_t sceSystemServiceReceiveEvent(SystemEvent *event);
-extern "C" uint32_t sceSystemServiceGetStatus(SystemStatus *status);
 
 class Socket {
 	int fd = -1;
@@ -122,13 +104,17 @@ bool runElf(Hijacker *hijacker, uint16_t port) {
 		socklen_t addr_len = sizeof(client_addr);
 		Socket conn = accept(sock.getFd(), &client_addr, &addr_len);
 		if (!conn) {
-			__builtin_printf("accept: %s", strerror(errno));
+			if (errno != SUSPENDING_ERRNO) {
+				__builtin_printf("accept: %s", strerror(errno));
+			}
 			return false;
 		}
 
 		ssize_t size = 0;
 		if (_read(conn.getFd(), &size, sizeof(size)) == -1) {
-			__builtin_printf("read size: %s", strerror(errno));
+			if (errno != SUSPENDING_ERRNO) {
+				__builtin_printf("read size: %s", strerror(errno));
+			}
 			return false;
 		}
 
@@ -185,9 +171,11 @@ class FileDescriptor {
 		bool read(uint8_t *buf, size_t size) const {
 			while (size > 0) {
 				auto read = _read(fd, buf, size);
-				if (read == -1) {
-					__builtin_printf("read failed error %s\n", strerror(errno));
-					printBacktrace();
+				if (read == STUPID_C_ERROR_VALUE) {
+					if (errno != SUSPENDING_ERRNO) {
+						__builtin_printf("read failed error %s\n", strerror(errno));
+						printBacktrace();
+					}
 					return false;
 				}
 				size -= read;
@@ -239,6 +227,9 @@ static void *kernelRWHandler(void *unused) noexcept {
 		int sockets[2]{};
 		ssize_t n = read(conn, &pid, sizeof(pid));
 		if (n == STUPID_C_ERROR_VALUE) {
+			if (errno == SUSPENDING_ERRNO) {
+				return nullptr;
+			}
 			perror("kernelRWHandler read");
 			continue;
 		}
@@ -248,6 +239,9 @@ static void *kernelRWHandler(void *unused) noexcept {
 		}
 		n = read(conn, sockets, sizeof(sockets));
 		if (n == STUPID_C_ERROR_VALUE) {
+			if (errno == SUSPENDING_ERRNO) {
+				return nullptr;
+			}
 			perror("kernelRWHandler read");
 			continue;
 		}
@@ -261,6 +255,9 @@ static void *kernelRWHandler(void *unused) noexcept {
 		}
 		n = write(conn, &kernel_base, sizeof(kernel_base));
 		if (n == STUPID_C_ERROR_VALUE) {
+			if (errno == SUSPENDING_ERRNO) {
+				return nullptr;
+			}
 			perror("kernelRWHandler write");
 			continue;
 		}
@@ -272,35 +269,33 @@ static void *kernelRWHandler(void *unused) noexcept {
 	return nullptr;
 }
 
+static void *elfLoader(void *unused) noexcept {
+	(void) unused;
+	puts("starting elfLoader");
+	while (true) {
+		auto hijacker = Hijacker::getHijacker(getpid());
+		if (!runElf(hijacker.get(), ELF_PORT)) {
+			if (errno == SUSPENDING_ERRNO) {
+				return nullptr;
+			}
+			perror("elfLoader");
+		}
+	}
+}
+
 int main() {
-	static SystemEvent event{};
-	static SystemStatus status{};
+	static constexpr int ONE_SECOND = 1000000;
 	while (true) {
 		pthread_t ftp = nullptr;
 		pthread_t krw = nullptr;
+		pthread_t elfldr = nullptr;
 		pthread_create(&ftp, nullptr, start_ftp, nullptr);
 		pthread_create(&krw, nullptr, kernelRWHandler, nullptr);
-		while (true) {
-			auto hijacker = Hijacker::getHijacker(getpid());
-			runElf(hijacker.get(), ELF_PORT);
-		}
+		pthread_create(&elfldr, nullptr, elfLoader, nullptr);
 		pthread_join(ftp, nullptr);
 		pthread_join(krw, nullptr);
-		uint32_t err = sceSystemServiceGetStatus(&status);
-		const uint32_t numEvents = status.numEvents;
-		if (err != 0 || status.numEvents == 0) {
-			break;
-		}
-		bool isResuming = false;
-		for (uint32_t i = 0; i < numEvents && !isResuming; i++) {
-			if (sceSystemServiceReceiveEvent(&event) != 0) {
-				return -1;
-			}
-			isResuming = event.type == SystemEventType::RESUME_EVENT;
-		}
-		if (!isResuming) {
-			break;
-		}
+		pthread_join(elfldr, nullptr);
+		usleep(ONE_SECOND);
 	}
 	return 0;
 }

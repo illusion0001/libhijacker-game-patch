@@ -111,17 +111,10 @@ static bool runElf(Hijacker *hijacker) {
 	return false;
 }
 
-static void dumpPids() {
-	for (const auto &p : dbg::getProcesses()) {
-		printf("%d %s\n", p.pid(), p.name().c_str());
-	}
-}
-
 static bool load(UniquePtr<Hijacker> &redis) {
 	puts("getting saved stack pointer");
 	while (redis->getSavedRsp() == 0) {
-		dumpPids();
-		//usleep(1);
+		usleep(1);
 	}
 	puts("setting process name");
 	redis->getProc()->setName("HomebrewDaemon"_sv);
@@ -552,6 +545,8 @@ extern void _dbg_init();
 
 extern "C" int _write(int fd, const void *, size_t);
 
+bool makeHomebrewApp();
+
 extern "C" int main() {
 	Stdout dummy{};
 	//ptrace(PT_ATTACH, pid, 0, 0);
@@ -561,7 +556,11 @@ extern "C" int main() {
 		puts("fixing unprocessed relocations for spawner.elf");
 		processRelocations();
 	}
+
 	dbg::_dbg_init();
+	if (!makeHomebrewApp()) {
+		return 0;
+	}
 
 	LoopBuilder loop = SLEEP_LOOP;
 
@@ -601,21 +600,16 @@ extern "C" int main() {
 		// run until execve finishes and sends the signal
 		tracer.run();
 
-
 		while (spawned == nullptr) {
 			// this should grab it first try but I haven't confirmed yet
 			spawned = Hijacker::getHijacker(pid);
 		}
 
-		auto r = tracer.getRegisters();
 		printf("libkernel imagebase: 0x%08llx\n", spawned->getLibKernelBase());
-		r.dump();
-		dumpPids();
 
 		puts("spawned process obtained");
 
 		puts("success");
-		//dbg::setAuthId(id);
 
 		uintptr_t base = 0;
 		while (base == 0) {
@@ -636,7 +630,7 @@ extern "C" int main() {
 		// force the entrypoint to an infinite loop so that it doesn't start until we're ready
 		dbg::write(pid, base + ENTRYPOINT_OFFSET, loop.data, sizeof(loop.data));
 
-		//pthread_join(td, nullptr);
+		pthread_join(td, nullptr);
 
 		puts("finished");
 		printf("spawned imagebase 0x%08llx\n", base);
@@ -650,40 +644,5 @@ extern "C" int main() {
 		return 0;
 	}
 
-	dumpPids();
-
 	return 0;
-
-	/*
-	if (dbg::getProcesses().length() == 0) {
-		puts("This kernel version is not yet supported :(");
-		return -1;
-	}
-
-	if (Hijacker::getHijacker("HomebrewDaemon"_sv) != nullptr) {
-		puts("HomebrewDaemon is already running");
-		return -1;
-	}
-
-	auto hijacker = Hijacker::getHijacker("SceRedisServer"_sv);
-	if (hijacker == nullptr) {
-		puts("failed to get hijacker for SceRedisServer");
-		return -1;
-	}
-
-	hijacker->jailbreak();
-
-	// forcefully trying like this can cause a panic on shutdown after x amount of failed attempts
-	while (!spawn(hijacker.get())) {
-		if (Hijacker::getHijacker("SceRedisServer"_sv) == nullptr) {
-			puts("SceRedisServer died, restart required");
-			break;
-		}
-		puts("spawn failed retrying...");
-	}
-
-	puts("spawner.elf finished");
-
-	return 0;
-	*/
 }

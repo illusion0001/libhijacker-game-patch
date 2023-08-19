@@ -1,3 +1,4 @@
+#define _MMAP_DECLARED
 #include "dbg/dbg.hpp"
 #include "elfldr.hpp"
 #include "kernel/proc.hpp"
@@ -14,12 +15,12 @@ extern "C" {
 	#include <sys/_stdint.h>
 	#include <stdint.h>
 	#include <sys/elf64.h>
-	#include <sys/types.h>
 	#include <ps5/payload_main.h>
 	int puts(const char *);
 	int usleep(unsigned int useconds);
-	int munmap(void *addr, uint64_t len);
-	int sceKernelJitCreateSharedMemory(void *addr, size_t length, uint64_t flags, int *p_fd);
+	uintptr_t mmap(uintptr_t, size_t, int, int, int, off_t);
+	int munmap(uintptr_t addr, uint64_t len);
+	int sceKernelJitCreateSharedMemory(uintptr_t addr, size_t length, uint64_t flags, int *p_fd);
 	int *__error();
 	int sceSysmoduleLoadModuleInternal(uint32_t);
 	int sceSysmoduleLoadModuleByNameInternal(const char *fname, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
@@ -185,7 +186,7 @@ Elf::~Elf() noexcept {
 	// tracer detaches on destruction and the loaded elf runs
 } // must be defined after SymbolLookupTable
 
-Elf::Elf(Hijacker *hijacker, uint8_t *data) :
+Elf::Elf(Hijacker *hijacker, uint8_t *data) noexcept :
 		Elf64_Ehdr(*reinterpret_cast<Elf64_Ehdr *>(data)), tracer(hijacker->getPid()),
 		phdrs(reinterpret_cast<Elf64_Phdr*>(data + e_phoff)), strtab(),
 		strtabLength(), symtab(), symtabLength(), relatbl(), relaLength(),
@@ -195,9 +196,9 @@ Elf::Elf(Hijacker *hijacker, uint8_t *data) :
 	//hexdump(data, sizeof(Elf64_Ehdr));
 }
 
-bool loadLibraries(Hijacker &hijacker, const dbg::Tracer &tracer, const Array<String> &paths, Array<SymbolLookupTable> &libs, const size_t reserved);
+bool loadLibraries(Hijacker &hijacker, const dbg::Tracer &tracer, const Array<String> &paths, Array<SymbolLookupTable> &libs, const size_t reserved) noexcept;
 
-bool Elf::parseDynamicTable() {
+bool Elf::parseDynamicTable() noexcept {
 	const Elf64_Dyn *__restrict dyntbl = nullptr;
 	for (size_t i = 0; i < e_phnum; i++) {
 		const Elf64_Phdr *__restrict phdr = phdrs + i;
@@ -390,8 +391,38 @@ static constexpr int PROT_READ = 1;
 static constexpr int PROT_WRITE = 2;
 static constexpr int PROT_EXEC = 4;
 
-bool loadLibraries(Hijacker &hijacker, const dbg::Tracer &tracer, const Array<String> &names, Array<SymbolLookupTable> &libs, const size_t reserved) {
+static bool loadLibrariesInplace(Hijacker &hijacker, const Array<String> &names, Array<SymbolLookupTable> &libs, const size_t reserved) noexcept {
+	for (const auto &name : names) {
+		const auto id = SYSMODULES[name];
+		int handle = id != 0 ? sceSysmoduleLoadModuleInternal(id) :
+			sceSysmoduleLoadModuleByNameInternal(name.c_str(), 0, 0, 0, 0, 0);
+		if (handle == -1) {
+			printf("failed to get lib handle for %s\n", name.c_str());
+			return false;
+		}
+	}
+
+	const auto nlibs = names.length();
+	for (size_t i = 0; i < nlibs; i++) {
+		auto ptr = hijacker.getLib(names[i]);
+		if (ptr == nullptr) [[unlikely]] {
+			printf("failed to get lib handle for %s\n", names[i].c_str());
+			return false;
+		}
+
+		SymbolLookupTable &lib = libs[i + reserved] = ptr.release();
+		lib.fillTable();
+	}
+	return true;
+}
+
+bool loadLibraries(Hijacker &hijacker, const dbg::Tracer &tracer, const Array<String> &names, Array<SymbolLookupTable> &libs, const size_t reserved) noexcept {
+	if (hijacker.getPid() == getpid()) {
+		return loadLibrariesInplace(hijacker, names, libs, reserved);
+	}
+
 	static constexpr uint32_t INTERNAL_MASK = 0x80000000;
+
 	const size_t nlibs = names.length();
 	String fulltbl{};
 	UniquePtr<uintptr_t[]> positions{new uintptr_t[nlibs]};
@@ -467,7 +498,6 @@ bool loadLibraries(Hijacker &hijacker, const dbg::Tracer &tracer, const Array<St
 
 		SymbolLookupTable &lib = libs[i + reserved] = ptr.release();
 		lib.fillTable();
-		printf("loaded %s\n", lib.lib->getPath().c_str());
 	}
 
 	puts("finished loading libraries");
@@ -478,7 +508,16 @@ static inline bool isLoadable(const Elf64_Phdr *__restrict phdr) {
 	return phdr->p_type == PT_LOAD || phdr->p_type == PT_GNU_EH_FRAME;
 }
 
-static inline int toMmapProt(const Elf64_Phdr *__restrict phdr) {
+static int jitshm_create(uintptr_t addr, size_t length, uint64_t flags) noexcept {
+	int fd = -1;
+	if (sceKernelJitCreateSharedMemory(addr, length, flags, &fd) != 0) {
+		perror("sceKernelJitCreateSharedMemory");
+		return -1;
+	}
+	return fd;
+}
+
+static inline int toMmapProt(const Elf64_Phdr *__restrict phdr) noexcept {
 	int res = 0;
 	if (phdr->p_flags & PF_X) [[unlikely]] {
 		res |= PROT_EXEC;
@@ -492,12 +531,14 @@ static inline int toMmapProt(const Elf64_Phdr *__restrict phdr) {
 	return res;
 }
 
-bool Elf::processProgramHeaders() {
+bool Elf::processProgramHeaders() noexcept {
 	size_t textLength = 0;
 	size_t totalSize = 0;
+	size_t numLoadable = 0;
 	for (auto i = 0; i < e_phnum; i++) {
 		const auto *__restrict phdr = phdrs + i;
 		if (isLoadable(phdr)) {
+			numLoadable++;
 			totalSize += pageAlign(phdr->p_memsz);
 			if (phdr->p_flags & PF_X) [[unlikely]] {
 				textLength = pageAlign(phdr->p_memsz);
@@ -510,25 +551,54 @@ bool Elf::processProgramHeaders() {
 		return false;
 	}
 
-	uintptr_t mem = tracer.mmap(0, totalSize, PROT_READ, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+	const bool inplace = hijacker->getPid() == getpid();
+
+	if (inplace) {
+		mappedMemory = {numLoadable};
+	}
+
+	uintptr_t mem = inplace ?
+		mmap(0, totalSize, PROT_READ, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0) :
+		tracer.mmap(0, totalSize, PROT_READ, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+
 	if (mem == MAP_FAILED) [[unlikely]] {
 		tracer.perror("mmap Elf::processProgramHeaders");
 		return false;
 	}
 
-	tracer.munmap(mem, totalSize);
+	if (inplace) {
+		munmap(mem, totalSize);
+	} else {
+		tracer.munmap(mem, totalSize);
+	}
 
-	int fd = tracer.jitshm_create(0, textLength, PROT_READ | PROT_WRITE | PROT_EXEC);
+	int fd = inplace ? jitshm_create(0, textLength, PROT_READ | PROT_WRITE | PROT_EXEC) :
+		tracer.jitshm_create(0, textLength, PROT_READ | PROT_WRITE | PROT_EXEC);
 	if (fd < 0) [[unlikely]] {
 		tracer.perror("mmap Elf::processProgramHeaders Tracer::jitshm_create");
 		return false;
 	}
 
+	if (inplace) {
+		jitFd = fd;
+	}
+
 	// it's very picky with what it allows for jit
-	imagebase = tracer.mmap(mem, textLength, PROT_EXEC, MAP_FIXED | MAP_SHARED, fd, 0);
+	imagebase = inplace ? mmap(mem, textLength, PROT_EXEC, MAP_FIXED | MAP_SHARED, fd, 0) :
+		tracer.mmap(mem, textLength, PROT_EXEC, MAP_FIXED | MAP_SHARED, fd, 0);
 	if (imagebase == MAP_FAILED) [[unlikely]] {
 		tracer.perror("mmap Elf::processProgramHeaders Tracer::mmap text");
 		return false;
+	}
+
+	if (imagebase != mem) {
+		puts("mmap Elf::processProgramHeaders did not give the requested address");
+		return false;
+	}
+
+	size_t memIndex = 0;
+	if (inplace) {
+		mappedMemory[memIndex++] = {imagebase, textLength};
 	}
 
 	for (int i = 0; i < e_phnum; i++) {
@@ -537,13 +607,25 @@ bool Elf::processProgramHeaders() {
 			continue;
 		}
 
+		if (!isLoadable(phdr)) {
+			continue;
+		}
+
 		const auto addr = phdr->p_paddr + imagebase;
 		const auto sz = pageAlign(phdr->p_memsz);
 		const auto prot = toMmapProt(phdr);
-		auto result = tracer.mmap(addr, sz, prot, MAP_FIXED | MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+		auto result = inplace ? mmap(addr, sz, prot, MAP_FIXED | MAP_ANONYMOUS | MAP_PRIVATE, -1, 0) :
+			tracer.mmap(addr, sz, prot, MAP_FIXED | MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
 		if (result == MAP_FAILED) [[unlikely]] {
 			tracer.perror("mmap Elf::processProgramHeaders Tracer::mmap data");
 			return false;
+		}
+		if (result != addr) {
+			puts("mmap Elf::processProgramHeaders mmap did not give the requested address");
+			return false;
+		}
+		if (inplace) {
+			mappedMemory[memIndex++] = {addr, sz};
 		}
 	}
 
@@ -573,25 +655,29 @@ struct KernelRWArgs {
 
 static int rwpipe[2]; // NOLINT(*)
 static int rwpair[2]; // NOLINT(*)
-static struct payload_args gResult; // NOLINT(*)
+
+static struct InternalPayloadArgs {
+	struct payload_args args;
+	int payloadout;
+} gResult; // NOLINT(*)
 
 static uintptr_t setupKernelRWInplace(const Hijacker& hijacker) {
 	rwpipe[0] = _rw_pipe[0];
 	rwpipe[1] = _rw_pipe[1];
 	rwpair[0] = _master_sock;
 	rwpair[1] = _victim_sock;
-	gResult = {
+	gResult.args = {
 		.dlsym = reinterpret_cast<dlsym_t*>(hijacker.getLibKernelFunctionAddress(nid::sceKernelDlsym)), // NOLINT(*)
 		.rwpipe = rwpipe,
 		.rwpair = rwpair,
 		.kpipe_addr = _pipe_addr,
 		.kdata_base_addr = kernel_base,
-		.payloadout = nullptr
+		.payloadout = &gResult.payloadout
 	};
 	return reinterpret_cast<uintptr_t>(&gResult);
 }
 
-uintptr_t Elf::setupKernelRW() {
+uintptr_t Elf::setupKernelRW() noexcept {
 	if (hijacker->getPid() == getpid()) {
 		return setupKernelRWInplace(*hijacker);
 	}
@@ -660,7 +746,7 @@ uintptr_t Elf::setupKernelRW() {
 	return rsp;
 }
 
-bool Elf::load() {
+bool Elf::load() noexcept {
 	for (size_t i = 0; i < e_phnum; i++) {
 		const Elf64_Phdr *__restrict phdr = phdrs + i;
 
@@ -686,11 +772,7 @@ bool Elf::load() {
 	return true;
 }
 
-bool Elf::launch() {
-	if (hijacker->getPid() == getpid()) [[unlikely]] {
-		puts("support for loading inplace has been removed");
-		return false;
-	}
+bool Elf::launch() noexcept {
 	puts("processing program headers");
 	if (!processProgramHeaders()) [[unlikely]] {
 		return false;
@@ -724,7 +806,7 @@ bool Elf::launch() {
 	return start(args);
 }
 
-bool Elf::start(uintptr_t args) {
+bool Elf::start(uintptr_t args) noexcept {
 	if (hijacker->getPid() == getpid()) {
 		auto fun = reinterpret_cast<int(*)(uintptr_t)>(imagebase + e_entry); // NOLINT(*)
 		bool res = fun(args) == 0;
@@ -746,7 +828,7 @@ bool Elf::start(uintptr_t args) {
 	return true;
 }
 
-uintptr_t Elf::getSymbolAddress(const Elf64_Rela *__restrict rel) const {
+uintptr_t Elf::getSymbolAddress(const Elf64_Rela *__restrict rel) const noexcept {
 	if (symtab == nullptr || strtab == nullptr) [[unlikely]] {
 		return true;
 	}
@@ -767,7 +849,7 @@ uintptr_t Elf::getSymbolAddress(const Elf64_Rela *__restrict rel) const {
 	return 0;
 }
 
-bool Elf::processRelocations() {
+bool Elf::processRelocations() noexcept {
 	if (relatbl == nullptr) [[unlikely]] {
 		return true;
 	}
@@ -810,7 +892,7 @@ bool Elf::processRelocations() {
 	return true;
 }
 
-bool Elf::processPltRelocations() {
+bool Elf::processPltRelocations() noexcept {
 	if (plt == nullptr) [[unlikely]] {
 		return true;
 	}

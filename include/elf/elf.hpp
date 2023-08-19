@@ -17,7 +17,7 @@ class Elf : Elf64_Ehdr {
 
 	public:
 	struct MappedMemory {
-		void *mem;
+		uintptr_t mem;
 		size_t len;
 	};
 
@@ -40,24 +40,24 @@ class Elf : Elf64_Ehdr {
 	Array<MappedMemory> mappedMemory;
 	int jitFd;
 
-	bool processProgramHeaders();
-	bool parseDynamicTable();
-	bool processRelocations();
-	bool processPltRelocations();
-	bool load();
-	bool start(uintptr_t args);
-	uintptr_t setupKernelRW();
-	uintptr_t getSymbolAddress(const Elf64_Rela *__restrict rel) const;
+	bool processProgramHeaders() noexcept;
+	bool parseDynamicTable() noexcept;
+	bool processRelocations() noexcept;
+	bool processPltRelocations() noexcept;
+	bool load() noexcept;
+	bool start(uintptr_t args) noexcept;
+	uintptr_t setupKernelRW() noexcept;
+	uintptr_t getSymbolAddress(const Elf64_Rela *__restrict rel) const noexcept;
 
 	public:
-		Elf(Hijacker *hijacker, uint8_t *data);
+		Elf(Hijacker *hijacker, uint8_t *data) noexcept;
 		Elf(const Elf&) = delete;
 		Elf &operator=(const Elf&) = delete;
 		Elf(Elf&&) noexcept = default;
 		Elf &operator=(Elf&&) noexcept = default;
 		~Elf() noexcept; // external linkage to prevent undefined behavior
 
-		bool launch();
+		bool launch() noexcept;
 		explicit operator bool() const noexcept {
 			return static_cast<bool>(tracer);
 		}

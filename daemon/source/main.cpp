@@ -170,8 +170,6 @@ bool patchSyscore() {
 
 int main() {
 	puts("daemon entered");
-	puts("making app");
-	makenewapp();
 	AbortServer abortServer{};
 	KlogServer klogServer{};
 	ElfServer elfServer{};

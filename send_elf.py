@@ -280,6 +280,7 @@ async def send_daemon(args: ParsedArgs):
 
 
 async def klog_client(args: ParsedArgs):
+    async with SEM:
         async with open_connection(args.host, KLOGGER_PORT) as (reader, _):
             reader._buffer = LineBuffer(reader._buffer)
             await log_task(reader, args.klogger, args.silent)
@@ -290,7 +291,7 @@ async def run_loggers(args: ParsedArgs):
         has_daemon = await has_homebrew_daemon(args.host)
         if not has_daemon:
             await send_spawner(args)
-            #await send_daemon(args)
+            await send_daemon(args)
             #spawner = asyncio.create_task(send_daemon(args))
             #logger = asyncio.create_task(logger_client(args))
             #await asyncio.wait((spawner, logger), return_when=asyncio.ALL_COMPLETED)
