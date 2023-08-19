@@ -15,3 +15,4 @@ CMakeCache.txt
 *.so
 *.txt
 !**/CMakeLists.txt
+/BREW00000

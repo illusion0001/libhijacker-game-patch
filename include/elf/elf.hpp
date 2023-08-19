@@ -58,4 +58,7 @@ class Elf : Elf64_Ehdr {
 		~Elf() noexcept; // external linkage to prevent undefined behavior
 
 		bool launch();
+		explicit operator bool() const noexcept {
+			return static_cast<bool>(tracer);
+		}
 };

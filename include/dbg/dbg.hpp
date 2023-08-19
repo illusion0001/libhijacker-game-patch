@@ -474,8 +474,10 @@ class Tracer {
 
 	public:
 		Tracer(int pid) noexcept : syscall_addr(0), libkernel_base(0), errno_addr(0), pid(pid) {
+			puts("Tracer::Tracer");
 			if (ptrace(PT_ATTACH, pid, 0, 0) < 0) {
 				::perror("ptrace PT_ATTACH Tracer::Tracer");
+				this->pid = 0;
 			} else {
 				wait();
 			}
@@ -483,11 +485,14 @@ class Tracer {
 		Tracer(const Tracer&) = delete;
 		Tracer &operator=(const Tracer&) = delete;
 		Tracer(Tracer &&rhs) noexcept : syscall_addr(rhs.syscall_addr), libkernel_base(rhs.libkernel_base), errno_addr(rhs.errno_addr), pid(rhs.pid) {
+			puts("Tracer::Tracer(Tracer&&)");
 			rhs.syscall_addr = 0;
+			rhs.errno_addr = 0;
 			rhs.libkernel_base = 0;
 			rhs.pid = 0;
 		}
 		Tracer &operator=(Tracer &&rhs) noexcept {
+			puts("Tracer::operator=");
 			if (pid != 0) [[unlikely]] {
 				if (ptrace(PT_DETACH, pid, 0, 0) < 0) {
 					::perror("ptrace PT_DETACH Tracer::operator=");
@@ -513,12 +518,17 @@ class Tracer {
 			}
 		}
 
-		int wait() const noexcept {
+		explicit operator bool() const noexcept {
+			return pid != 0;
+		}
+
+		int wait(int options=0) const noexcept {
 			int status = 0;
-			if (waitpid(pid, &status, 0) < 0) {
+			if (waitpid(pid, &status, options) < 0) {
 				::perror("waitpid");
 				return -1;
 			}
+			printf("wait status: %d\n", status);
 			return status;
 		}
 

@@ -290,7 +290,7 @@ async def run_loggers(args: ParsedArgs):
         has_daemon = await has_homebrew_daemon(args.host)
         if not has_daemon:
             await send_spawner(args)
-            await send_daemon(args)
+            #await send_daemon(args)
             #spawner = asyncio.create_task(send_daemon(args))
             #logger = asyncio.create_task(logger_client(args))
             #await asyncio.wait((spawner, logger), return_when=asyncio.ALL_COMPLETED)

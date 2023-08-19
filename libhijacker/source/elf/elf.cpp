@@ -636,13 +636,19 @@ uintptr_t Elf::setupKernelRW() {
 	const uintptr_t pipeaddr = kread<uintptr_t>(newtbl.getFile(files[2]));
 
 	hijacker->pSavedRsp -= (sizeof(struct payload_args) + sizeof(int));
-	const auto rsp = hijacker->pSavedRsp;
+	auto regs = tracer.getRegisters();
+	regs.rsp(regs.rsp() - sizeof(files));
+	const uintptr_t newFiles = regs.rsp();
+	hijacker->write(newFiles, files, sizeof(files));
+	regs.rsp(regs.rsp() - sizeof(int) - sizeof(payload_args));
+	const auto rsp = regs.rsp();
+	tracer.setRegisters(regs);
 
 	// NOLINTBEGIN(performance-no-int-to-ptr)
 	struct payload_args result = {
 		.dlsym = reinterpret_cast<dlsym_t *>(hijacker->getLibKernelFunctionAddress(nid::sceKernelDlsym)),
-		.rwpipe = reinterpret_cast<int *>(files) + 2,
-		.rwpair = reinterpret_cast<int *>(files),
+		.rwpipe = reinterpret_cast<int *>(newFiles) + 2,
+		.rwpair = reinterpret_cast<int *>(newFiles),
 		.kpipe_addr = pipeaddr,
 		.kdata_base_addr = kernel_base,
 		.payloadout = reinterpret_cast<int*>(rsp + sizeof(struct payload_args))
@@ -730,15 +736,12 @@ bool Elf::start(uintptr_t args) {
 	}
 	(void) args;
 	dbg::Registers regs = tracer.getRegisters();
-	regs.rsp(hijacker->getSavedRsp());
+	//regs.rsp(hijacker->getSavedRsp()); this breaks it for some reason
 	printf("imagebase: 0x%08llx\n", imagebase);
+	regs.rdi(args);
 	regs.rip(imagebase + e_entry);
 	tracer.setRegisters(regs);
-	while (true) {
-		regs.dump();
-		tracer.step();
-		tracer.getRegisters(regs);
-	}
+	// it will run on detatch
 	puts("great success");
 	return true;
 }

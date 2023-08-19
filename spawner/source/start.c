@@ -92,6 +92,7 @@ STUB(accept)
 STUB(setsockopt)
 STUB(_write)
 STUB(_read)
+STUB(open)
 STUB(printf)
 STUB(_ZdaPv)
 STUB(_Znam)
@@ -146,6 +147,7 @@ void _start(struct payload_args *args) {
 
 	LIBKERNEL_LINK(_write);
 	LIBKERNEL_LINK(_read);
+	LIBKERNEL_LINK(open);
 	LIBKERNEL_LINK(close);
 	LIBKERNEL_LINK(sysctlbyname);
 	LIBKERNEL_LINK(__error);
