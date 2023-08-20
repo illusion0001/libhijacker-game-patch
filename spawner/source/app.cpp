@@ -22,23 +22,6 @@ static constexpr auto json = R"({
 }
 )"_sv;
 
-static constexpr int SYSCALL_OFFSET = 10;
-extern "C" const uintptr_t f_get_authinfo;
-
-extern "C" uintptr_t _nmount = 0; // NOLINT(*)
-
-static void app_init() {
-	_nmount = f_get_authinfo + SYSCALL_OFFSET;
-}
-
-extern "C" int __attribute__((naked, noinline)) nmount(struct iovec *iov, unsigned int length, int flags) {
-	asm (
-		"mov $378, %rax\n"
-		"call *_nmount(%rip)\n"
-		"ret\n"
-	);
-}
-
 struct NonStupidIovec {
 	const void *iov_base;
 	size_t iov_length;
@@ -107,7 +90,6 @@ static bool mkdir(const char *path) {
 
 bool makeHomebrewApp() {
 	// REDIS -> NPXS40028
-	app_init();
 	if (!remount("/dev/ssd0.system_ex", "/system_ex")) {
 		perror("makenewapp remount");
 		return false;
