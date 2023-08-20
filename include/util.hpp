@@ -346,6 +346,24 @@ class String {
 			return *this; // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
 		}
 
+		String &operator+=(const StringView &rhs) {
+			const size_t newsz = size + rhs.length();
+			if (newsz >= capacity) {
+				grow(newsz + 1); // an additional character must be reserved for '\0'
+			}
+			char *__restrict ptr = buffer();
+			__builtin_memcpy(ptr + size, rhs.c_str(), rhs.length());
+			size = newsz; // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
+			ptr[size] = '\0';
+			return *this; // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
+		}
+
+		String operator+(const StringView &rhs) {
+			String res = *this;
+			res += rhs;
+			return res;
+		}
+
 		String &operator+=(const char c) {
 			const size_t newsz = size + 1;
 			if (newsz >= capacity) {
