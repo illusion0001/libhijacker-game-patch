@@ -177,7 +177,6 @@ void _start(struct payload_args *args) {
 	LIBKERNEL_LINK(_write);
 	LIBKERNEL_LINK(_read);
 	LIBKERNEL_LINK(open);
-	LIBKERNEL_LINK(poll);
 	LIBKERNEL_LINK(close);
 	LIBKERNEL_LINK(mkdir);
 	LIBKERNEL_LINK(stat);
