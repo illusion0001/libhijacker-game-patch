@@ -104,9 +104,9 @@ int _start(struct payload_args *__restrict args) {
 	__builtin_memset(&__bss_start, 0, &__bss_end - &__bss_start);
 
 	// init stdout, stderr and kernelrw first
-	//int fd = open("/dev/console", O_WRONLY);
-	//dup2(fd, STDOUT);
-	//dup2(STDOUT, STDERR);
+	int fd = open("/dev/console", O_WRONLY);
+	dup2(fd, STDOUT);
+	dup2(STDOUT, STDERR);
 	kernel_init_rw(args);
 
 	// preinit and then init

@@ -139,4 +139,11 @@ int __attribute__ ((naked, weak, noinline)) ptrace() {
 	);
 }
 
+int __attribute__ ((naked, weak, noinline)) nmount() {
+	__asm__ volatile(
+		"mov $378, %rax\n"
+		"jmp *syscall_addr(%rip)\n"
+	);
+}
+
 // NOLINTEND(*)
