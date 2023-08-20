@@ -92,6 +92,13 @@ int __attribute__ ((naked, noinline)) ptrace() {
 	);
 }
 
+int __attribute__ ((naked, noinline)) nmount() {
+	__asm__ volatile(
+		"mov $378, %rax\n"
+		"jmp *syscall_addr(%rip)\n"
+	);
+}
+
 STUB(sceUserServiceGetForegroundUser)
 STUB(getpid)
 STUB(memset)
@@ -170,6 +177,7 @@ void _start(struct payload_args *args) {
 	LIBKERNEL_LINK(_write);
 	LIBKERNEL_LINK(_read);
 	LIBKERNEL_LINK(open);
+	LIBKERNEL_LINK(poll);
 	LIBKERNEL_LINK(close);
 	LIBKERNEL_LINK(mkdir);
 	LIBKERNEL_LINK(stat);
