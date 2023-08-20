@@ -80,8 +80,8 @@ size_t qa_flags() {
 		case V321:
 			return 0x6466498;
 		case V402:
-		case V403:
 			return 0x6505498;
+		case V403:
 		case V450:
 		case V451:
 			return 0x6506498;
