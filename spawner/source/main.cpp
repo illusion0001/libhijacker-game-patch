@@ -537,12 +537,6 @@ static uintptr_t getNanosleepOffset(const Hijacker &hijacker) {
 	return addr - hijacker.getLibKernelBase();
 }
 
-namespace dbg {
-
-extern void _dbg_init();
-
-}
-
 extern "C" int _write(int fd, const void *, size_t);
 
 bool makeHomebrewApp();
@@ -557,7 +551,6 @@ extern "C" int main() {
 		processRelocations();
 	}
 
-	dbg::_dbg_init();
 	if (!makeHomebrewApp()) {
 		return 0;
 	}
@@ -592,7 +585,6 @@ extern "C" int main() {
 	}
 
 	UniquePtr<Hijacker> spawned = nullptr;
-	dbg::AuthidSwapper idSwapper{dbg::PTRACE_ID};
 	{
 		// attach to the new process
 		dbg::Tracer tracer{pid};
@@ -622,10 +614,6 @@ extern "C" int main() {
 		loop.setTarget(base + nanosleepOffset);
 		base = spawned->imagebase();
 		spawned->pSavedRsp = rsp;
-
-		// insert a software breakpoint at the entry point
-		// sadly this didn't work :(
-		// it won't work because we need to detatch which will cause it to exit
 
 		// force the entrypoint to an infinite loop so that it doesn't start until we're ready
 		dbg::write(pid, base + ENTRYPOINT_OFFSET, loop.data, sizeof(loop.data));

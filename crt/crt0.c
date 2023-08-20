@@ -8,6 +8,8 @@
 
 #define STDOUT 1
 #define STDERR 2
+#define SYSCALL_OFFSET 7
+#define LIBKERNEL_HANDLE 0x2001
 
 // NOLINTBEGIN(*) c sucks so screw linting it
 
@@ -17,6 +19,7 @@ int _master_sock;
 int _victim_sock;
 uint64_t _pipe_addr;
 uintptr_t kernel_base;
+uintptr_t syscall_addr = 0;
 
 extern int puts(const char*);
 extern int printf(const char*, ...);
@@ -114,8 +117,26 @@ void __attribute__((noreturn)) _start(struct payload_args *__restrict args) {
 	// register _fini
 	atexit(_fini);
 
+	uintptr_t get_authinfo = 0;
+	args->dlsym(LIBKERNEL_HANDLE, "get_authinfo", &get_authinfo);
+	syscall_addr = get_authinfo + SYSCALL_OFFSET;
+
 	// run main
 	exit(main(0, NULL));
+}
+
+int __attribute__ ((naked, weak, noinline)) mdbg_call() {
+	__asm__ volatile(
+		"mov $573, %rax\n"
+		"jmp *syscall_addr(%rip)\n"
+	);
+}
+
+int __attribute__ ((naked, weak, noinline)) ptrace() {
+	__asm__ volatile(
+		"mov $26, %rax\n"
+		"jmp *syscall_addr(%rip)\n"
+	);
 }
 
 // NOLINTEND(*)

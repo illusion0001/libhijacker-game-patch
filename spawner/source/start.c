@@ -11,10 +11,12 @@
 
 // NOLINTBEGIN(*)
 
-extern uintptr_t kernel_base;
-
 #define libkernel 0x2001
 #define nullptr 0
+
+extern uintptr_t kernel_base;
+void *f_get_authinfo = nullptr;
+uintptr_t syscall_addr = 0;
 
 extern int main(int argc, const char **argv);
 
@@ -76,7 +78,19 @@ int __attribute__ ((naked))	kill(__pid_t pid, int n) {
 	__asm__ volatile("jmp *f_kill(%rip)");
 }
 
-void *f_get_authinfo = nullptr;
+int __attribute__ ((naked, noinline)) mdbg_call() {
+	__asm__ volatile(
+		"mov $573, %rax\n"
+		"jmp *syscall_addr(%rip)\n"
+	);
+}
+
+int __attribute__ ((naked, noinline)) ptrace() {
+	__asm__ volatile(
+		"mov $26, %rax\n"
+		"jmp *syscall_addr(%rip)\n"
+	);
+}
 
 STUB(sceUserServiceGetForegroundUser)
 STUB(getpid)
@@ -109,7 +123,6 @@ STUB(strncmp)
 STUB(__error)
 STUB(strerror)
 STUB(sceKernelPrintBacktraceWithModuleInfo)
-STUB(ptrace)
 STUB(waitpid)
 STUB(perror)
 STUB(pthread_create)
@@ -134,6 +147,7 @@ STUB(sceKernelJitCreateSharedMemory)
 
 #define STDOUT 1
 #define STDERR 2
+#define SYSCALL_OFFSET 7
 
 void _start(struct payload_args *args) {
 
@@ -151,6 +165,7 @@ void _start(struct payload_args *args) {
 	LIBKERNEL_LINK(usleep);
 	LIBKERNEL_LINK(getpid);
 	LIBKERNEL_LINK(get_authinfo);
+	syscall_addr = (uintptr_t)f_get_authinfo + SYSCALL_OFFSET;
 
 	LIBKERNEL_LINK(_write);
 	LIBKERNEL_LINK(_read);
@@ -161,7 +176,6 @@ void _start(struct payload_args *args) {
 	LIBKERNEL_LINK(sysctlbyname);
 	LIBKERNEL_LINK(__error);
 	LIBKERNEL_LINK(sceKernelPrintBacktraceWithModuleInfo);
-	LIBKERNEL_LINK(ptrace);
 	LIBKERNEL_LINK(waitpid);
 	LIBKERNEL_LINK(pthread_create);
 	LIBKERNEL_LINK(pthread_join);

@@ -16,24 +16,14 @@ extern "C" {
 #include <unistd.h>
 }
 
-static constexpr int LIBKERNEL_HANDLE = 0x2001;
 static constexpr int SYSCALL_OFFSET = 10;
-typedef void (*p_mdbg_call)(void *, void *, void *);
-extern "C" p_mdbg_call _mdbg = nullptr; // NOLINT(*)
 
+extern "C" int mdbg_call(void *, void *, void *);
 extern "C" int sceKernelDlsym(int handle, const char* symbol, void** addrp);
 extern "C" int *__error();
 
 static constexpr uintptr_t PID_OFFSET = 0xBC;
 static constexpr uintptr_t UCRED_OFFSET = 0x40;
-
-int __attribute__((naked, noinline)) syscall_mdbg_call(void *arg1, void *arg2, void *arg3) {
-	asm (
-		"mov $573, %rax\n"
-		"call *_mdbg(%rip)\n"
-		"ret\n"
-	);
-}
 
 static uintptr_t getCurrentProc() {
 
@@ -51,24 +41,9 @@ static uintptr_t getCurrentProc() {
 
 namespace dbg {
 
-// this only needs to be manually called from the bootstrap spawner elf
-void __attribute__((constructor)) _dbg_init() {
-	uint8_t *addr = 0;
-	int res = sceKernelDlsym(LIBKERNEL_HANDLE, "get_authinfo", reinterpret_cast<void**>(&addr));
-	if (res > -1 && addr) {
-		_mdbg = reinterpret_cast<p_mdbg_call>(addr + SYSCALL_OFFSET);
-	} else {
-		puts("failed to get get_authinfo for mdbg_call");
-	}
-}
-
 int __attribute__((noinline)) mdbg_call(DbgArg1 &arg1, DbgArg2 &arg2, DbgArg3 &arg3) {
-	if (_mdbg) [[likely]] {
-		AuthidSwapper swapper{DEBUGGER_AUTHID};
-		return syscall_mdbg_call(&arg1, &arg2, &arg3);
-	}
-	puts("_mdbg is null");
-	return -1;
+	AuthidSwapper swapper{DEBUGGER_AUTHID};
+	return ::mdbg_call(&arg1, &arg2, &arg3);
 }
 
 IdArray getAllPids() {
