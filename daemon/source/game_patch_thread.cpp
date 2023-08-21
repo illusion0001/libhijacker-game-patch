@@ -229,6 +229,11 @@ void *GamePatch_Thread(void *unused)
 					printf_notification("get_app_info(%s) failed! %d", app->titleId().c_str(), ret);
 					continue;
 				}
+				else if (ret == 0)
+				{
+					found_app = true;
+					target_running_pid = app_pid;
+				}
 				if (startsWith(p.name().c_str(), "eboot.bin"))
 				{
 					if ((startsWith(app->titleId().c_str(), "CUSA03694") ||
@@ -504,6 +509,11 @@ void *GamePatch_Thread(void *unused)
 					// something went wrong
 					printf_notification("get_app_info(%s) failed! %d", app->titleId().c_str(), ret);
 					continue;
+				}
+				else if (ret == 0)
+				{
+					found_app = true;
+					target_running_pid = app_pid;
 				}
 				// eboot.bin games
 				if (startsWith(p.name().c_str(), "eboot.bin"))
