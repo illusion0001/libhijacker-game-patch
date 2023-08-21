@@ -7,13 +7,27 @@ Proper credits will be attributed later.
 
 **Fork with support for game patching. check out the [original project](https://github.com/astrelsky/libhijacker) by astrelsky. (more for developers).**
 
+# Supported Firmwares
+
+- 3.00
+- 3.10
+- 3.20
+- 4.00 (needs checking)
+- 4.02 (needs checking)
+- 4.03
+- 4.50
+- 4.51
+
 # Quick Setup
 
 - Download the latest zip from the [release](https://github.com/illusion0001/libhijacker/releases/latest) page.
 - Extract the zip with all files to a folder on your computer.
 - Load your preferred method of exploiting your PS5. (BDJB or webkit).
-- Install python 3 and aiofiles for required dependency.
-- `pip install aiofiles`
+- Install [Python 3](https://python.org/).
+- Install `aiofiles` using `pip`
+```sh
+pip install aiofiles
+```
 - On ELF loader stage, run send_elf.py with your PS5 IP as first argument. Example: `python ./send_elf.py 10.0.6.9`
    - To kill the daemon process for easier development, you can use `kill_daemon.py` to kill the process and re run `send_elf.py` to send the new build of the daemon executable. (this can be done outside the web browser or bdj window)
    - You can also find useful commands within `launch.py` and it's arguments.
