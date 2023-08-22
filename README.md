@@ -34,6 +34,8 @@ pip install aiofiles
 
 # Supported Titles
 
+## PS4
+
 - Batman: Arkham Knight v1.15: 60 FPS
 - Bloodborne v1.09: 60 FPS by Lance McDonald
   - Also includes:
@@ -41,7 +43,6 @@ pip install aiofiles
     - No Chromatic Aberration
     - Debug Camera by Lance McDonald
 - Crash Team Racing v1.21: 60 FPS
-- Demon Souls v1.00: 60 FPS Unlock in Cinematic Mode
 - Driveclub v1.28: 60 FPS
 - Gravity Rush 2 v1.11: 60 FPS
 - The Order 1886: v1.02: 60 FPS
@@ -52,6 +53,11 @@ pip install aiofiles
 - Shadow of the Colossus: 1440p at 60FPS + Debug Menu
 - Silent Hills: P.T at 60FPS
 - Red Dead Redemption 2 v1.29: 60FPS
+
+## PS5
+
+- Demon Souls v1.00: 60 FPS Unlock in Cinematic Mode
+- Uncharted: Legacy of Thieves Collection v1.00: Debug Menu
 
 # Known Issues (specific to this fork)
 
