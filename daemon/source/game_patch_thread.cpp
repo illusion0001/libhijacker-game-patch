@@ -465,6 +465,24 @@ void *GamePatch_Thread(void *unused)
 						printf_notification("%s (%s): 60 FPS Patched!", app->titleId().c_str(), app_ver);
 						ResumeApp(app_pid);
 					}
+					else if ((startsWith(app->titleId().c_str(), "CUSA07399") ||
+							  startsWith(app->titleId().c_str(), "CUSA07402")) &&
+							 (startsWith(app_ver, "01.07")))
+					{
+						SuspendApp(app_pid);
+						// 60 FPS
+						write_bytes(app_pid, NO_ASLR(0x00f52de0), "be00000000909090909090909090");
+						// Resolution Patch
+						// 2560x1440 -> 3200x1800
+						// Doesn't seem to be a difference in term of drops when new area loads
+						write_bytes32(app_pid, NO_ASLR(0x00529cdb), 0x3fd55555); // 1.667f
+						write_bytes32(app_pid, NO_ASLR(0x01c75680), 0x3fd55555); // 1.667f
+						target_running_pid = app_pid;
+						found_app = true;
+						fast_sleep_timer = false;
+						printf_notification("%s (%s): 60 FPS Patched!", app->titleId().c_str(), app_ver);
+						ResumeApp(app_pid);
+					}
 				}
 
 				// multiple selfs
