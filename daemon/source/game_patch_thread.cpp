@@ -236,9 +236,10 @@ void *GamePatch_Thread(void *unused)
 				}
 				if (startsWith(p.name().c_str(), "eboot.bin"))
 				{
-					if ((startsWith(app->titleId().c_str(), "CUSA03694") ||
-						 startsWith(app->titleId().c_str(), "CUSA04943") ||
-						 startsWith(app->titleId().c_str(), "CUSA00547")) &&
+					if ((startsWith(app->titleId().c_str(), "CUSA00547") ||
+						 startsWith(app->titleId().c_str(), "CUSA03694") ||
+						 startsWith(app->titleId().c_str(), "CUSA04934") ||
+						 startsWith(app->titleId().c_str(), "CUSA04943")) &&
 						(startsWith(app_ver, "01.11")))
 					{
 						// we need to sleep the thread after suspension
@@ -593,7 +594,7 @@ void *GamePatch_Thread(void *unused)
 		}
 	}
 
-	printf_notification("Game Patch has requested to stop");
+	printf_notification("Game Patch thread has requested to stop");
 	pthread_exit(nullptr);
 	return nullptr;
 }
