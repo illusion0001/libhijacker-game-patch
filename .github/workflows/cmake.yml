@@ -89,12 +89,12 @@ jobs:
         path: |
           bin/*.elf
           ${{ github.workspace }}/*.py
+          README.md
 
     - name: Create Release
       if: github.event_name == 'workflow_dispatch'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        zip libhijacker_${{ env.commit_ver }}-${{ env.commit_hash }}.zip bin/*.elf ./*.py
-        echo "Please check [readme](https://github.com/illusion0001/libhijacker/blob/game-patch/README.md) for more information." > info.md
-        gh release create ${{ env.commit_ver }} libhijacker_${{ env.commit_ver }}-${{ env.commit_hash }}.zip --target ${{ GITHUB.SHA }} -t "${{ env.commit_ver }}" -F info.md
+        zip libhijacker_${{ env.commit_ver }}-${{ env.commit_hash }}.zip bin/*.elf ./*.py README.md
+        gh release create ${{ env.commit_ver }} libhijacker_${{ env.commit_ver }}-${{ env.commit_hash }}.zip --target ${{ GITHUB.SHA }} -t "${{ env.commit_ver }}" -F README.md
