@@ -11,12 +11,12 @@ extern "C" {
 	printf("%s:%d ", __PRETTY_FUNCTION__, __LINE__); \
 	printf(__VA_ARGS__); \
 }
-#define print_ret(func) printf(#func ":%s:%d: 0x%08x\n", __FILE__, __LINE__, func)
+#define print_ret(func) printf("%s:%d: " #func ": 0x%08x\n", __PRETTY_FUNCTION__, __LINE__, func)
 #else
 #define _puts(x) print_null("%s:%d: %s\n", __PRETTY_FUNCTION__, __LINE__, x)
 #define _printf(...) { \
 	print_null("%s:%d ", __PRETTY_FUNCTION__, __LINE__); \
 	print_null(__VA_ARGS__); \
 }
-#define print_ret(func) print_null(#func ":%s:%d: 0x%08x\n", __FILE__, __LINE__, func)
+#define print_ret(func) print_null("%s:%d: " #func ": 0x%08x\n", __PRETTY_FUNCTION__, __LINE__, func)
 #endif
