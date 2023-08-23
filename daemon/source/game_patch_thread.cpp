@@ -224,7 +224,7 @@ void *GamePatch_Thread(void *unused)
 	g_game_patch_thread_running = true;
 
 	bool prevTogglePressed = false;
-	bool doPatchGames = false;
+	bool doPatchGames = true;
 
 	while (g_game_patch_thread_running)
 	{
@@ -237,9 +237,9 @@ void *GamePatch_Thread(void *unused)
 				bool currentTogglePressed = checkPatchButton(&pData);
 				if (currentTogglePressed && !prevTogglePressed)
 				{
+					doPatchGames = !doPatchGames;
 					printf_notification("User requested to patch games: %s", doPatchGames ? "true" : "false");
 					_printf("doPatchGames: 0x%02x\n", doPatchGames);
-					doPatchGames = !doPatchGames;
 				}
 				prevTogglePressed = currentTogglePressed;
 				if (checkKillButton(&pData))
@@ -250,7 +250,7 @@ void *GamePatch_Thread(void *unused)
 				}
 			}
 		}
-		if (doPatchGames)
+		if (!doPatchGames)
 		{
 			continue;
 		}
@@ -263,7 +263,6 @@ void *GamePatch_Thread(void *unused)
 		for (auto p : dbg::getProcesses())
 		{
 			const pid_t app_pid = p.pid();
-			const auto app = getProc(app_pid);
 			const UniquePtr<Hijacker> executable = Hijacker::getHijacker(app_pid);
 			uintptr_t text_base = 0;
 			uint64_t text_size = 0;
@@ -280,6 +279,7 @@ void *GamePatch_Thread(void *unused)
 			{
 				continue;
 			}
+			const auto app = getProc(app_pid);
 			if ((startsWith(app->titleId().c_str(), "CUSA")) && text_base && !found_app)
 			{
 				char app_ver[8] = {0};
