@@ -717,6 +717,8 @@ void DoPatch_Bloodborne109(pid_t app_pid, u64 text_base)
 	write_bytes(app_pid, NO_ASLR(0x01de368b), "c3");
 #if 0
 	// No Vsync
+	// write_bytes32(app_pid, NO_ASLR(0x055289f8), 1280);
+	// write_bytes32(app_pid, NO_ASLR(0x055289fc), 720);
 	write_bytes(app_pid, NO_ASLR(0x025b3271), "4831f6");
 	write_bytes(app_pid, NO_ASLR(0x0243487e), "41c74424186f12833a");
 	// FCAT boarder
@@ -730,19 +732,18 @@ void DoPatch_Bloodborne109(pid_t app_pid, u64 text_base)
 	/* <!--
 					push rax
 					push rsi
-					mov qword ptr [rdi+0x28], 0
-					mov dword ptr [rdi+0x30], 0x42000000
+					mov qword ptr [rdi+0x28], 0 # (0,0)
+					mov dword ptr [rdi+0x30], 0x42000000 (32,xxxx)
 					lea rsi, [0x055289f8]
 					mov eax, [rsi+0x4]         # vertical res
 					vcvtsi2ss xmm0, xmm0, eax
 					vmovss dword ptr [rdi+0x34], xmm0
 					lea rax, [0x54dc040]
-					# 255,255,255,255
 					MOV dword ptr [RDI+0x50], 0x3f800000
 					MOV dword ptr [RDI+0x54], 0x3f800000
 					MOV dword ptr [RDI+0x58], 0x3f800000
 					MOV dword ptr [RDI+0x5c], 0x3f800000
-					CMP dword ptr [RAX], 0x7   # above 8 index, reset
+					CMP dword ptr [RAX], 0xf   # above 16 index, reset
 					JA color_default
 					CMP dword ptr [RAX], 0x0   # check color index
 					JZ color_0
@@ -760,57 +761,122 @@ void DoPatch_Bloodborne109(pid_t app_pid, u64 text_base)
 					JZ color_6
 					CMP dword ptr [RAX], 0x7
 					JZ color_7
+					CMP dword ptr [RAX], 0x8
+					JZ color_8
+					CMP dword ptr [RAX], 0x9
+					JZ color_9
+					CMP dword ptr [RAX], 0xa
+					JZ color_10
+					CMP dword ptr [RAX], 0xb
+					JZ color_11
+					CMP dword ptr [RAX], 0xc
+					JZ color_12
+					CMP dword ptr [RAX], 0xd
+					JZ color_13
+					CMP dword ptr [RAX], 0xe
+					JZ color_14
+					CMP dword ptr [RAX], 0xf
+					JZ color_15
 					color_default:
-					MOV dword ptr [RAX], 1       # next frame, use second index
+					# 255,255,255,255
+					MOV dword ptr [RAX], 1                 # next frame, use second index
 					JMP draw_bar_only_no_add
 				color_0:
-					# 255,255,255,255
-					MOV dword ptr [RDI+0x50], 0x3f800000
-					MOV dword ptr [RDI+0x54], 0x3f800000
-					MOV dword ptr [RDI+0x58], 0x3f800000
+					# 255,255,255
+					MOV dword ptr [RDI+0x50], 0x3f800000   # Red
+					MOV dword ptr [RDI+0x54], 0x3f800000   # Green
+					MOV dword ptr [RDI+0x58], 0x3f800000   # Blue
 					JMP draw_bar
 				color_1:
-					# 0,0,255,255
-					MOV dword ptr [RDI+0x50], 0x00000000
-					MOV dword ptr [RDI+0x54], 0x00000000
-					MOV dword ptr [RDI+0x58], 0x3f800000
+					# 0, 255, 0
+					MOV dword ptr [RDI+0x50], 0x00000000   # Red
+					MOV dword ptr [RDI+0x54], 0x3f800000   # Green
+					MOV dword ptr [RDI+0x58], 0x00000000   # Blue
 					JMP draw_bar
 				color_2:
-					# 0,128,128,255
-					MOV dword ptr [RDI+0x50], 0x00000000
-					MOV dword ptr [RDI+0x54], 0x3f000000
-					MOV dword ptr [RDI+0x58], 0x3f000000
+					# 0, 0, 255
+					MOV dword ptr [RDI+0x50], 0x00000000   # Red
+					MOV dword ptr [RDI+0x54], 0x00000000   # Green
+					MOV dword ptr [RDI+0x58], 0x3f800000   # Blue
 					JMP draw_bar
 				color_3:
-					# 0,128,0,255
-					MOV dword ptr [RDI+0x50], 0x00000000
-					MOV dword ptr [RDI+0x54], 0x3f000000
-					MOV dword ptr [RDI+0x58], 0x00000000
+					# 255, 0, 0
+					MOV dword ptr [RDI+0x50], 0x3f800000   # Red
+					MOV dword ptr [RDI+0x54], 0x00000000   # Green
+					MOV dword ptr [RDI+0x58], 0x00000000   # Blue
 					JMP draw_bar
 				color_4:
-					# 128,0,0,255
-					MOV dword ptr [RDI+0x50], 0x3f000000
-					MOV dword ptr [RDI+0x54], 0x00000000
-					MOV dword ptr [RDI+0x58], 0x00000000
+					# 0, 128, 128
+					MOV dword ptr [RDI+0x50], 0x00000000   # Red
+					MOV dword ptr [RDI+0x54], 0x3f000000   # Green
+					MOV dword ptr [RDI+0x58], 0x3f000000   # Blue
 					JMP draw_bar
 				color_5:
-					# 128,0,128,255
-					MOV dword ptr [RDI+0x50], 0x3f000000
-					MOV dword ptr [RDI+0x54], 0x00000000
-					MOV dword ptr [RDI+0x58], 0x3f000000
+					# 0, 0, 128
+					MOV dword ptr [RDI+0x50], 0x00000000   # Red
+					MOV dword ptr [RDI+0x54], 0x00000000   # Green
+					MOV dword ptr [RDI+0x58], 0x3f000000   # Blue
 					JMP draw_bar
 				color_6:
-					# 128,128,128,255
-					MOV dword ptr [RDI+0x50], 0x3f000000
-					MOV dword ptr [RDI+0x54], 0x3f000000
-					MOV dword ptr [RDI+0x58], 0x3f000000
+					# 0, 128, 0
+					MOV dword ptr [RDI+0x50], 0x00000000   # Red
+					MOV dword ptr [RDI+0x54], 0x3f000000   # Green
+					MOV dword ptr [RDI+0x58], 0x00000000   # Blue
 					JMP draw_bar
 				color_7:
-					# 255,255,0,255
-					MOV dword ptr [RDI+0x50], 0x3f800000
-					MOV dword ptr [RDI+0x54], 0x3f800000
-					MOV dword ptr [RDI+0x58], 0x00000000
+					# 0, 255, 255
+					MOV dword ptr [RDI+0x50], 0x00000000   # Red
+					MOV dword ptr [RDI+0x54], 0x3f800000   # Green
+					MOV dword ptr [RDI+0x58], 0x3f800000   # Blue
 					JMP draw_bar
+				color_8:
+					# 128, 0, 0
+					MOV dword ptr [RDI+0x50], 0x3f000000   # Red
+					MOV dword ptr [RDI+0x54], 0x00000000   # Green
+					MOV dword ptr [RDI+0x58], 0x00000000   # Blue
+					JMP draw_bar
+				color_9:
+					# 192, 192, 192
+					MOV dword ptr [RDI+0x50], 0x3f400000   # Red
+					MOV dword ptr [RDI+0x54], 0x3f400000   # Green
+					MOV dword ptr [RDI+0x58], 0x3f400000   # Blue
+					JMP draw_bar
+				color_10:
+					# 128, 0, 128
+					MOV dword ptr [RDI+0x50], 0x3f000000   # Red
+					MOV dword ptr [RDI+0x54], 0x00000000   # Green
+					MOV dword ptr [RDI+0x58], 0x3f000000   # Blue
+					JMP draw_bar
+				color_11:
+					# 128, 128, 0
+					MOV dword ptr [RDI+0x50], 0x3f000000   # Red
+					MOV dword ptr [RDI+0x54], 0x3f000000   # Green
+					MOV dword ptr [RDI+0x58], 0x00000000   # Blue
+					JMP draw_bar
+				color_12:
+					# 128, 128, 128
+					MOV dword ptr [RDI+0x50], 0x3f000000   # Red
+					MOV dword ptr [RDI+0x54], 0x3f000000   # Green
+					MOV dword ptr [RDI+0x58], 0x3f000000   # Blue
+					JMP draw_bar
+				color_13:
+					# 255, 0, 255
+					MOV dword ptr [RDI+0x50], 0x3f800000   # Red
+					MOV dword ptr [RDI+0x54], 0x00000000   # Green
+					MOV dword ptr [RDI+0x58], 0x3f800000   # Blue
+					JMP draw_bar
+				color_14:
+					# 255, 255, 0
+					MOV dword ptr [RDI+0x50], 0x3f800000   # Red
+					MOV dword ptr [RDI+0x54], 0x3f800000   # Green
+					MOV dword ptr [RDI+0x58], 0x00000000   # Blue
+					JMP draw_bar
+				color_15:
+					# 255, 128, 0
+					MOV dword ptr [RDI+0x50], 0x3f800000   # Red
+					MOV dword ptr [RDI+0x54], 0x3f000000   # Green
+					MOV dword ptr [RDI+0x58], 0x00000000   # Blue
+					# JMP draw_bar
 				draw_bar:
 					add dword ptr [rax], 1
 				draw_bar_only_no_add:
@@ -833,63 +899,110 @@ void DoPatch_Bloodborne109(pid_t app_pid, u64 text_base)
 	write_bytes(app_pid, NO_ASLR(0x01402ac3), "c747540000803f");
 	write_bytes(app_pid, NO_ASLR(0x01402aca), "c747580000803f");
 	write_bytes(app_pid, NO_ASLR(0x01402ad1), "c7475c0000803f");
-	write_bytes(app_pid, NO_ASLR(0x01402ad8), "833807");
-	write_bytes(app_pid, NO_ASLR(0x01402adb), "7738");
-	write_bytes(app_pid, NO_ASLR(0x01402add), "833800");
-	write_bytes(app_pid, NO_ASLR(0x01402ae0), "743e");
-	write_bytes(app_pid, NO_ASLR(0x01402ae2), "833801");
-	write_bytes(app_pid, NO_ASLR(0x01402ae5), "7453");
-	write_bytes(app_pid, NO_ASLR(0x01402ae7), "833802");
-	write_bytes(app_pid, NO_ASLR(0x01402aea), "7468");
-	write_bytes(app_pid, NO_ASLR(0x01402aec), "833803");
-	write_bytes(app_pid, NO_ASLR(0x01402aef), "747a");
-	write_bytes(app_pid, NO_ASLR(0x01402af1), "833804");
-	write_bytes(app_pid, NO_ASLR(0x01402af4), "0f8488000000");
-	write_bytes(app_pid, NO_ASLR(0x01402afa), "833805");
-	write_bytes(app_pid, NO_ASLR(0x01402afd), "0f8496000000");
-	write_bytes(app_pid, NO_ASLR(0x01402b03), "833806");
-	write_bytes(app_pid, NO_ASLR(0x01402b06), "0f84a4000000");
-	write_bytes(app_pid, NO_ASLR(0x01402b0c), "833807");
-	write_bytes(app_pid, NO_ASLR(0x01402b0f), "0f84b2000000");
-	write_bytes(app_pid, NO_ASLR(0x01402b15), "c70001000000");
-	write_bytes(app_pid, NO_ASLR(0x01402b1b), "e9c1000000");
-	write_bytes(app_pid, NO_ASLR(0x01402b20), "c747500000803f");
-	write_bytes(app_pid, NO_ASLR(0x01402b27), "c747540000803f");
-	write_bytes(app_pid, NO_ASLR(0x01402b2e), "c747580000803f");
-	write_bytes(app_pid, NO_ASLR(0x01402b35), "e9a4000000");
-	write_bytes(app_pid, NO_ASLR(0x01402b3a), "c7475000000000");
-	write_bytes(app_pid, NO_ASLR(0x01402b41), "c7475400000000");
-	write_bytes(app_pid, NO_ASLR(0x01402b48), "c747580000803f");
-	write_bytes(app_pid, NO_ASLR(0x01402b4f), "e98a000000");
-	write_bytes(app_pid, NO_ASLR(0x01402b54), "c7475000000000");
-	write_bytes(app_pid, NO_ASLR(0x01402b5b), "c747540000003f");
-	write_bytes(app_pid, NO_ASLR(0x01402b62), "c747580000003f");
-	write_bytes(app_pid, NO_ASLR(0x01402b69), "eb73");
-	write_bytes(app_pid, NO_ASLR(0x01402b6b), "c7475000000000");
-	write_bytes(app_pid, NO_ASLR(0x01402b72), "c747540000003f");
-	write_bytes(app_pid, NO_ASLR(0x01402b79), "c7475800000000");
-	write_bytes(app_pid, NO_ASLR(0x01402b80), "eb5c");
-	write_bytes(app_pid, NO_ASLR(0x01402b82), "c747500000003f");
-	write_bytes(app_pid, NO_ASLR(0x01402b89), "c7475400000000");
-	write_bytes(app_pid, NO_ASLR(0x01402b90), "c7475800000000");
-	write_bytes(app_pid, NO_ASLR(0x01402b97), "eb45");
-	write_bytes(app_pid, NO_ASLR(0x01402b99), "c747500000003f");
-	write_bytes(app_pid, NO_ASLR(0x01402ba0), "c7475400000000");
-	write_bytes(app_pid, NO_ASLR(0x01402ba7), "c747580000003f");
-	write_bytes(app_pid, NO_ASLR(0x01402bae), "eb2e");
-	write_bytes(app_pid, NO_ASLR(0x01402bb0), "c747500000003f");
-	write_bytes(app_pid, NO_ASLR(0x01402bb7), "c747540000003f");
-	write_bytes(app_pid, NO_ASLR(0x01402bbe), "c747580000003f");
-	write_bytes(app_pid, NO_ASLR(0x01402bc5), "eb17");
-	write_bytes(app_pid, NO_ASLR(0x01402bc7), "c747500000803f");
-	write_bytes(app_pid, NO_ASLR(0x01402bce), "c747540000803f");
-	write_bytes(app_pid, NO_ASLR(0x01402bd5), "c7475800000000");
-	write_bytes(app_pid, NO_ASLR(0x01402bdc), "eb00");
-	write_bytes(app_pid, NO_ASLR(0x01402bde), "830001");
-	write_bytes(app_pid, NO_ASLR(0x01402be1), "5e");
-	write_bytes(app_pid, NO_ASLR(0x01402be2), "58");
-	write_bytes(app_pid, NO_ASLR(0x01402be3), "c5f8284750");
-	write_bytes(app_pid, NO_ASLR(0x01402be8), "e918920000");
+	write_bytes(app_pid, NO_ASLR(0x01402ad8), "83380f");
+	write_bytes(app_pid, NO_ASLR(0x01402adb), "0f8790000000");
+	write_bytes(app_pid, NO_ASLR(0x01402ae1), "833800");
+	write_bytes(app_pid, NO_ASLR(0x01402ae4), "0f8492000000");
+	write_bytes(app_pid, NO_ASLR(0x01402aea), "833801");
+	write_bytes(app_pid, NO_ASLR(0x01402aed), "0f84a3000000");
+	write_bytes(app_pid, NO_ASLR(0x01402af3), "833802");
+	write_bytes(app_pid, NO_ASLR(0x01402af6), "0f84b4000000");
+	write_bytes(app_pid, NO_ASLR(0x01402afc), "833803");
+	write_bytes(app_pid, NO_ASLR(0x01402aff), "0f84c5000000");
+	write_bytes(app_pid, NO_ASLR(0x01402b05), "833804");
+	write_bytes(app_pid, NO_ASLR(0x01402b08), "0f84d6000000");
+	write_bytes(app_pid, NO_ASLR(0x01402b0e), "833805");
+	write_bytes(app_pid, NO_ASLR(0x01402b11), "0f84e7000000");
+	write_bytes(app_pid, NO_ASLR(0x01402b17), "833806");
+	write_bytes(app_pid, NO_ASLR(0x01402b1a), "0f84f8000000");
+	write_bytes(app_pid, NO_ASLR(0x01402b20), "833807");
+	write_bytes(app_pid, NO_ASLR(0x01402b23), "0f8409010000");
+	write_bytes(app_pid, NO_ASLR(0x01402b29), "833808");
+	write_bytes(app_pid, NO_ASLR(0x01402b2c), "0f841a010000");
+	write_bytes(app_pid, NO_ASLR(0x01402b32), "833809");
+	write_bytes(app_pid, NO_ASLR(0x01402b35), "0f842b010000");
+	write_bytes(app_pid, NO_ASLR(0x01402b3b), "83380a");
+	write_bytes(app_pid, NO_ASLR(0x01402b3e), "0f843c010000");
+	write_bytes(app_pid, NO_ASLR(0x01402b44), "83380b");
+	write_bytes(app_pid, NO_ASLR(0x01402b47), "0f844a010000");
+	write_bytes(app_pid, NO_ASLR(0x01402b4d), "83380c");
+	write_bytes(app_pid, NO_ASLR(0x01402b50), "0f8458010000");
+	write_bytes(app_pid, NO_ASLR(0x01402b56), "83380d");
+	write_bytes(app_pid, NO_ASLR(0x01402b59), "0f8466010000");
+	write_bytes(app_pid, NO_ASLR(0x01402b5f), "83380e");
+	write_bytes(app_pid, NO_ASLR(0x01402b62), "0f8474010000");
+	write_bytes(app_pid, NO_ASLR(0x01402b68), "83380f");
+	write_bytes(app_pid, NO_ASLR(0x01402b6b), "0f8482010000");
+	write_bytes(app_pid, NO_ASLR(0x01402b71), "c70001000000");
+	write_bytes(app_pid, NO_ASLR(0x01402b77), "e98f010000");
+	write_bytes(app_pid, NO_ASLR(0x01402b7c), "c747500000803f");
+	write_bytes(app_pid, NO_ASLR(0x01402b83), "c747540000803f");
+	write_bytes(app_pid, NO_ASLR(0x01402b8a), "c747580000803f");
+	write_bytes(app_pid, NO_ASLR(0x01402b91), "e972010000");
+	write_bytes(app_pid, NO_ASLR(0x01402b96), "c7475000000000");
+	write_bytes(app_pid, NO_ASLR(0x01402b9d), "c747540000803f");
+	write_bytes(app_pid, NO_ASLR(0x01402ba4), "c7475800000000");
+	write_bytes(app_pid, NO_ASLR(0x01402bab), "e958010000");
+	write_bytes(app_pid, NO_ASLR(0x01402bb0), "c7475000000000");
+	write_bytes(app_pid, NO_ASLR(0x01402bb7), "c7475400000000");
+	write_bytes(app_pid, NO_ASLR(0x01402bbe), "c747580000803f");
+	write_bytes(app_pid, NO_ASLR(0x01402bc5), "e93e010000");
+	write_bytes(app_pid, NO_ASLR(0x01402bca), "c747500000803f");
+	write_bytes(app_pid, NO_ASLR(0x01402bd1), "c7475400000000");
+	write_bytes(app_pid, NO_ASLR(0x01402bd8), "c7475800000000");
+	write_bytes(app_pid, NO_ASLR(0x01402bdf), "e924010000");
+	write_bytes(app_pid, NO_ASLR(0x01402be4), "c7475000000000");
+	write_bytes(app_pid, NO_ASLR(0x01402beb), "c747540000003f");
+	write_bytes(app_pid, NO_ASLR(0x01402bf2), "c747580000003f");
+	write_bytes(app_pid, NO_ASLR(0x01402bf9), "e90a010000");
+	write_bytes(app_pid, NO_ASLR(0x01402bfe), "c7475000000000");
+	write_bytes(app_pid, NO_ASLR(0x01402c05), "c7475400000000");
+	write_bytes(app_pid, NO_ASLR(0x01402c0c), "c747580000003f");
+	write_bytes(app_pid, NO_ASLR(0x01402c13), "e9f0000000");
+	write_bytes(app_pid, NO_ASLR(0x01402c18), "c7475000000000");
+	write_bytes(app_pid, NO_ASLR(0x01402c1f), "c747540000003f");
+	write_bytes(app_pid, NO_ASLR(0x01402c26), "c7475800000000");
+	write_bytes(app_pid, NO_ASLR(0x01402c2d), "e9d6000000");
+	write_bytes(app_pid, NO_ASLR(0x01402c32), "c7475000000000");
+	write_bytes(app_pid, NO_ASLR(0x01402c39), "c747540000803f");
+	write_bytes(app_pid, NO_ASLR(0x01402c40), "c747580000803f");
+	write_bytes(app_pid, NO_ASLR(0x01402c47), "e9bc000000");
+	write_bytes(app_pid, NO_ASLR(0x01402c4c), "c747500000003f");
+	write_bytes(app_pid, NO_ASLR(0x01402c53), "c7475400000000");
+	write_bytes(app_pid, NO_ASLR(0x01402c5a), "c7475800000000");
+	write_bytes(app_pid, NO_ASLR(0x01402c61), "e9a2000000");
+	write_bytes(app_pid, NO_ASLR(0x01402c66), "c747500000403f");
+	write_bytes(app_pid, NO_ASLR(0x01402c6d), "c747540000403f");
+	write_bytes(app_pid, NO_ASLR(0x01402c74), "c747580000403f");
+	write_bytes(app_pid, NO_ASLR(0x01402c7b), "e988000000");
+	write_bytes(app_pid, NO_ASLR(0x01402c80), "c747500000003f");
+	write_bytes(app_pid, NO_ASLR(0x01402c87), "c7475400000000");
+	write_bytes(app_pid, NO_ASLR(0x01402c8e), "c747580000003f");
+	write_bytes(app_pid, NO_ASLR(0x01402c95), "eb71");
+	write_bytes(app_pid, NO_ASLR(0x01402c97), "c747500000003f");
+	write_bytes(app_pid, NO_ASLR(0x01402c9e), "c747540000003f");
+	write_bytes(app_pid, NO_ASLR(0x01402ca5), "c7475800000000");
+	write_bytes(app_pid, NO_ASLR(0x01402cac), "eb5a");
+	write_bytes(app_pid, NO_ASLR(0x01402cae), "c747500000003f");
+	write_bytes(app_pid, NO_ASLR(0x01402cb5), "c747540000003f");
+	write_bytes(app_pid, NO_ASLR(0x01402cbc), "c747580000003f");
+	write_bytes(app_pid, NO_ASLR(0x01402cc3), "eb43");
+	write_bytes(app_pid, NO_ASLR(0x01402cc5), "c747500000803f");
+	write_bytes(app_pid, NO_ASLR(0x01402ccc), "c7475400000000");
+	write_bytes(app_pid, NO_ASLR(0x01402cd3), "c747580000803f");
+	write_bytes(app_pid, NO_ASLR(0x01402cda), "eb2c");
+	write_bytes(app_pid, NO_ASLR(0x01402cdc), "c747500000803f");
+	write_bytes(app_pid, NO_ASLR(0x01402ce3), "c747540000803f");
+	write_bytes(app_pid, NO_ASLR(0x01402cea), "c7475800000000");
+	write_bytes(app_pid, NO_ASLR(0x01402cf1), "eb15");
+	write_bytes(app_pid, NO_ASLR(0x01402cf3), "c747500000803f");
+	write_bytes(app_pid, NO_ASLR(0x01402cfa), "c747540000003f");
+	write_bytes(app_pid, NO_ASLR(0x01402d01), "c7475800000000");
+	write_bytes(app_pid, NO_ASLR(0x01402d08), "830001");
+	write_bytes(app_pid, NO_ASLR(0x01402d0b), "5e");
+	write_bytes(app_pid, NO_ASLR(0x01402d0c), "58");
+	write_bytes(app_pid, NO_ASLR(0x01402d0d), "c5f8284750");
+	write_bytes(app_pid, NO_ASLR(0x01402d12), "e9ee900000");
 #endif
 }
 
@@ -1470,8 +1583,9 @@ void DoPatch_t1ps4_111(pid_t app_pid, u64 text_base)
 	write_bytes(app_pid, NO_ASLR(0x0040214a), "c687e534000001");
 	// Draw Color Boarder
 	/*
+	Source:
 	_start:
-	# Start addr 00e311d0
+	# Start addr 0x00c94d40
 	PUSH RBP
 	MOV RBP,RSP
 	PUSH R15
@@ -1506,7 +1620,7 @@ void DoPatch_t1ps4_111(pid_t app_pid, u64 text_base)
 	LEA R14,[RBP + -0x88]
 	MOV RDI,R14
 	LEA R14, [0x01918048]
-	CMP dword ptr [R14],0x7 # above 16 index, reset
+	CMP dword ptr [R14],0xf # above 16 index, reset
 	JA color_default
 	CMP dword ptr [R14],0x0 # check color index
 	JZ color_0
@@ -1524,41 +1638,76 @@ void DoPatch_t1ps4_111(pid_t app_pid, u64 text_base)
 	JZ color_6
 	CMP dword ptr [R14],0x7
 	JZ color_7
+	CMP dword ptr [R14],0x8
+	JZ color_8
+	CMP dword ptr [R14],0x9
+	JZ color_9
+	CMP dword ptr [R14],0xa
+	JZ color_10
+	CMP dword ptr [R14],0xb
+	JZ color_11
+	CMP dword ptr [R14],0xc
+	JZ color_12
+	CMP dword ptr [R14],0xd
+	JZ color_13
+	CMP dword ptr [R14],0xe
+	JZ color_14
+	CMP dword ptr [R14],0xf
+	JZ color_15
 	color_default:
 	MOV ESI, 0xFFFFFFFF # first index color
 	MOV dword ptr [R14],1 # next frame, use second index
 	JMP draw_bar_only_no_add
-	# Doom Eternal only used 8 colors in platte
 	color_0:
-	MOV ESI, 0xFFFFFFFF # White good
+	MOV ESI, 0xFFFFFFFF # White
 	JMP draw_bar
 	color_1:
-	MOV ESI, 0xFFFF0000 # Lime good
+	MOV ESI, 0xFF00FF00 # Lime (Green)
 	JMP draw_bar
 	color_2:
-	MOV ESI, 0xFF808000 # Blue bad 000,170,255,255
+	MOV ESI, 0xFFFF0000 # Blue
 	JMP draw_bar
 	color_3:
-	MOV ESI, 0xFF008000 # Red good
+	MOV ESI, 0xFF0000FF # Red
 	JMP draw_bar
 	color_4:
-	MOV ESI, 0xFF000080 # Teal?? bad 255,124,231,255
+	MOV ESI, 0xFF808000 # Teal
 	JMP draw_bar
 	color_5:
-	MOV ESI, 0xFF800080 # Navy bad 231,124,124,255
+	MOV ESI, 0xFF800000 # Navy
 	JMP draw_bar
 	color_6:
-	MOV ESI, 0xFF808080 # Green 000,216,000,255
+	MOV ESI, 0xFF008000 # Green
 	JMP draw_bar
 	color_7:
-	MOV ESI, 0xFF00FFFF # Aqua good
+	MOV ESI, 0xFFFFFF00 # Aqua
+	JMP draw_bar
+	color_8:
+	MOV ESI, 0xFF000080 # Dark Green? It's dark red
+	JMP draw_bar
+	color_9:
+	MOV ESI, 0xFFC0C0C0 # Silver
+	JMP draw_bar
+	color_10:
+	MOV ESI, 0xFF800080 # Purple
+	JMP draw_bar
+	color_11:
+	MOV ESI, 0xFF008080 # Olive
+	JMP draw_bar
+	color_12:
+	MOV ESI, 0xFF808080 # Gray
+	JMP draw_bar
+	color_13:
+	MOV ESI, 0xFFFF00FF # Fuchsia
+	JMP draw_bar
+	color_14:
+	MOV ESI, 0xFF00FFFF # Yellow
+	JMP draw_bar
+	color_15:
+	MOV ESI, 0xFF0080FF # Orange
 	# JMP draw_bar
 	draw_bar:
 	ADD dword ptr [R14],1
-	# MOV EAX, [R14]
-	# LEA R14, [0x01c1a87c]
-	# MOV [R14], EAX
-	# NOP
 	draw_bar_only_no_add:
 	CALL 0x00ec50e0
 	exit_func:
@@ -1589,7 +1738,7 @@ void DoPatch_t1ps4_111(pid_t app_pid, u64 text_base)
 	write_bytes(app_pid, NO_ASLR(0x00e311dd), "4883ec78");
 	write_bytes(app_pid, NO_ASLR(0x00e311e1), "488d3d8895de00");
 	write_bytes(app_pid, NO_ASLR(0x00e311e8), "80bfc007000000");
-	write_bytes(app_pid, NO_ASLR(0x00e311ef), "0f84e3000000");
+	write_bytes(app_pid, NO_ASLR(0x00e311ef), "0f844b010000");
 	write_bytes(app_pid, NO_ASLR(0x00e311f5), "488dbd78ffffff");
 	write_bytes(app_pid, NO_ASLR(0x00e311fc), "be01000000");
 	write_bytes(app_pid, NO_ASLR(0x00e31201), "31d2");
@@ -1609,52 +1758,84 @@ void DoPatch_t1ps4_111(pid_t app_pid, u64 text_base)
 	write_bytes(app_pid, NO_ASLR(0x00e31244), "4c8db578ffffff");
 	write_bytes(app_pid, NO_ASLR(0x00e3124b), "4c89f7");
 	write_bytes(app_pid, NO_ASLR(0x00e3124e), "4c8d35f36dae00");
-	write_bytes(app_pid, NO_ASLR(0x00e31255), "41833e07");
-	write_bytes(app_pid, NO_ASLR(0x00e31259), "7730");
+	write_bytes(app_pid, NO_ASLR(0x00e31255), "41833e0f");
+	write_bytes(app_pid, NO_ASLR(0x00e31259), "7760");
 	write_bytes(app_pid, NO_ASLR(0x00e3125b), "41833e00");
-	write_bytes(app_pid, NO_ASLR(0x00e3125f), "7438");
+	write_bytes(app_pid, NO_ASLR(0x00e3125f), "7468");
 	write_bytes(app_pid, NO_ASLR(0x00e31261), "41833e01");
-	write_bytes(app_pid, NO_ASLR(0x00e31265), "7439");
+	write_bytes(app_pid, NO_ASLR(0x00e31265), "7469");
 	write_bytes(app_pid, NO_ASLR(0x00e31267), "41833e02");
-	write_bytes(app_pid, NO_ASLR(0x00e3126b), "743a");
+	write_bytes(app_pid, NO_ASLR(0x00e3126b), "746a");
 	write_bytes(app_pid, NO_ASLR(0x00e3126d), "41833e03");
-	write_bytes(app_pid, NO_ASLR(0x00e31271), "743b");
+	write_bytes(app_pid, NO_ASLR(0x00e31271), "746b");
 	write_bytes(app_pid, NO_ASLR(0x00e31273), "41833e04");
-	write_bytes(app_pid, NO_ASLR(0x00e31277), "743c");
+	write_bytes(app_pid, NO_ASLR(0x00e31277), "746c");
 	write_bytes(app_pid, NO_ASLR(0x00e31279), "41833e05");
-	write_bytes(app_pid, NO_ASLR(0x00e3127d), "743d");
+	write_bytes(app_pid, NO_ASLR(0x00e3127d), "746d");
 	write_bytes(app_pid, NO_ASLR(0x00e3127f), "41833e06");
-	write_bytes(app_pid, NO_ASLR(0x00e31283), "743e");
+	write_bytes(app_pid, NO_ASLR(0x00e31283), "746e");
 	write_bytes(app_pid, NO_ASLR(0x00e31285), "41833e07");
-	write_bytes(app_pid, NO_ASLR(0x00e31289), "743f");
-	write_bytes(app_pid, NO_ASLR(0x00e3128b), "beffffffff");
-	write_bytes(app_pid, NO_ASLR(0x00e31290), "41c70601000000");
-	write_bytes(app_pid, NO_ASLR(0x00e31297), "eb3a");
-	write_bytes(app_pid, NO_ASLR(0x00e31299), "beffffffff");
-	write_bytes(app_pid, NO_ASLR(0x00e3129e), "eb2f");
-	write_bytes(app_pid, NO_ASLR(0x00e312a0), "be0000ffff");
-	write_bytes(app_pid, NO_ASLR(0x00e312a5), "eb28");
-	write_bytes(app_pid, NO_ASLR(0x00e312a7), "be008080ff");
-	write_bytes(app_pid, NO_ASLR(0x00e312ac), "eb21");
-	write_bytes(app_pid, NO_ASLR(0x00e312ae), "be008000ff");
-	write_bytes(app_pid, NO_ASLR(0x00e312b3), "eb1a");
-	write_bytes(app_pid, NO_ASLR(0x00e312b5), "be800000ff");
-	write_bytes(app_pid, NO_ASLR(0x00e312ba), "eb13");
-	write_bytes(app_pid, NO_ASLR(0x00e312bc), "be800080ff");
-	write_bytes(app_pid, NO_ASLR(0x00e312c1), "eb0c");
-	write_bytes(app_pid, NO_ASLR(0x00e312c3), "be808080ff");
-	write_bytes(app_pid, NO_ASLR(0x00e312c8), "eb05");
-	write_bytes(app_pid, NO_ASLR(0x00e312ca), "beffff00ff");
-	write_bytes(app_pid, NO_ASLR(0x00e312cf), "41830601");
-	write_bytes(app_pid, NO_ASLR(0x00e312d3), "e8083e0900");
-	write_bytes(app_pid, NO_ASLR(0x00e312d8), "4883c478");
-	write_bytes(app_pid, NO_ASLR(0x00e312dc), "5b");
-	write_bytes(app_pid, NO_ASLR(0x00e312dd), "415c");
-	write_bytes(app_pid, NO_ASLR(0x00e312df), "415d");
-	write_bytes(app_pid, NO_ASLR(0x00e312e1), "415e");
-	write_bytes(app_pid, NO_ASLR(0x00e312e3), "415f");
-	write_bytes(app_pid, NO_ASLR(0x00e312e5), "5d");
-	write_bytes(app_pid, NO_ASLR(0x00e312e6), "c3");
+	write_bytes(app_pid, NO_ASLR(0x00e31289), "746f");
+	write_bytes(app_pid, NO_ASLR(0x00e3128b), "41833e08");
+	write_bytes(app_pid, NO_ASLR(0x00e3128f), "7470");
+	write_bytes(app_pid, NO_ASLR(0x00e31291), "41833e09");
+	write_bytes(app_pid, NO_ASLR(0x00e31295), "7471");
+	write_bytes(app_pid, NO_ASLR(0x00e31297), "41833e0a");
+	write_bytes(app_pid, NO_ASLR(0x00e3129b), "7472");
+	write_bytes(app_pid, NO_ASLR(0x00e3129d), "41833e0b");
+	write_bytes(app_pid, NO_ASLR(0x00e312a1), "7473");
+	write_bytes(app_pid, NO_ASLR(0x00e312a3), "41833e0c");
+	write_bytes(app_pid, NO_ASLR(0x00e312a7), "7474");
+	write_bytes(app_pid, NO_ASLR(0x00e312a9), "41833e0d");
+	write_bytes(app_pid, NO_ASLR(0x00e312ad), "7475");
+	write_bytes(app_pid, NO_ASLR(0x00e312af), "41833e0e");
+	write_bytes(app_pid, NO_ASLR(0x00e312b3), "7476");
+	write_bytes(app_pid, NO_ASLR(0x00e312b5), "41833e0f");
+	write_bytes(app_pid, NO_ASLR(0x00e312b9), "7477");
+	write_bytes(app_pid, NO_ASLR(0x00e312bb), "beffffffff");
+	write_bytes(app_pid, NO_ASLR(0x00e312c0), "41c70601000000");
+	write_bytes(app_pid, NO_ASLR(0x00e312c7), "eb72");
+	write_bytes(app_pid, NO_ASLR(0x00e312c9), "beffffffff");
+	write_bytes(app_pid, NO_ASLR(0x00e312ce), "eb67");
+	write_bytes(app_pid, NO_ASLR(0x00e312d0), "be00ff00ff");
+	write_bytes(app_pid, NO_ASLR(0x00e312d5), "eb60");
+	write_bytes(app_pid, NO_ASLR(0x00e312d7), "be0000ffff");
+	write_bytes(app_pid, NO_ASLR(0x00e312dc), "eb59");
+	write_bytes(app_pid, NO_ASLR(0x00e312de), "beff0000ff");
+	write_bytes(app_pid, NO_ASLR(0x00e312e3), "eb52");
+	write_bytes(app_pid, NO_ASLR(0x00e312e5), "be008080ff");
+	write_bytes(app_pid, NO_ASLR(0x00e312ea), "eb4b");
+	write_bytes(app_pid, NO_ASLR(0x00e312ec), "be000080ff");
+	write_bytes(app_pid, NO_ASLR(0x00e312f1), "eb44");
+	write_bytes(app_pid, NO_ASLR(0x00e312f3), "be008000ff");
+	write_bytes(app_pid, NO_ASLR(0x00e312f8), "eb3d");
+	write_bytes(app_pid, NO_ASLR(0x00e312fa), "be00ffffff");
+	write_bytes(app_pid, NO_ASLR(0x00e312ff), "eb36");
+	write_bytes(app_pid, NO_ASLR(0x00e31301), "be800000ff");
+	write_bytes(app_pid, NO_ASLR(0x00e31306), "eb2f");
+	write_bytes(app_pid, NO_ASLR(0x00e31308), "bec0c0c0ff");
+	write_bytes(app_pid, NO_ASLR(0x00e3130d), "eb28");
+	write_bytes(app_pid, NO_ASLR(0x00e3130f), "be800080ff");
+	write_bytes(app_pid, NO_ASLR(0x00e31314), "eb21");
+	write_bytes(app_pid, NO_ASLR(0x00e31316), "be808000ff");
+	write_bytes(app_pid, NO_ASLR(0x00e3131b), "eb1a");
+	write_bytes(app_pid, NO_ASLR(0x00e3131d), "be808080ff");
+	write_bytes(app_pid, NO_ASLR(0x00e31322), "eb13");
+	write_bytes(app_pid, NO_ASLR(0x00e31324), "beff00ffff");
+	write_bytes(app_pid, NO_ASLR(0x00e31329), "eb0c");
+	write_bytes(app_pid, NO_ASLR(0x00e3132b), "beffff00ff");
+	write_bytes(app_pid, NO_ASLR(0x00e31330), "eb05");
+	write_bytes(app_pid, NO_ASLR(0x00e31332), "beff8000ff");
+	write_bytes(app_pid, NO_ASLR(0x00e31337), "41830601");
+	write_bytes(app_pid, NO_ASLR(0x00e3133b), "e8a03d0900");
+	write_bytes(app_pid, NO_ASLR(0x00e31340), "4883c478");
+	write_bytes(app_pid, NO_ASLR(0x00e31344), "5b");
+	write_bytes(app_pid, NO_ASLR(0x00e31345), "415c");
+	write_bytes(app_pid, NO_ASLR(0x00e31347), "415d");
+	write_bytes(app_pid, NO_ASLR(0x00e31349), "415e");
+	write_bytes(app_pid, NO_ASLR(0x00e3134b), "415f");
+	write_bytes(app_pid, NO_ASLR(0x00e3134d), "5d");
+	write_bytes(app_pid, NO_ASLR(0x00e3134e), "c3");
 }
 
 void DoPatch_t2ps4(pid_t app_pid, u64 text_base, u32 idx)
@@ -1700,9 +1881,49 @@ void DoPatch_t2ps4(pid_t app_pid, u64 text_base, u32 idx)
 		write_bytes(app_pid, NO_ASLR(0x02bd7673), "c3");
 		// Draw Color Boarder
 		/*
+		<!--
+		// Code to generate hex color
+		#include <stdint.h>
+		#include <stdio.h>
+
+		#define _rgba(r,g,b,a) (((uint32_t)a << 24) | ((uint32_t)b << 16) | ((uint32_t)g << 8) | r)
+		#define rgba(r,g,b) _rgba(r,g,b,255)
+
+		int32_t main() {
+			// https://github.com/flightlessmango/MangoHud/blob/41f923b0b2be07f035df221d01625e11f1305fde/src/fcat.h#L20
+			// const std::array<const ImColor,16> sequence={{{255, 255, 255},{0, 255, 0},{0, 0, 255},{255, 0, 0},{0, 128, 128},{0, 0, 128},{0, 128, 0},{0, 255, 255},{128, 0, 0},{192, 192, 192},{128, 0, 128},{128, 128, 0},{128, 128, 128},{255, 0, 255},{255, 255, 0},{255, 128, 0}}};
+			  uint32_t colors[] = {
+				rgba(255, 255, 255), // White
+				rgba(0, 255, 0), // Green
+				rgba(0, 0, 255), // Blue
+				rgba(255, 0, 0), // Red
+				rgba(0, 128, 128), // Teal
+				rgba(0, 0, 128), // Navy
+				rgba(0, 128, 0), // Green
+				rgba(0, 255, 255), // Aqua
+				rgba(128, 0, 0), // Dark Green? It's dark red
+				rgba(192, 192, 192), // Silver
+				rgba(128, 0, 128), // Purple
+				rgba(128, 128, 0), // Olive
+				rgba(128, 128, 128), // Gray
+				rgba(255, 0, 255), // Furishia
+				rgba(255, 255, 0), // Yellow
+				rgba(255, 128, 0), // Orange
+			};
+			const size_t color_size = sizeof(colors) / sizeof(colors[0]);
+			for (size_t i = 0; i < color_size; ++i)
+			{
+				printf("color %lu/%lu 0x%08X\n", i+1, color_size, colors[i]);
+			}
+			return 0;
+		}
+		#undef _rgba
+		#undef rgba
+		-->
+		<!--
 		_start:
 		# Start addr 0204118c
-		LEA RCX, [0x0436bca4] # Show Foreground Stats
+		LEA RCX, [0x0436bca4] # Show Foreground Stats bool
 		CMP byte ptr [RCX], 0
 		JZ exit_func
 		MOV R13,RAX
@@ -1714,6 +1935,7 @@ void DoPatch_t2ps4(pid_t app_pid, u64 text_base, u32 idx)
 		vxorps XMM1,XMM1,XMM1
 		vxorps XMM2,XMM2,XMM2
 		vxorps XMM3,XMM3,XMM3
+		# coordinates are 1280,720 mapped
 		# x1
 		MOV EAX, 0x0
 		VCVTSI2SS XMM0,XMM0,EAX
@@ -1731,7 +1953,7 @@ void DoPatch_t2ps4(pid_t app_pid, u64 text_base, u32 idx)
 		MOV EDX,0xb
 		MOV RDI,RAX
 		LEA RAX, [0x03400064]
-		CMP dword ptr [RAX],0x7 # above 16 index, reset
+		CMP dword ptr [RAX],0xf # above 16 index, reset
 		JA color_default
 		CMP dword ptr [RAX],0x0 # check color index
 		JZ color_0
@@ -1749,40 +1971,79 @@ void DoPatch_t2ps4(pid_t app_pid, u64 text_base, u32 idx)
 		JZ color_6
 		CMP dword ptr [RAX],0x7
 		JZ color_7
+		CMP dword ptr [RAX],0x8
+		JZ color_8
+		CMP dword ptr [RAX],0x9
+		JZ color_9
+		CMP dword ptr [RAX],0xa
+		JZ color_10
+		CMP dword ptr [RAX],0xb
+		JZ color_11
+		CMP dword ptr [RAX],0xc
+		JZ color_12
+		CMP dword ptr [RAX],0xd
+		JZ color_13
+		CMP dword ptr [RAX],0xe
+		JZ color_14
+		CMP dword ptr [RAX],0xf
+		JZ color_15
 		color_default:
 		MOV ESI, 0xFFFFFFFF # first index color
 		MOV dword ptr [RAX],1 # next frame, use second index
 		JMP draw_bar_only_no_add
 		color_0:
-		MOV ESI, 0xFFFFFFFF # White good
+		MOV ESI, 0xFFFFFFFF # White
 		JMP draw_bar
 		color_1:
-		MOV ESI, 0xFFFF0000 # Lime good
+		MOV ESI, 0xFF00FF00 # Lime (Green)
 		JMP draw_bar
 		color_2:
-		MOV ESI, 0xFF808000 # Blue bad 000,170,255,255
+		MOV ESI, 0xFFFF0000 # Blue
 		JMP draw_bar
 		color_3:
-		MOV ESI, 0xFF008000 # Red good
+		MOV ESI, 0xFF0000FF # Red
 		JMP draw_bar
 		color_4:
-		MOV ESI, 0xFF000080 # Teal?? bad 255,124,231,255
+		MOV ESI, 0xFF808000 # Teal
 		JMP draw_bar
 		color_5:
-		MOV ESI, 0xFF800080 # Navy bad 231,124,124,255
+		MOV ESI, 0xFF800000 # Navy
 		JMP draw_bar
 		color_6:
-		MOV ESI, 0xFF808080 # Green 000,216,000,255
+		MOV ESI, 0xFF008000 # Green
 		JMP draw_bar
 		color_7:
-		MOV ESI, 0xFF00FFFF # Aqua good
+		MOV ESI, 0xFFFFFF00 # Aqua
+		JMP draw_bar
+		color_8:
+		MOV ESI, 0xFF000080 # Dark Green? It's dark red
+		JMP draw_bar
+		color_9:
+		MOV ESI, 0xFFC0C0C0 # Silver
+		JMP draw_bar
+		color_10:
+		MOV ESI, 0xFF800080 # Purple
+		JMP draw_bar
+		color_11:
+		MOV ESI, 0xFF008080 # Olive
+		JMP draw_bar
+		color_12:
+		MOV ESI, 0xFF808080 # Gray
+		JMP draw_bar
+		color_13:
+		MOV ESI, 0xFFFF00FF # Fuchsia
+		JMP draw_bar
+		color_14:
+		MOV ESI, 0xFF00FFFF # Yellow
+		JMP draw_bar
+		color_15:
+		MOV ESI, 0xFF0080FF # Orange
 		# JMP draw_bar
 		draw_bar:
 		ADD dword ptr [RAX],1
 		draw_bar_only_no_add:
 		CALL 0x021af640
 		exit_func:
-		# MOV R13,RAX
 		JMP 0x20413df
 		*/
 		// Text
@@ -1790,7 +2051,7 @@ void DoPatch_t2ps4(pid_t app_pid, u64 text_base, u32 idx)
 		// Draw Bar
 		write_bytes(app_pid, NO_ASLR(0x0204118c), "488d0d11ab3202");
 		write_bytes(app_pid, NO_ASLR(0x02041193), "803900");
-		write_bytes(app_pid, NO_ASLR(0x02041196), "0f84df000000");
+		write_bytes(app_pid, NO_ASLR(0x02041196), "0f843f010000");
 		write_bytes(app_pid, NO_ASLR(0x0204119c), "4989c5");
 		write_bytes(app_pid, NO_ASLR(0x0204119f), "488dbc2418010000");
 		write_bytes(app_pid, NO_ASLR(0x020411a7), "be03000000");
@@ -1813,45 +2074,77 @@ void DoPatch_t2ps4(pid_t app_pid, u64 text_base, u32 idx)
 		write_bytes(app_pid, NO_ASLR(0x020411f4), "ba0b000000");
 		write_bytes(app_pid, NO_ASLR(0x020411f9), "4889c7");
 		write_bytes(app_pid, NO_ASLR(0x020411fc), "488d0561ee3b01");
-		write_bytes(app_pid, NO_ASLR(0x02041203), "833807");
-		write_bytes(app_pid, NO_ASLR(0x02041206), "7728");
+		write_bytes(app_pid, NO_ASLR(0x02041203), "83380f");
+		write_bytes(app_pid, NO_ASLR(0x02041206), "7750");
 		write_bytes(app_pid, NO_ASLR(0x02041208), "833800");
-		write_bytes(app_pid, NO_ASLR(0x0204120b), "7430");
+		write_bytes(app_pid, NO_ASLR(0x0204120b), "7458");
 		write_bytes(app_pid, NO_ASLR(0x0204120d), "833801");
-		write_bytes(app_pid, NO_ASLR(0x02041210), "7432");
+		write_bytes(app_pid, NO_ASLR(0x02041210), "745a");
 		write_bytes(app_pid, NO_ASLR(0x02041212), "833802");
-		write_bytes(app_pid, NO_ASLR(0x02041215), "7434");
+		write_bytes(app_pid, NO_ASLR(0x02041215), "745c");
 		write_bytes(app_pid, NO_ASLR(0x02041217), "833803");
-		write_bytes(app_pid, NO_ASLR(0x0204121a), "7436");
+		write_bytes(app_pid, NO_ASLR(0x0204121a), "745e");
 		write_bytes(app_pid, NO_ASLR(0x0204121c), "833804");
-		write_bytes(app_pid, NO_ASLR(0x0204121f), "7438");
+		write_bytes(app_pid, NO_ASLR(0x0204121f), "7460");
 		write_bytes(app_pid, NO_ASLR(0x02041221), "833805");
-		write_bytes(app_pid, NO_ASLR(0x02041224), "743a");
+		write_bytes(app_pid, NO_ASLR(0x02041224), "7462");
 		write_bytes(app_pid, NO_ASLR(0x02041226), "833806");
-		write_bytes(app_pid, NO_ASLR(0x02041229), "743c");
+		write_bytes(app_pid, NO_ASLR(0x02041229), "7464");
 		write_bytes(app_pid, NO_ASLR(0x0204122b), "833807");
-		write_bytes(app_pid, NO_ASLR(0x0204122e), "743e");
-		write_bytes(app_pid, NO_ASLR(0x02041230), "beffffffff");
-		write_bytes(app_pid, NO_ASLR(0x02041235), "c70001000000");
-		write_bytes(app_pid, NO_ASLR(0x0204123b), "eb39");
-		write_bytes(app_pid, NO_ASLR(0x0204123d), "beffffffff");
-		write_bytes(app_pid, NO_ASLR(0x02041242), "eb2f");
-		write_bytes(app_pid, NO_ASLR(0x02041244), "be0000ffff");
-		write_bytes(app_pid, NO_ASLR(0x02041249), "eb28");
-		write_bytes(app_pid, NO_ASLR(0x0204124b), "be008080ff");
-		write_bytes(app_pid, NO_ASLR(0x02041250), "eb21");
-		write_bytes(app_pid, NO_ASLR(0x02041252), "be008000ff");
-		write_bytes(app_pid, NO_ASLR(0x02041257), "eb1a");
-		write_bytes(app_pid, NO_ASLR(0x02041259), "be800000ff");
-		write_bytes(app_pid, NO_ASLR(0x0204125e), "eb13");
-		write_bytes(app_pid, NO_ASLR(0x02041260), "be800080ff");
-		write_bytes(app_pid, NO_ASLR(0x02041265), "eb0c");
-		write_bytes(app_pid, NO_ASLR(0x02041267), "be808080ff");
-		write_bytes(app_pid, NO_ASLR(0x0204126c), "eb05");
-		write_bytes(app_pid, NO_ASLR(0x0204126e), "beffff00ff");
-		write_bytes(app_pid, NO_ASLR(0x02041273), "830001");
-		write_bytes(app_pid, NO_ASLR(0x02041276), "e8c5e31600");
-		write_bytes(app_pid, NO_ASLR(0x0204127b), "e95f010000");
+		write_bytes(app_pid, NO_ASLR(0x0204122e), "7466");
+		write_bytes(app_pid, NO_ASLR(0x02041230), "833808");
+		write_bytes(app_pid, NO_ASLR(0x02041233), "7468");
+		write_bytes(app_pid, NO_ASLR(0x02041235), "833809");
+		write_bytes(app_pid, NO_ASLR(0x02041238), "746a");
+		write_bytes(app_pid, NO_ASLR(0x0204123a), "83380a");
+		write_bytes(app_pid, NO_ASLR(0x0204123d), "746c");
+		write_bytes(app_pid, NO_ASLR(0x0204123f), "83380b");
+		write_bytes(app_pid, NO_ASLR(0x02041242), "746e");
+		write_bytes(app_pid, NO_ASLR(0x02041244), "83380c");
+		write_bytes(app_pid, NO_ASLR(0x02041247), "7470");
+		write_bytes(app_pid, NO_ASLR(0x02041249), "83380d");
+		write_bytes(app_pid, NO_ASLR(0x0204124c), "7472");
+		write_bytes(app_pid, NO_ASLR(0x0204124e), "83380e");
+		write_bytes(app_pid, NO_ASLR(0x02041251), "7474");
+		write_bytes(app_pid, NO_ASLR(0x02041253), "83380f");
+		write_bytes(app_pid, NO_ASLR(0x02041256), "7476");
+		write_bytes(app_pid, NO_ASLR(0x02041258), "beffffffff");
+		write_bytes(app_pid, NO_ASLR(0x0204125d), "c70001000000");
+		write_bytes(app_pid, NO_ASLR(0x02041263), "eb71");
+		write_bytes(app_pid, NO_ASLR(0x02041265), "beffffffff");
+		write_bytes(app_pid, NO_ASLR(0x0204126a), "eb67");
+		write_bytes(app_pid, NO_ASLR(0x0204126c), "be00ff00ff");
+		write_bytes(app_pid, NO_ASLR(0x02041271), "eb60");
+		write_bytes(app_pid, NO_ASLR(0x02041273), "be0000ffff");
+		write_bytes(app_pid, NO_ASLR(0x02041278), "eb59");
+		write_bytes(app_pid, NO_ASLR(0x0204127a), "beff0000ff");
+		write_bytes(app_pid, NO_ASLR(0x0204127f), "eb52");
+		write_bytes(app_pid, NO_ASLR(0x02041281), "be008080ff");
+		write_bytes(app_pid, NO_ASLR(0x02041286), "eb4b");
+		write_bytes(app_pid, NO_ASLR(0x02041288), "be000080ff");
+		write_bytes(app_pid, NO_ASLR(0x0204128d), "eb44");
+		write_bytes(app_pid, NO_ASLR(0x0204128f), "be008000ff");
+		write_bytes(app_pid, NO_ASLR(0x02041294), "eb3d");
+		write_bytes(app_pid, NO_ASLR(0x02041296), "be00ffffff");
+		write_bytes(app_pid, NO_ASLR(0x0204129b), "eb36");
+		write_bytes(app_pid, NO_ASLR(0x0204129d), "be800000ff");
+		write_bytes(app_pid, NO_ASLR(0x020412a2), "eb2f");
+		write_bytes(app_pid, NO_ASLR(0x020412a4), "bec0c0c0ff");
+		write_bytes(app_pid, NO_ASLR(0x020412a9), "eb28");
+		write_bytes(app_pid, NO_ASLR(0x020412ab), "be800080ff");
+		write_bytes(app_pid, NO_ASLR(0x020412b0), "eb21");
+		write_bytes(app_pid, NO_ASLR(0x020412b2), "be808000ff");
+		write_bytes(app_pid, NO_ASLR(0x020412b7), "eb1a");
+		write_bytes(app_pid, NO_ASLR(0x020412b9), "be808080ff");
+		write_bytes(app_pid, NO_ASLR(0x020412be), "eb13");
+		write_bytes(app_pid, NO_ASLR(0x020412c0), "beff00ffff");
+		write_bytes(app_pid, NO_ASLR(0x020412c5), "eb0c");
+		write_bytes(app_pid, NO_ASLR(0x020412c7), "beffff00ff");
+		write_bytes(app_pid, NO_ASLR(0x020412cc), "eb05");
+		write_bytes(app_pid, NO_ASLR(0x020412ce), "beff8000ff");
+		write_bytes(app_pid, NO_ASLR(0x020412d3), "830001");
+		write_bytes(app_pid, NO_ASLR(0x020412d6), "e865e31600");
+		write_bytes(app_pid, NO_ASLR(0x020412db), "e9ff000000");
 		break;
 	}
 	}
