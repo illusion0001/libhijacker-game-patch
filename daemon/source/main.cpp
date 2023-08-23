@@ -14,6 +14,8 @@
 #include <pthread.h>
 #include "game_patch_thread.hpp"
 
+#include "print.hpp"
+
 extern void makenewapp();
 
 void AbortServer::run(TcpSocket &sock) {
@@ -169,8 +171,258 @@ bool patchSyscore() {
 	return false;
 }*/
 
+extern "C"
+{
+
+#include <stdint.h>
+
+#define ORBIS_COMMON_DIALOG_MAGIC_NUMBER 0xC0D1A109
+
+	typedef enum OrbisCommonDialogResult
+	{
+		ORBIS_COMMON_DIALOG_RESULT_OK = 0,
+		ORBIS_COMMON_DIALOG_RESULT_USER_CANCELED = 1
+	} OrbisCommonDialogResult;
+
+	typedef struct OrbisCommonDialogBaseParam
+	{
+		size_t size;
+		uint8_t reserved[36];
+		uint32_t magic;
+	} OrbisCommonDialogBaseParam __attribute__((__aligned__(8)));
+
+	typedef enum OrbisCommonDialogStatus
+	{
+		ORBIS_COMMON_DIALOG_STATUS_NONE = 0,
+		ORBIS_COMMON_DIALOG_STATUS_INITIALIZED = 1,
+		ORBIS_COMMON_DIALOG_STATUS_RUNNING = 2,
+		ORBIS_COMMON_DIALOG_STATUS_FINISHED = 3
+	} OrbisCommonDialogStatus;
+
+	typedef int32_t OrbisUserServiceUserId;
+	typedef int32_t OrbisMsgDialogButtonId;
+	typedef int32_t OrbisMsgDialogProgressBarTarget;
+
+	typedef enum OrbisMsgDialogButton : OrbisMsgDialogButtonId
+	{
+		ORBIS_MSG_DIALOG_BUTTON_ID_INVALID = 0,
+		ORBIS_MSG_DIALOG_BUTTON_ID_OK = 1,
+		ORBIS_MSG_DIALOG_BUTTON_ID_YES = 1,
+		ORBIS_MSG_DIALOG_BUTTON_ID_NO = 2,
+		ORBIS_MSG_DIALOG_BUTTON_ID_BUTTON1 = 1,
+		ORBIS_MSG_DIALOG_BUTTON_ID_BUTTON2 = 2,
+	} OrbisMsgDialogButton;
+
+	typedef enum OrbisMsgDialogMode
+	{
+		ORBIS_MSG_DIALOG_MODE_USER_MSG = 1,
+		ORBIS_MSG_DIALOG_MODE_PROGRESS_BAR = 2,
+		ORBIS_MSG_DIALOG_MODE_SYSTEM_MSG = 3,
+	} OrbisMsgDialogMode;
+
+	typedef struct OrbisMsgDialogResult
+	{
+		OrbisMsgDialogMode mode;
+		int32_t result;
+		OrbisMsgDialogButton buttonId;
+		char reserved[32];
+	} OrbisMsgDialogResult;
+
+	typedef enum OrbisMsgDialogButtonType
+	{
+		ORBIS_MSG_DIALOG_BUTTON_TYPE_OK = 0,
+		ORBIS_MSG_DIALOG_BUTTON_TYPE_YESNO = 1,
+		ORBIS_MSG_DIALOG_BUTTON_TYPE_NONE = 2,
+		ORBIS_MSG_DIALOG_BUTTON_TYPE_OK_CANCEL = 3,
+		ORBIS_MSG_DIALOG_BUTTON_TYPE_WAIT = 5,
+		ORBIS_MSG_DIALOG_BUTTON_TYPE_WAIT_CANCEL = 6,
+		ORBIS_MSG_DIALOG_BUTTON_TYPE_YESNO_FOCUS_NO = 7,
+		ORBIS_MSG_DIALOG_BUTTON_TYPE_OK_CANCEL_FOCUS_CANCEL = 8,
+		ORBIS_MSG_DIALOG_BUTTON_TYPE_2BUTTONS = 9,
+	} OrbisMsgDialogButtonType;
+
+	typedef enum OrbisMsgDialogProgressBarType
+	{
+		ORBIS_MSG_DIALOG_PROGRESSBAR_TYPE_PERCENTAGE = 0,
+		ORBIS_MSG_DIALOG_PROGRESSBAR_TYPE_PERCENTAGE_CANCEL = 1,
+	} OrbisMsgDialogProgressBarType;
+
+	typedef enum OrbisMsgDialogSystemMessageType
+	{
+		ORBIS_MSG_DIALOG_SYSMSG_TYPE_TRC_EMPTY_STORE = 0,
+		ORBIS_MSG_DIALOG_SYSMSG_TYPE_TRC_PSN_CHAT_RESTRICTION = 1,
+		ORBIS_MSG_DIALOG_SYSMSG_TYPE_TRC_PSN_UGC_RESTRICTION = 2,
+		ORBIS_MSG_DIALOG_SYSMSG_TYPE_CAMERA_NOT_CONNECTED = 4,
+		ORBIS_MSG_DIALOG_SYSMSG_TYPE_WARNING_PROFILE_PICTURE_AND_NAME_NOT_SHARED = 5,
+	} OrbisMsgDialogSystemMessageType;
+
+	typedef struct OrbisMsgDialogButtonsParam
+	{
+		const char *msg1;
+		const char *msg2;
+		char reserved[32];
+	} OrbisMsgDialogButtonsParam;
+
+	typedef struct OrbisMsgDialogUserMessageParam
+	{
+		OrbisMsgDialogButtonType buttonType;
+		int32_t : 32;
+		const char *msg;
+		OrbisMsgDialogButtonsParam *buttonsParam;
+		char reserved[24];
+	} OrbisMsgDialogUserMessageParam;
+
+	typedef struct OrbisMsgDialogProgressBarParam
+	{
+		OrbisMsgDialogProgressBarType barType;
+		int32_t : 32;
+		const char *msg;
+		char reserved[64];
+	} OrbisMsgDialogProgressBarParam;
+
+	typedef struct OrbisMsgDialogSystemMessageParam
+	{
+		OrbisMsgDialogSystemMessageType sysMsgType;
+		char reserved[32];
+	} OrbisMsgDialogSystemMessageParam;
+
+	typedef struct OrbisMsgDialogParam
+	{
+		OrbisCommonDialogBaseParam baseParam;
+		size_t size;
+		OrbisMsgDialogMode mode;
+		int32_t : 32;
+		OrbisMsgDialogUserMessageParam *userMsgParam;
+		OrbisMsgDialogProgressBarParam *progBarParam;
+		OrbisMsgDialogSystemMessageParam *sysMsgParam;
+		OrbisUserServiceUserId userId;
+		char reserved[40];
+		int32_t : 32;
+	} OrbisMsgDialogParam;
+
+	// Initialize the message dialog. Should be called before trying to use the
+	// message dialog.
+	int32_t sceMsgDialogInitialize(void);
+
+	// Display the message dialog.
+	int32_t sceMsgDialogOpen(const OrbisMsgDialogParam *param);
+
+	// Get the result of the message dialog after the user closes the dialog.
+	// This can be used to detect which option was pressed (yes, no, cancel, etc).
+	int32_t sceMsgDialogGetResult(OrbisMsgDialogResult *result);
+
+	// Get the status of the message dialog. This can be used to check if a
+	// message dialog is initialized, is being displayed, or is finished.
+	OrbisCommonDialogStatus sceMsgDialogGetStatus();
+
+	// Update the current status of the message dialog.
+	OrbisCommonDialogStatus sceMsgDialogUpdateStatus(void);
+
+	// Increase the message dialog progress bar percentage.
+	// OrbisMsgDialogMode must be initialized with ORBIS_MSG_DIALOG_MODE_PROGRESS_BAR.
+	int32_t sceMsgDialogProgressBarInc(OrbisMsgDialogProgressBarTarget target, uint32_t delta);
+
+	// Add a message to the message dialog progress bar.
+	// OrbisMsgDialogMode must be initialized with ORBIS_MSG_DIALOG_MODE_PROGRESS_BAR.
+	int32_t sceMsgDialogProgressBarSetMsg(OrbisMsgDialogProgressBarTarget target, const char *barMsg);
+
+	// Set the message dialog progress bar immediately without animation.
+	// OrbisMsgDialogMode must be initialized with ORBIS_MSG_DIALOG_MODE_PROGRESS_BAR.
+	int32_t sceMsgDialogProgressBarSetValue(OrbisMsgDialogProgressBarTarget target, uint32_t rate);
+
+	// Close the message dialog.
+	int32_t sceMsgDialogClose(void);
+
+	// Terminate the message dialog. Should be called when all message dialog
+	// operations are finished.
+	int32_t sceMsgDialogTerminate(void);
+
+	int32_t sceSysmoduleLoadModule(uint16_t module);
+
+	int32_t sceCommonDialogInitialize(void);
+}
+
+// Dialog types
+#define MDIALOG_OK 0
+#define MDIALOG_YESNO 1
+
+static inline void _orbisCommonDialogSetMagicNumber(uint32_t *magic, const OrbisCommonDialogBaseParam *param)
+{
+	*magic = (uint32_t)(ORBIS_COMMON_DIALOG_MAGIC_NUMBER + (uint64_t)param);
+}
+
+static inline void _orbisCommonDialogBaseParamInit(OrbisCommonDialogBaseParam *param)
+{
+	(void)memset(param, 0x0, sizeof(OrbisCommonDialogBaseParam));
+	param->size = (uint32_t)sizeof(OrbisCommonDialogBaseParam);
+	_orbisCommonDialogSetMagicNumber(&(param->magic), param);
+}
+
+static inline void orbisMsgDialogParamInitialize(OrbisMsgDialogParam *param)
+{
+	(void)memset(param, 0x0, sizeof(OrbisMsgDialogParam));
+	_orbisCommonDialogBaseParamInit(&param->baseParam);
+	param->size = sizeof(OrbisMsgDialogParam);
+}
+
+int show_dialog(int dialog_type, const char *format, ...)
+{
+	OrbisMsgDialogParam param{};
+	OrbisMsgDialogUserMessageParam userMsgParam{};
+	OrbisMsgDialogResult result{};
+
+	char str[2048]{};
+
+	va_list opt{};
+	va_start(opt, format);
+	vsprintf(str, format, opt);
+	va_end(opt);
+
+	_puts(str);
+
+	print_ret(sceMsgDialogInitialize());
+	orbisMsgDialogParamInitialize(&param);
+	param.mode = ORBIS_MSG_DIALOG_MODE_USER_MSG;
+
+	// memset(&userMsgParam, 0, sizeof(userMsgParam));
+	userMsgParam.msg = str;
+	userMsgParam.buttonType = (dialog_type ? ORBIS_MSG_DIALOG_BUTTON_TYPE_YESNO_FOCUS_NO : ORBIS_MSG_DIALOG_BUTTON_TYPE_OK);
+	param.userMsgParam = &userMsgParam;
+
+	int32_t open_ret = sceMsgDialogOpen(&param);
+	_printf("sceMsgDialogOpen: 0x%08x\n", open_ret);
+	if (open_ret < 0)
+		return 0;
+
+	do
+	{
+	} while (sceMsgDialogUpdateStatus() != ORBIS_COMMON_DIALOG_STATUS_FINISHED);
+	sceMsgDialogClose();
+
+	sceMsgDialogGetResult(&result);
+	sceMsgDialogTerminate();
+
+	return (result.buttonId == ORBIS_MSG_DIALOG_BUTTON_ID_YES);
+}
+
+void InitMsg(void)
+{
+	constexpr uint16_t ORBIS_SYSMODULE_MESSAGE_DIALOG = 0x00A4;
+	int32_t ret_1 = sceSysmoduleLoadModule(ORBIS_SYSMODULE_MESSAGE_DIALOG);
+	int32_t ret_2 = sceCommonDialogInitialize();
+	_printf("sceSysmoduleLoadModule: 0x%08x\n", ret_1);
+	_printf("sceCommonDialogInitialize: 0x%08x\n", ret_2);
+	if (ret_1 < 0)
+	{
+		printf_notification("Failed to initialize CommonDialog");
+		return;
+	}
+	show_dialog(MDIALOG_OK, "User likes %s :)", "OpenOrbis");
+}
+
 int main() {
 	puts("daemon entered");
+	InitMsg();
 	printf_notification("libhijacker daemon started successfully.\n"
 						"Original project: https://github.com/astrelsky/libhijacker");
 	printf_notification("libhijacker - astrelsky\n"
