@@ -374,6 +374,8 @@ int main() {
 	pthread_join(game_patch_thread_id, nullptr);
 	puts("game patch thread finished");
 
+	printf_notification("daemon exit");
+
 	// TODO add elf loader with options for process name and type (daemon/game)
 	// add whatever other crap people may want
 	return 0;
