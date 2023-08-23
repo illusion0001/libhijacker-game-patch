@@ -11,6 +11,8 @@
 #include "notify.hpp"
 #include "print.hpp"
 
+#include "pad.hpp"
+
 extern "C"
 {
 #include "../extern/pfd_sfo_tools/sfopatcher/src/sfo.h"
@@ -180,17 +182,78 @@ bool isAlive(pid_t v) {
 	return false;
 }
 
+extern "C"  int32_t sceUserServiceGetForegroundUser(uint32_t *new_id);
+
+bool checkPatchButton(OrbisPadData *pData)
+{
+	return (pData->buttons & ORBIS_PAD_BUTTON_SQUARE) &&
+		   (pData->buttons & ORBIS_PAD_BUTTON_TRIANGLE);
+}
+
+bool checkKillButton(OrbisPadData *pData)
+{
+	return (pData->buttons & ORBIS_PAD_BUTTON_L3) &&
+		   (pData->buttons & ORBIS_PAD_BUTTON_R3) &&
+		   (pData->buttons & ORBIS_PAD_BUTTON_L1) &&
+		   (pData->buttons & ORBIS_PAD_BUTTON_R1) &&
+		   (pData->buttons & ORBIS_PAD_BUTTON_SQUARE);
+}
+
 void *GamePatch_Thread(void *unused)
 {
 	printf_notification("Game Patch thread running.\nBuilt: " __DATE__ " @ " __TIME__);
+	uint32_t user_id = 0;
+	int32_t pad_handle = 0;
+	print_ret(sceUserServiceGetForegroundUser(&user_id));
+	_printf("user_id: 0x%08x\n", user_id);
+	if (user_id)
+	{
+		print_ret(scePadInit());
+		pad_handle = scePadOpen(user_id, 0, 0, nullptr);
+		_printf("scePadOpen: 0x%08x\n", pad_handle);
+		print_ret(scePadSetProcessPrivilege(1));
+	}
+	else
+	{
+		printf_notification("Failed to obtain current user id! Pad functions will not work.");
+	}
 	bool found_app = false;
 	// multiple self games
 	bool fast_sleep_timer = false;
 	pid_t target_running_pid = 0;
 	g_game_patch_thread_running = true;
 
+	bool prevTogglePressed = false;
+	bool doPatchGames = false;
+
 	while (g_game_patch_thread_running)
 	{
+		OrbisPadData pData{};
+		if (pad_handle && !found_app)
+		{
+			int32_t ret = scePadReadState(pad_handle, &pData);
+			if (ret == 0 && pad_handle > 0 && pData.connected)
+			{
+				bool currentTogglePressed = checkPatchButton(&pData);
+				if (currentTogglePressed && !prevTogglePressed)
+				{
+					printf_notification("User requested to patch games: %s", doPatchGames ? "true" : "false");
+					_printf("doPatchGames: 0x%02x\n", doPatchGames);
+					doPatchGames = !doPatchGames;
+				}
+				prevTogglePressed = currentTogglePressed;
+				if (checkKillButton(&pData))
+				{
+					//printf_notification("User requested exit for Game Patch thread.");
+					g_game_patch_thread_running = false;
+					continue;
+				}
+			}
+		}
+		if (doPatchGames)
+		{
+			continue;
+		}
 		if (dbg::getProcesses().length() == 0)
 		{
 			// g_game_patch_thread_running = false;
@@ -612,6 +675,10 @@ void *GamePatch_Thread(void *unused)
 		}
 	}
 
+	if (pad_handle)
+	{
+		print_ret(scePadClose(pad_handle));
+	}
 	printf_notification("Game Patch thread has requested to stop");
 	pthread_exit(nullptr);
 	return nullptr;
