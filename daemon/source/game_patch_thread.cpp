@@ -182,7 +182,10 @@ bool isAlive(pid_t v) {
 	return false;
 }
 
-extern "C"  int32_t sceUserServiceGetForegroundUser(uint32_t *new_id);
+extern "C" {
+	int32_t sceUserServiceInitialize(int32_t *priority);
+	int32_t sceUserServiceGetForegroundUser(int32_t *new_id);
+}
 
 bool checkPatchButton(OrbisPadData *pData)
 {
@@ -202,11 +205,14 @@ bool checkKillButton(OrbisPadData *pData)
 void *GamePatch_Thread(void *unused)
 {
 	printf_notification("Game Patch thread running.\nBuilt: " __DATE__ " @ " __TIME__);
-	uint32_t user_id = 0;
+	int32_t user_id = 0;
 	int32_t pad_handle = 0;
+	int32_t priority = 256;
+	print_ret(sceUserServiceInitialize(&priority));
 	print_ret(sceUserServiceGetForegroundUser(&user_id));
+	_printf("priority: 0x%08x\n", priority);
 	_printf("user_id: 0x%08x\n", user_id);
-	if (user_id)
+	if (user_id > 0)
 	{
 		print_ret(scePadInit());
 		pad_handle = scePadOpen(user_id, 0, 0, nullptr);
@@ -216,6 +222,7 @@ void *GamePatch_Thread(void *unused)
 	else
 	{
 		printf_notification("Failed to obtain current user id! Pad functions will not work.");
+		user_id = 0;
 	}
 	bool found_app = false;
 	// multiple self games
