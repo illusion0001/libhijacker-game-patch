@@ -2,26 +2,6 @@
 
 #include "server.hpp"
 
-class StdoutServer : public TcpServer {
-
-	static constexpr uint16_t PORT = 9071;
-
-	void run(TcpSocket &sock) override;
-
-	public:
-		StdoutServer() noexcept : TcpServer(PORT) {}
-
-		StdoutServer(const StdoutServer&) = delete;
-
-		StdoutServer &operator=(const StdoutServer&) = delete;
-
-		StdoutServer(StdoutServer &&rhs) noexcept = default;
-
-		StdoutServer &operator=(StdoutServer &&rhs) noexcept = default;
-
-		~StdoutServer() noexcept override = default;
-};
-
 class ElfServer : public TcpServer {
 
 	static constexpr uint16_t PORT = 9029;

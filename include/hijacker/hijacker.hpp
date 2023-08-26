@@ -128,7 +128,7 @@ class Hijacker {
 		}
 
 		uintptr_t getLibKernelAddress(const Nid &fname) const {
-			return getLibKernelFunctionAddress(fname);
+			return getFunctionAddress(getLibKernel(), fname);
 		}
 
 		ProcessMemoryAllocator &getDataAllocator() {
@@ -165,7 +165,7 @@ class Hijacker {
 
 		template <typename T>
 		bool write(uintptr_t vaddr, const T &value) {
-			return write(vaddr, &value, sizeof(vaddr));
+			return write(vaddr, &value, sizeof(value));
 		}
 
 		template <typename T>

@@ -106,8 +106,6 @@ static void __attribute__((constructor)) initUserService() {
 	sceUserServiceInitialize(&priority);
 }
 
-extern "C" uint32_t sceLncUtilKillApp(uint32_t appId);
-
 static bool killApp(uint32_t appId) {
 	uint32_t res = sceLncUtilKillApp(appId);
 	printf("sceApplicationKill returned 0x%llx\n", res);
@@ -160,53 +158,6 @@ static pthread_t launchAppThread(const char *titleId, int *appId) {
 	pthread_create(&td, nullptr, doLaunchApp, args);
 	return td;
 }
-
-/*
-static constexpr uintptr_t ENTRYPOINT_OFFSET = 0x70;
-
-struct LoopBuilder {
-	static constexpr size_t LOOB_BUILDER_SIZE = 39;
-	static constexpr size_t LOOP_BUILDER_TARGET_OFFSET = 11;
-	static constexpr size_t LOOP_BUILDER_STACK_PTR_OFFSET = 5;
-	uint8_t data[LOOB_BUILDER_SIZE];
-
-	void setTarget(uintptr_t addr) {
-		*reinterpret_cast<uintptr_t *>(data + LOOP_BUILDER_TARGET_OFFSET) = addr;
-	}
-	void setStackPointer(uintptr_t addr) {
-		*reinterpret_cast<uint32_t *>(data + LOOP_BUILDER_STACK_PTR_OFFSET) = (uint32_t)addr;
-	}
-};
-
-static inline constexpr LoopBuilder SLEEP_LOOP{
-	// 67 48 89 24 25 xx xx xx xx
-	// MOV [SAVED_STACK_POINTER], RSP
-	0x67, 0x48, 0x89, 0x24, 0x25, 0x00, 0x00, 0x00, 0x00,
-
-	// // 48 b8 xx xx xx xx xx xx xx xx 48 c7 c7 40 42 0f 00 ff d0 eb eb
-	//loop:
-	//	MOV RAX, _nanosleep
-	0x48, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	// MOV RDI, 1000000000 // 1 second
-	0x48, 0xc7, 0xc7, 0x00, 0xca, 0x9a, 0x3b,
-	// MOV RSI, 0
-	0x48, 0xc7, 0xc6, 0x00, 0x00, 0x00, 0x00,
-	// PUSH RDI
-	0x57,
-	// PUSH RSI
-	0x56,
-	// CALL RAX
-	0xff, 0xd0,
-	// JMP loop
-	0xeb, 0xe2
-};
-
-
-static uintptr_t getNanosleepOffset(const Hijacker &hijacker) {
-	uintptr_t addr = hijacker.getLibKernelFunctionAddress(nid::_nanosleep);
-	return addr - hijacker.getLibKernelBase();
-}
-*/
 
 static int getNextPid(const int lastPid) {
 	// get the pid of the new process as soon as it is created
@@ -300,7 +251,6 @@ static bool launchApp(const char *titleId) {
 	printf("found new pid %d\n", pid);
 
 	UniquePtr<Hijacker> spawned = nullptr;
-	dbg::AuthidSwapper idSwapper{dbg::PTRACE_ID};
 	{
 		// attach to the new process
 		dbg::Tracer tracer{pid};
@@ -324,19 +274,6 @@ static bool launchApp(const char *titleId) {
 			// this should also work first try but not confirmed
 			base = spawned->getLibKernelBase();
 		}
-
-		/*const uintptr_t rsp = spawned->getDataAllocator().allocate(8);
-		loop.setStackPointer(rsp);
-		loop.setTarget(base + NANOSLEEP_OFFSET);
-		base = spawned->imagebase();
-		spawned->pSavedRsp = rsp;
-
-		// insert a software breakpoint at the entry point
-		// sadly this didn't work :(
-		// it won't work because we need to detatch which will cause it to exit
-
-		// force the entrypoint to an infinite loop so that it doesn't start until we're ready
-		dbg::write(pid, base + ENTRYPOINT_OFFSET, loop.data, sizeof(loop.data));*/
 
 		puts("joining");
 		pthread_join(td, nullptr);

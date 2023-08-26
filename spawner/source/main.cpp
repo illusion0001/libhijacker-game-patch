@@ -7,11 +7,13 @@
 #include "hijacker.hpp"
 #include "kernel/kernel.hpp"
 #include "kernel/proc.hpp"
+#include "nid.hpp"
 #include "offsets.hpp"
 #include "util.hpp"
 #include <elf.h>
 #include <sys/_pthreadtypes.h>
 #include <sys/_stdint.h>
+#include <sys/un.h>
 #include <unistd.h>
 #include <pthread.h>
 
@@ -45,13 +47,6 @@ static constexpr int STDERR = 2;
 
 class FileDescriptor {
 	int fd = -1;
-
-	void close() {
-		if (fd != -1) {
-			::close(fd);
-			fd = -1;
-		}
-}
 
 	public:
 		FileDescriptor() = default;
@@ -90,6 +85,12 @@ class FileDescriptor {
 		}
 
 		void release() { fd = -1; }
+		void close() {
+			if (fd != -1) {
+				::close(fd);
+				fd = -1;
+			}
+		}
 };
 
 extern "C" const unsigned int daemon_size;
@@ -227,97 +228,134 @@ struct HookBuilder {
 
 // NOLINTBEGIN(*)
 
-struct Args {
-	int pid;
-	uintptr_t execve;
-	uintptr_t sceKernelDlsym;
-
-	Args(const UniquePtr<Hijacker> &hijacker) :
-			pid(0), execve(hijacker->getLibKernelFunctionAddress(nid::execve)),
-			sceKernelDlsym(hijacker->getLibKernelFunctionAddress(nid::sceKernelDlsym)) {
-	}
-};
-
 struct ShellcodeBuilder {
-	static constexpr size_t SHELLCODE_SIZE = 184;
-	static constexpr size_t EXECVE_ADDR_OFFSET = 2;
-	static constexpr size_t NANOSLEEP_ADDR_OFFSET = 12;
+	static constexpr size_t SHELLCODE_SIZE = 519;
+	static constexpr size_t RFORK_THREAD_ADDR_OFFSET = 2;
+	static constexpr size_t EXTRA_STUFF_ADDR_OFFSET = 12;
 
 	uint8_t shellcode[SHELLCODE_SIZE];
 
-	void setExecveAddr(uintptr_t addr) noexcept {
-		*reinterpret_cast<uintptr_t*>(shellcode + EXECVE_ADDR_OFFSET) = addr;
+	void setRforkThreadAddr(uintptr_t addr) noexcept {
+		*reinterpret_cast<uintptr_t*>(shellcode + RFORK_THREAD_ADDR_OFFSET) = addr;
 	}
 
-	void setNanosleepAddr(uintptr_t addr) noexcept {
-		*reinterpret_cast<uintptr_t*>(shellcode + NANOSLEEP_ADDR_OFFSET) = addr;
+	void setExtraStuffAddr(uintptr_t addr) noexcept {
+		*reinterpret_cast<uintptr_t*>(shellcode + EXTRA_STUFF_ADDR_OFFSET) = addr;
 	}
 };
 
 // insert 0x48, 0xb9, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 
 static constexpr ShellcodeBuilder BUILDER_TEMPLATE{{
-	0x48, 0xb9, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // MOV RCX, execve
-	0x49, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // MOV R8, _nanosleep
-    0x55, 0x41, 0x57, 0x41, 0x56, 0x41, 0x55, 0x41, 0x54, 0x53, 0x48, 0x83, 0xec, 0x28, 0x48, 0x89,
-    0x4c, 0x24, 0x20, 0x48, 0xc7, 0x04, 0x24, 0x00, 0x00, 0x00, 0x00, 0x48, 0xc7, 0x44, 0x24, 0x08,
-    0x00, 0xc2, 0xeb, 0x0b, 0x48, 0xc7, 0x44, 0x24, 0x10, 0x00, 0x00, 0x00, 0x00, 0x48, 0xc7, 0x44,
-    0x24, 0x18, 0x00, 0x00, 0x00, 0x00, 0x49, 0x89, 0xd6, 0x49, 0x89, 0xf7, 0x49, 0x89, 0xfd, 0x48,
-    0x83, 0x7c, 0x24, 0x08, 0x00, 0x7e, 0x41, 0x4d, 0x89, 0xc4, 0x48, 0x89, 0xe5, 0x48, 0x8d, 0x5c,
-    0x24, 0x10, 0x66, 0x66, 0x66, 0x66, 0x66, 0x2e, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x48, 0x89, 0xef, 0x48, 0x89, 0xde, 0x41, 0xff, 0xd4, 0x85, 0xc0, 0x74, 0x1b, 0x48, 0x8b, 0x44,
-    0x24, 0x18, 0x48, 0x89, 0x44, 0x24, 0x08, 0x48, 0xc7, 0x44, 0x24, 0x18, 0x00, 0x00, 0x00, 0x00,
-    0x48, 0x83, 0x7c, 0x24, 0x08, 0x00, 0x7f, 0xd8, 0x4c, 0x89, 0xef, 0x4c, 0x89, 0xfe, 0x4c, 0x89,
-    0xf2, 0xff, 0x54, 0x24, 0x20, 0x48, 0x83, 0xc4, 0x28, 0x5b, 0x41, 0x5c, 0x41, 0x5d, 0x41, 0x5e,
-    0x41, 0x5f, 0x5d, 0xc3
+	0x49, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // MOV rfork_thread, R8
+	0x49, 0xb9, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // MOV &stuff, R9
+    0x55, 0x41, 0x57, 0x41, 0x56, 0x41, 0x55, 0x41, 0x54, 0x53, 0x48, 0x81, 0xec, 0x98, 0x00, 0x00,
+    0x00, 0x48, 0x8b, 0x41, 0x08, 0x48, 0x89, 0xcb, 0x49, 0x89, 0xd6, 0x49, 0x89, 0xf7, 0x89, 0xfd,
+    0x48, 0x85, 0xc0, 0x0f, 0x84, 0xb4, 0x00, 0x00, 0x00, 0x49, 0xbd, 0x2f, 0x73, 0x79, 0x73, 0x74,
+    0x65, 0x6d, 0x5f, 0x4c, 0x39, 0x28, 0x0f, 0x85, 0xa1, 0x00, 0x00, 0x00, 0x48, 0xb9, 0x65, 0x78,
+    0x2f, 0x61, 0x70, 0x70, 0x2f, 0x42, 0x48, 0x39, 0x48, 0x08, 0x0f, 0x85, 0x8d, 0x00, 0x00, 0x00,
+    0xb9, 0xff, 0xff, 0xff, 0x00, 0x23, 0x48, 0x10, 0x81, 0xf9, 0x52, 0x45, 0x57, 0x00, 0x75, 0x7d,
+    0x41, 0x8b, 0x01, 0x4d, 0x89, 0xcc, 0x4c, 0x89, 0x44, 0x24, 0x10, 0x83, 0xf8, 0xff, 0x0f, 0x84,
+    0x88, 0x00, 0x00, 0x00, 0x48, 0x8d, 0x74, 0x24, 0x18, 0xba, 0x10, 0x00, 0x00, 0x00, 0x89, 0xc7,
+    0xc7, 0x44, 0x24, 0x18, 0x00, 0x00, 0x00, 0x00, 0x48, 0xc7, 0x44, 0x24, 0x20, 0x00, 0x00, 0x00,
+    0x00, 0xc7, 0x44, 0x24, 0x1c, 0x00, 0x00, 0x00, 0x00, 0x89, 0x44, 0x24, 0x0c, 0x41, 0xff, 0x54,
+    0x24, 0x38, 0x48, 0x83, 0xf8, 0xff, 0x74, 0x73, 0x8b, 0x7c, 0x24, 0x0c, 0x48, 0x8d, 0x74, 0x24,
+    0x28, 0xba, 0x04, 0x00, 0x00, 0x00, 0xc7, 0x44, 0x24, 0x28, 0x00, 0x00, 0x00, 0x00, 0x41, 0xff,
+    0x54, 0x24, 0x30, 0x48, 0x83, 0xf8, 0xff, 0x0f, 0x84, 0xe9, 0x00, 0x00, 0x00, 0x83, 0x7c, 0x24,
+    0x28, 0x01, 0x0f, 0x84, 0x9d, 0x00, 0x00, 0x00, 0xe9, 0xd9, 0x00, 0x00, 0x00, 0x89, 0xef, 0x4c,
+    0x89, 0xfe, 0x4c, 0x89, 0xf2, 0x48, 0x89, 0xd9, 0x48, 0x81, 0xc4, 0x98, 0x00, 0x00, 0x00, 0x5b,
+    0x41, 0x5c, 0x41, 0x5d, 0x41, 0x5e, 0x41, 0x5f, 0x5d, 0x41, 0xff, 0xe0, 0xbf, 0x01, 0x00, 0x00,
+    0x00, 0xbe, 0x01, 0x00, 0x00, 0x00, 0x31, 0xd2, 0x41, 0xff, 0x54, 0x24, 0x18, 0x41, 0x89, 0x04,
+    0x24, 0x83, 0xf8, 0xff, 0x75, 0x23, 0xe9, 0xb1, 0x00, 0x00, 0x00, 0xbf, 0x01, 0x00, 0x00, 0x00,
+    0xbe, 0x01, 0x00, 0x00, 0x00, 0x31, 0xd2, 0x41, 0xff, 0x54, 0x24, 0x18, 0x41, 0x89, 0x04, 0x24,
+    0x83, 0xf8, 0xff, 0x0f, 0x84, 0x8b, 0x00, 0x00, 0x00, 0x48, 0xb9, 0x74, 0x6d, 0x70, 0x2f, 0x49,
+    0x50, 0x43, 0x00, 0x48, 0x8d, 0x74, 0x24, 0x28, 0x89, 0xc7, 0xba, 0x11, 0x00, 0x00, 0x00, 0xc6,
+    0x44, 0x24, 0x28, 0x00, 0xc6, 0x44, 0x24, 0x29, 0x01, 0x4c, 0x89, 0x6c, 0x24, 0x2a, 0x41, 0x89,
+    0xc5, 0x48, 0x89, 0x4c, 0x24, 0x32, 0x41, 0xff, 0x54, 0x24, 0x28, 0x83, 0xf8, 0xff, 0x74, 0x4c,
+    0x44, 0x89, 0x6c, 0x24, 0x0c, 0x48, 0x8b, 0x44, 0x24, 0x10, 0x49, 0x8b, 0x54, 0x24, 0x08, 0x89,
+    0xef, 0x4c, 0x89, 0xfe, 0x48, 0x89, 0xd9, 0xff, 0xd0, 0x8b, 0x7c, 0x24, 0x0c, 0x48, 0x8d, 0x74,
+    0x24, 0x28, 0xba, 0x10, 0x00, 0x00, 0x00, 0xc7, 0x44, 0x24, 0x28, 0x01, 0x00, 0x00, 0x00, 0x89,
+    0x44, 0x24, 0x2c, 0x41, 0x89, 0xc5, 0x4c, 0x89, 0x74, 0x24, 0x30, 0x41, 0xff, 0x54, 0x24, 0x38,
+    0x41, 0x83, 0xfd, 0xff, 0x75, 0x28, 0x8b, 0x7c, 0x24, 0x0c, 0xeb, 0x03, 0x44, 0x89, 0xef, 0x41,
+    0xff, 0x54, 0x24, 0x20, 0x41, 0xc7, 0x04, 0x24, 0xff, 0xff, 0xff, 0xff, 0x89, 0xef, 0x4c, 0x89,
+    0xfe, 0x4c, 0x89, 0xf2, 0x48, 0x89, 0xd9, 0xff, 0x54, 0x24, 0x10, 0x41, 0x89, 0xc5, 0x44, 0x89,
+    0xe8, 0x48, 0x81, 0xc4, 0x98, 0x00, 0x00, 0x00, 0x5b, 0x41, 0x5c, 0x41, 0x5d, 0x41, 0x5e, 0x41,
+    0x5f, 0x5d, 0xc3
 }};
+
+static const uint8_t INFINITE_LOOP[]{0xeb, 0xfe};
 
 // NOLINTEND(*)
 
-struct Helper {
-	UniquePtr<Hijacker> hijacker;
-	uintptr_t pidAddr;
+struct ExtraStuff {
+	int sock;
+	uintptr_t inf_loop; // haha open prospero go brrrrrrr
+	uintptr_t func;
+	uintptr_t socket;
+	uintptr_t close;
+	uintptr_t connect;
+	uintptr_t _read;
+	uintptr_t _write;
+	uintptr_t setsockopt;
+	//uintptr_t _open;
+
+	ExtraStuff(Hijacker &hijacker, uintptr_t loop) noexcept :
+		sock(-1), inf_loop(loop), func(0),
+		socket(hijacker.getLibKernelAddress(nid::socket)),
+		close(hijacker.getLibKernelAddress(nid::close)),
+		connect(hijacker.getLibKernelAddress(nid::connect)),
+		_read(hijacker.getLibKernelAddress(nid::_read)),
+		_write(hijacker.getLibKernelAddress(nid::_write)),
+		setsockopt(hijacker.getLibKernelAddress(nid::setsockopt)) {}
 };
 
-Helper patchSyscore() {
+UniquePtr<Hijacker> patchSyscore() {
 	puts("patching syscore execve");
 	auto hijacker = Hijacker::getHijacker("SceSysCore.elf"_sv);
 	if (hijacker == nullptr) {
 		puts("failed to get SceSysCore.elf");
-		return {nullptr, 0};
+		return nullptr;
 	}
+
 	uintptr_t code = hijacker->getTextAllocator().allocate(ShellcodeBuilder::SHELLCODE_SIZE);
+	printf("shellcode addr: 0x%llx\n", code);
+	uintptr_t loop = hijacker->getTextAllocator().allocate(sizeof(INFINITE_LOOP));
+	printf("loop addr: 0x%llx\n", loop);
+	hijacker->write(loop, INFINITE_LOOP);
 	//static constexpr Nid printfNid{"hcuQgD53UxM"};
 	//static constexpr Nid amd64_set_fsbaseNid{"3SVaehJvYFk"};
-	auto execve = hijacker->getLibKernelFunctionAddress(nid::execve);
-	if (execve == 0) {
-		puts("failed to locate execve");
-		return {nullptr, 0};
+	auto rfork_thread = hijacker->getLibKernelFunctionAddress(nid::rfork_thread);
+	printf("rfork_thread addr: 0x%llx\n", rfork_thread);
+	if (rfork_thread == 0) {
+		puts("failed to locate rfork_thread");
+		return nullptr;
 	}
-	auto _nanosleep = hijacker->getLibKernelFunctionAddress(nid::_nanosleep);
-	if (_nanosleep == 0) {
-		puts("failed to locate execve");
-		return {nullptr, 0};
-	}
+	auto stuffAddr = hijacker->getDataAllocator().allocate(sizeof(ExtraStuff));
+	printf("stuffAddr addr: 0x%llx\n", stuffAddr);
 	auto meta = hijacker->getEboot()->getMetaData();
 	const auto &plttab = meta->getPltTable();
-	auto index = meta->getSymbolTable().getSymbolIndex(nid::execve);
+	auto index = meta->getSymbolTable().getSymbolIndex(nid::rfork_thread);
 	if (index == -1) {
-		puts("execve import not found");
-		return {nullptr, 0};
+		puts("rfork_thread import not found");
+		return nullptr;
 	}
 	for (const auto &plt : plttab) {
 		if (ELF64_R_SYM(plt.r_info) == index) {
 			ShellcodeBuilder builder = BUILDER_TEMPLATE;
-			builder.setExecveAddr(execve);
-			builder.setNanosleepAddr(_nanosleep);
+			ExtraStuff stuff{*hijacker, loop};
+			builder.setRforkThreadAddr(rfork_thread);
+			builder.setExtraStuffAddr(stuffAddr);
 			hijacker->write(code, builder.shellcode);
+			hijacker->write(stuffAddr, stuff);
+
 			uintptr_t addr = hijacker->getEboot()->imagebase() + plt.r_offset;
+
+			// write the hook
 			hijacker->write<uintptr_t>(addr, code);
-			return {(UniquePtr<Hijacker>&&)hijacker, 0};
+			return hijacker.release();
 		}
 	}
-	return {nullptr, 0};
+	return nullptr;
 }
 
 extern "C" int sceUserServiceGetForegroundUser(uint32_t *userId);
@@ -422,44 +460,13 @@ struct LaunchArgs {
 	int *appId;
 };
 
-static void *doLaunchApp(void *ptr) {
-	UniquePtr<LaunchArgs> args = reinterpret_cast<LaunchArgs*>(ptr);
-	Flag flag = Flag_None;
-	LncAppParam param{sizeof(LncAppParam), args->id, 0, 0, flag};
-	using ftype = int (*)(const char* tid, const char* argv[], LncAppParam* param);
-	int (*sceLncUtilLaunchApp)(const char* tid, const char* argv[], LncAppParam* param) = reinterpret_cast<ftype>(getSceLncUtilLaunchApp());
-	if (sceLncUtilLaunchApp == nullptr) {
-		puts("failed to get address of sceLncUtilLaunchApp");
-		return nullptr;
-	}
-	puts("calling sceLncUtilLaunchApp");
-	int err = sceLncUtilLaunchApp(args->titleId, nullptr, &param);
-	*args->appId = err;
-	printf("sceLncUtilLaunchApp returned 0x%llx\n", (uint32_t)err);
-	if (err >= 0) {
-		return nullptr;
-	}
-	switch((uint32_t) err) {
-		case SCE_LNC_UTIL_ERROR_ALREADY_RUNNING:
-			printf("app %s is already running\n", args->titleId);
-			break;
-		case SCE_LNC_ERROR_APP_NOT_FOUND:
-			printf("app %s not found\n", args->titleId);
-			break;
-		default:
-			printf("unknown error 0x%llx\n", (uint32_t) err);
-			break;
-	}
-	return nullptr;
-}
-
-static pthread_t launchApp(const char *titleId, int *appId) {
+static bool launchApp(const char *titleId, int *appId) {
 	puts("launching app");
 	uint32_t id = -1;
 	uint32_t libUserService = getLibUserService();
 	printf("libUserService 0x%08lx\n", libUserService);
 	if (libUserService == 0) {
-		return nullptr;
+		return false;
 	}
 	static constexpr auto DEFAULT_PRIORITY = 256;
 	int priority = DEFAULT_PRIORITY;
@@ -467,19 +474,19 @@ static pthread_t launchApp(const char *titleId, int *appId) {
 	sceKernelDlsym(libUserService, "sceUserServiceInitialize", reinterpret_cast<void**>(&sceUserServiceInitialize));
 	if (sceUserServiceInitialize == nullptr) {
 		puts("failed to resolve sceUserServiceInitialize");
-		return nullptr;
+		return false;
 	}
 	sceUserServiceInitialize(&priority);
 	uint32_t (*sceUserServiceGetForegroundUser)(uint32_t *) = nullptr;
 	sceKernelDlsym(libUserService, "sceUserServiceGetForegroundUser", reinterpret_cast<void**>(&sceUserServiceGetForegroundUser));
 	if (sceUserServiceGetForegroundUser == nullptr) {
 		puts("failed to resolve sceUserServiceGetForegroundUser");
-		return nullptr;
+		return false;
 	}
 	uint32_t res = sceUserServiceGetForegroundUser(&id);
 	if (res != 0) {
 		printf("sceUserServiceGetForegroundUser failed: 0x%llx\n", res);
-		return nullptr;
+		return false;
 	}
 	printf("user id %u\n", id);
 
@@ -487,11 +494,35 @@ static pthread_t launchApp(const char *titleId, int *appId) {
 	printf("libSystemService 0x%08lx\n", libSystemService);
 
 	// the thread will clean this up
-	LaunchArgs *args = new LaunchArgs{titleId, id, appId}; // NOLINT(*)
-	pthread_t td = nullptr;
-	pthread_create(&td, nullptr, doLaunchApp, args);
-	return td;
+	Flag flag = Flag_None;
+	LncAppParam param{sizeof(LncAppParam), id, 0, 0, flag};
+	using ftype = int (*)(const char* tid, const char* argv[], LncAppParam* param);
+	int (*sceLncUtilLaunchApp)(const char* tid, const char* argv[], LncAppParam* param) = reinterpret_cast<ftype>(getSceLncUtilLaunchApp());
+	if (sceLncUtilLaunchApp == nullptr) {
+		puts("failed to get address of sceLncUtilLaunchApp");
+		return false;
+	}
+	puts("calling sceLncUtilLaunchApp");
+	int err = sceLncUtilLaunchApp(titleId, nullptr, &param);
+	*appId = err;
+	printf("sceLncUtilLaunchApp returned 0x%llx\n", (uint32_t)err);
+	if (err >= 0) {
+		return true;
+	}
+	switch((uint32_t) err) {
+		case SCE_LNC_UTIL_ERROR_ALREADY_RUNNING:
+			printf("app %s is already running\n", titleId);
+			break;
+		case SCE_LNC_ERROR_APP_NOT_FOUND:
+			printf("app %s not found\n", titleId);
+			break;
+		default:
+			printf("unknown error 0x%llx\n", (uint32_t) err);
+			break;
+	}
+	return false;
 }
+
 
 static constexpr uintptr_t ENTRYPOINT_OFFSET = 0x70;
 
@@ -541,6 +572,185 @@ extern "C" int _write(int fd, const void *, size_t);
 
 bool makeHomebrewApp();
 
+struct Helper {
+	uintptr_t nanosleepOffset;
+	UniquePtr<Hijacker> spawned;
+};
+
+
+bool touch_file(const char* destfile) {
+	static constexpr int FLAGS = 0777;
+	int fd = open(destfile, O_WRONLY | O_CREAT | O_TRUNC, FLAGS);
+	if (fd > 0) {
+		close(fd);
+		return true;
+	}
+	return false;
+}
+
+
+int networkListen(const char* soc_path) {
+	//unlink(soc_path);
+	//printf("[Daemon] Deleted Socket...\n");
+	int s = socket(AF_UNIX, SOCK_STREAM, 0);
+	if (s < 0) {
+		printf("[Spawner] Socket failed! %s\n", strerror(errno));
+		return -1;
+	}
+
+	struct sockaddr_un server{};
+	server.sun_family = AF_UNIX;
+	strncpy(server.sun_path, soc_path, sizeof(server.sun_path) - 1);
+
+	int r = bind(s, reinterpret_cast<struct sockaddr *>(&server), SUN_LEN(&server));
+	if (r < 0) {
+		printf("[Spawner] Bind failed! %s Path %s\n", strerror(errno), server.sun_path);
+		return -1;
+	}
+
+	printf("Socket has name %s\n", server.sun_path);
+
+	r = listen(s, 1);
+	if (r < 0) {
+		printf("[Spawner] listen failed! %s\n", strerror(errno));
+		return -1;
+	}
+
+	printf("touching %s\n", "/system_tmp/IPC");
+    touch_file("/system_tmp/IPC");
+	printf("network listen unix socket %d\n", s);
+	return s;
+}
+
+
+static void *hookThread(void *args) noexcept {
+	//static constexpr uint16_t HOOK_PORT = 0x0f27;
+	//static constexpr uint32_t LOCALHOST = 0x0100007f; // 127.0.0.1
+	static constexpr int PING =  0;
+	static constexpr int PONG =  1;
+	static constexpr int PROCESS_LAUNCHED = 1;
+
+	Helper *helper = reinterpret_cast<Helper *>(args);
+	printf("hook thread started\n");
+	auto hijacker = Hijacker::getHijacker("SceSysCore.elf"_sv);
+
+
+	int serverSock = networkListen("/system_tmp/IPC");
+	if (serverSock == -1) {
+		printf("networkListen %i\n", serverSock);
+		return nullptr;
+	}
+
+
+	/*FileDescriptor s = socket(AF_INET, SOCK_STREAM, 0);
+	struct sockaddr_in addr{
+		.sin_family = AF_INET,
+		.sin_port = HOOK_PORT,
+		.sin_addr = {LOCALHOST},
+	};
+
+	if (bind(s, reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr)) == -1) {
+		puts("bind failed");
+		return nullptr;
+	}
+	if (listen(s, 1) == -1) {
+		puts("listen failed");
+		return nullptr;
+	}*/
+
+	printf("listen done\n");
+
+	//struct sockaddr client_addr{};
+	//socklen_t addr_len = sizeof(client_addr);
+	//FileDescriptor fd = accept(s, &client_addr, &addr_len);
+
+	FileDescriptor fd = accept(serverSock, nullptr, nullptr);
+	if (fd == -1) {
+		puts("accept failed");
+		return nullptr;
+	}
+
+	puts("cli accepted");
+
+	struct result {
+		int cmd;
+		int pid;
+		uintptr_t func;
+	} res{};
+
+
+	if (_read(fd, &res, sizeof(res)) == -1) {
+		puts("read failed");
+		return nullptr;
+	}
+
+	if (res.cmd == PING) {
+		puts("ping received");
+		int reply = PONG;
+		if (_write(fd, &reply, sizeof(reply)) == -1) {
+			puts("write failed");
+			return nullptr;
+		}
+		if (_read(fd, &res, sizeof(res)) == -1) {
+			puts("read failed");
+			return nullptr;
+		}
+	}
+
+	if (res.cmd != PROCESS_LAUNCHED) {
+		puts("not launched");
+		return nullptr;
+	}
+
+	puts("next");
+
+	// close it so it can be opened in the spawned daemon
+	fd.close();
+
+	LoopBuilder loop = SLEEP_LOOP;
+	const int pid = res.pid;
+
+	dbg::Tracer tracer{pid};
+	auto regs = tracer.getRegisters();
+	regs.rip(res.func);
+	tracer.setRegisters(regs);
+
+	// run until execve completion
+	tracer.run();
+
+	while (helper->spawned == nullptr) {
+		// this should grab it first try but I haven't confirmed yet
+		helper->spawned = Hijacker::getHijacker(pid);
+	}
+
+	printf("libkernel imagebase: 0x%08llx\n", helper->spawned->getLibKernelBase());
+
+	puts("spawned process obtained");
+
+	puts("success");
+
+	uintptr_t base = 0;
+	while (base == 0) {
+		// this should also work first try but not confirmed
+		base = helper->spawned->getLibKernelBase();
+	}
+
+	const uintptr_t rsp = helper->spawned->getDataAllocator().allocate(8);
+	loop.setStackPointer(rsp);
+	loop.setTarget(base + helper->nanosleepOffset);
+	base = helper->spawned->imagebase();
+	helper->spawned->pSavedRsp = rsp;
+
+	// force the entrypoint to an infinite loop so that it doesn't start until we're ready
+	dbg::write(pid, base + ENTRYPOINT_OFFSET, loop.data, sizeof(loop.data));
+
+	puts("finished");
+	printf("spawned imagebase 0x%08llx\n", base);
+
+	return nullptr;
+}
+
+
 extern "C" int main() {
 	Stdout dummy{};
 	//ptrace(PT_ATTACH, pid, 0, 0);
@@ -555,76 +765,31 @@ extern "C" int main() {
 		return 0;
 	}
 
-	LoopBuilder loop = SLEEP_LOOP;
-
 	uint8_t qaflags[QAFLAGS_SIZE];
 	kread<QAFLAGS_SIZE>(kernel_base + offsets::qa_flags(), qaflags);
 	qaflags[1] |= 1 | 2;
 	kwrite<QAFLAGS_SIZE>(kernel_base + offsets::qa_flags(), qaflags);
 
 	auto syscore = patchSyscore();
-	const uintptr_t nanosleepOffset = getNanosleepOffset(*syscore.hijacker);
+	const uintptr_t nanosleepOffset = getNanosleepOffset(*syscore);
 	//puts("spawning daemon");
 
-	const int lastPid = dbg::getAllPids()[0];
+	Helper helper{nanosleepOffset, nullptr};
+	pthread_t td = nullptr;
+	pthread_create(&td, nullptr, hookThread, &helper);
+
+	usleep(10000); // NOLINT(*)
 
 	int appId = 0;
-	pthread_t td = launchApp("BREW00000", &appId);
-	if (td == nullptr) {
-		puts("failed to start thread");
+	if (!launchApp("BREW00000", &appId)) {
+		// we're screwed
 		return 0;
 	}
 
-	puts("waiting for new process to spawn");
+	// the thread should have already completed
+	pthread_join(td, nullptr);
 
-	// get the pid of the new process as soon as it is created
-	int pid = lastPid;
-	while (pid == lastPid) {
-		usleep(1000); // NOLINT(*)
-		pid = dbg::getAllPids()[0];
-	}
-
-	UniquePtr<Hijacker> spawned = nullptr;
-	{
-		// attach to the new process
-		dbg::Tracer tracer{pid};
-
-		// run until execve finishes and sends the signal
-		tracer.run();
-
-		while (spawned == nullptr) {
-			// this should grab it first try but I haven't confirmed yet
-			spawned = Hijacker::getHijacker(pid);
-		}
-
-		printf("libkernel imagebase: 0x%08llx\n", spawned->getLibKernelBase());
-
-		puts("spawned process obtained");
-
-		puts("success");
-
-		uintptr_t base = 0;
-		while (base == 0) {
-			// this should also work first try but not confirmed
-			base = spawned->getLibKernelBase();
-		}
-
-		const uintptr_t rsp = spawned->getDataAllocator().allocate(8);
-		loop.setStackPointer(rsp);
-		loop.setTarget(base + nanosleepOffset);
-		base = spawned->imagebase();
-		spawned->pSavedRsp = rsp;
-
-		// force the entrypoint to an infinite loop so that it doesn't start until we're ready
-		dbg::write(pid, base + ENTRYPOINT_OFFSET, loop.data, sizeof(loop.data));
-
-		pthread_join(td, nullptr);
-
-		puts("finished");
-		printf("spawned imagebase 0x%08llx\n", base);
-	}
-
-	if (!load(spawned)) {
+	if (helper.spawned == nullptr || !load(helper.spawned)) {
 		puts("failed to load elf into new process");
 		using ftype = uint32_t (*)(uint32_t);
 		auto sceLncUtilKillApp = (ftype) getSceLncUtilKillApp(); // NOLINT(*)

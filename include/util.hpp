@@ -1,10 +1,11 @@
 #pragma once
 
+#include <string.h>
 extern "C" {
 	#include <stddef.h>
 	#include <stdint.h>
 	#include <stdlib.h>
-	int puts(const char *);
+	#include <stdio.h>
 }
 
 // for things we need but can't have... yet...
@@ -424,6 +425,14 @@ class String {
 
 		String substring(size_t from, size_t to) const {
 			return StringView{buffer() + from, to - from};
+		}
+
+		ssize_t rfind(char c) const noexcept {
+			const char *ptr = strrchr(buffer(), c);
+			if (ptr == nullptr) {
+				return -1;
+			}
+			return ptr - buffer();
 		}
 
 		void reserve(size_t i) {

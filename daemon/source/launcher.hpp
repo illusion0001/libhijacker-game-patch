@@ -30,3 +30,4 @@ struct LncAppParam {
 extern "C" int sceUserServiceGetForegroundUser(uint32_t *userId);
 extern "C" int sceLncUtilLaunchApp(const char* tid, const char* argv[], LncAppParam* param);
 extern "C" int sceUserServiceInitialize(const int *);
+extern "C" uint32_t sceLncUtilKillApp(uint32_t appId);

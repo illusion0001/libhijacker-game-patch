@@ -62,5 +62,10 @@ static inline constexpr Nid sceKernelDlsym{"LwG8g3niqwA"};
 static inline constexpr Nid setsockopt{"fFxGkxF2bVo"};
 static inline constexpr Nid execve{"kdguLiAheLI"};
 static inline constexpr Nid _nanosleep{"NhpspxdjEKU"};
-
+static inline constexpr Nid close{"bY-PO6JhzhQ"};
+static inline constexpr Nid connect{"XVL8So3QJUk"};
+static inline constexpr Nid _read{"DRuBt2pvICk"};
+static inline constexpr Nid _write{"FxVZqBAA7ks"};
+static inline constexpr Nid rfork_thread{"bSDxEpGzmUE"};
+static inline constexpr Nid _open{"1G3lF1Gg1k8"};
 }

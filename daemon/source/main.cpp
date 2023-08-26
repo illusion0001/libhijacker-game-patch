@@ -1,10 +1,15 @@
+#include <fcntl.h>
 #include <netinet/in.h>
 #include <poll.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/un.h>
 #include <unistd.h>
-
+#include "dbg.hpp"
+#include "dbg/dbg.hpp"
+#include "elf/elf.hpp"
 #include "fd.hpp"
 #include "hijacker/hijacker.hpp"
 #include "servers.hpp"
@@ -12,8 +17,12 @@
 
 extern int runKlogger(void *unused);
 extern int runElfServer(void *unused);
+extern "C" void free(void*);
 extern int runCommandProcessor(void *unused);
 extern void makenewapp();
+
+extern "C" ssize_t _read(int, void *, size_t);
+extern "C" ssize_t _write(int, void *, size_t);
 
 void AbortServer::run(TcpSocket &sock) {
 	// any connection signals to shutdown the daemon
@@ -21,179 +30,324 @@ void AbortServer::run(TcpSocket &sock) {
 	sock.close();
 }
 
-struct HookBuilder {
-	static constexpr size_t CODE_SIZE = 92;
-	//static constexpr size_t PRINTF_OFFSET = 0x31;
-	//static constexpr size_t EXECVE_OFFSET = 0x4F;
-	static constexpr size_t EXECVE_OFFSET = 0x4D;
-	uint8_t data[CODE_SIZE];
+static constexpr uintptr_t ENTRYPOINT_OFFSET = 0x70;
 
-	void setPrintf(uintptr_t addr) {
-		//*reinterpret_cast<uintptr_t *>(data + PRINTF_OFFSET) = addr;
+struct LoopBuilder {
+	static constexpr size_t LOOB_BUILDER_SIZE = 39;
+	static constexpr size_t LOOP_BUILDER_TARGET_OFFSET = 11;
+	static constexpr size_t LOOP_BUILDER_STACK_PTR_OFFSET = 5;
+	uint8_t data[LOOB_BUILDER_SIZE];
+
+	void setTarget(uintptr_t addr) {
+		*reinterpret_cast<uintptr_t *>(data + LOOP_BUILDER_TARGET_OFFSET) = addr;
 	}
-	void setExecve(uintptr_t addr) {
-		*reinterpret_cast<uintptr_t *>(data + EXECVE_OFFSET) = addr;
+	void setStackPointer(uintptr_t addr) {
+		*reinterpret_cast<uint32_t *>(data + LOOP_BUILDER_STACK_PTR_OFFSET) = (uint32_t)addr;
 	}
 };
 
-// NOLINTBEGIN(*)
+static inline constexpr LoopBuilder SLEEP_LOOP{
+	// 67 48 89 24 25 xx xx xx xx
+	// MOV [SAVED_STACK_POINTER], RSP
+	0x67, 0x48, 0x89, 0x24, 0x25, 0x00, 0x00, 0x00, 0x00,
 
-/*
-int hookExecve(const char *path, const char **argv, const char **envp) {
-	printf("execve %s\n", path);
-	return execve(path, argv, envp);
-}
-*/
-/*
-static constexpr HookBuilder HOOKER{{
-    0x48, 0x83, 0xec, 0x28, 0x48, 0xb8, 0x2f, 0x73, 0x79, 0x73, 0x74, 0x65, 0x6d, 0x5f, 0x48, 0xbf,
-    0x65, 0x78, 0x2f, 0x61, 0x70, 0x70, 0x2f, 0x4e, 0x48, 0xb9, 0x50, 0x58, 0x53, 0x34, 0x30, 0x30,
-    0x32, 0x38, 0x48, 0x89, 0x04, 0x24, 0x48, 0x89, 0x7c, 0x24, 0x08, 0x48, 0x89, 0xe7, 0x48, 0xb8,
-    0x2f, 0x65, 0x62, 0x6f, 0x6f, 0x74, 0x2e, 0x62, 0x48, 0x89, 0x4c, 0x24, 0x10, 0x48, 0x89, 0x44,
-    0x24, 0x18, 0x48, 0xc7, 0x44, 0x24, 0x20, 0x69, 0x6e, 0x00, 0x00, 0x48, 0xb8, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xd0, 0x48, 0x83, 0xc4, 0x28, 0xc3
-}};
-
-static constexpr HookBuilder HOOKER{{
-	// PUSH R15
-	0x41, 0x57,
-	// PUSH R14
-	0x41, 0x56,
-	// PUSH RBX
-	0x53,
-	// SUB RSP, 0x10
-	0x48, 0x83, 0xec, 0x10,
-	// MOV R15, RDI
-	0x49, 0x89, 0xff,
-	// MOV RAX, 0x2520657663657865
-	0x48, 0xb8, 0x65, 0x78, 0x65, 0x63, 0x76, 0x65, 0x20, 0x25,
-	// MOV R14, RSI
-	0x49, 0x89, 0xf6,
-	// MOV RDI, RSP
-	0x48, 0x89, 0xe7,
-	// MOV RBX, RDX
-	0x48, 0x89, 0xd3,
-	// MOV qword ptr [RSP], RAX
-	0x48, 0x89, 0x04, 0x24,
-	// MOV RSI, R15
-	0x4c, 0x89, 0xfe,
-	// MOV qword ptr [RSP + 0x8], 0x6e5c73
-	0x48, 0xc7, 0x44, 0x24, 0x08, 0x73, 0x5c, 0x6e, 0x00,
-	// MOV RAX, printf
+	// // 48 b8 xx xx xx xx xx xx xx xx 48 c7 c7 40 42 0f 00 ff d0 eb eb
+	//loop:
+	//	MOV RAX, _nanosleep
 	0x48, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	// MOV RDI, 1000000000 // 1 second
+	0x48, 0xc7, 0xc7, 0x00, 0xca, 0x9a, 0x3b,
+	// MOV RSI, 0
+	0x48, 0xc7, 0xc6, 0x00, 0x00, 0x00, 0x00,
+	// PUSH RDI
+	0x57,
+	// PUSH RSI
+	0x56,
 	// CALL RAX
 	0xff, 0xd0,
-	// MOV RDI, R15
-	0x4c, 0x89, 0xff,
-	// MOV RSI, R14
-	0x4c, 0x89, 0xf6,
-	// MOV RDX, RBX
-	0x48, 0x89, 0xda,
-	// ADD RSP, 0x10
-	0x48, 0x83, 0xc4, 0x10,
-	// POP RBX
-	0x5b,
-	// POP R14
-	0x41, 0x5e,
-	// POP R15
-	0x41, 0x5f,
-	// MOV RAX, execve
-	0x48, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	// JMP RAX
-	0xff, 0xe0
-}};
-*/
+	// JMP loop
+	0xeb, 0xe2
+};
 
-// NOLINTEND(*)
-/*
-bool patchSyscore() {
-	return true;
-	puts("patching syscore execve");
-	auto hijacker = Hijacker::getHijacker("SceSysCore.elf"_sv);
-	if (hijacker == nullptr) {
-		puts("failed to get SceSysCore.elf");
+static uintptr_t getNanosleepOffset(const Hijacker &hijacker) {
+	uintptr_t addr = hijacker.getLibKernelFunctionAddress(nid::_nanosleep);
+	return addr - hijacker.getLibKernelBase();
+}
+
+struct Helper {
+	uintptr_t nanosleepOffset;
+	UniquePtr<Hijacker> spawned;
+};
+
+static bool runElf(Hijacker *hijacker, uint8_t *data) {
+
+	Elf elf{hijacker, data};
+
+	if (!elf) {
 		return false;
-	}
-	uintptr_t code = hijacker->getTextAllocator().allocate(HookBuilder::CODE_SIZE);
-	static constexpr Nid execveNid{"kdguLiAheLI"};
-	//static constexpr Nid printfNid{"hcuQgD53UxM"};
-	//static constexpr Nid amd64_set_fsbaseNid{"3SVaehJvYFk"};
-	auto execve = hijacker->getLibKernelFunctionAddress(execveNid);
-	if (execve == 0) {
-		puts("failed to locate execve");
-		return false;
-	}
-	auto meta = hijacker->getEboot()->getMetaData();
-	const auto &plttab = meta->getPltTable();
-	if (ELF64_R_TYPE(plttab[0].r_info) != R_X86_64_JMP_SLOT) {
-		puts("wrong table stupid");
-		return false;
-	}
-	auto index = meta->getSymbolTable().getSymbolIndex(execveNid);
-	if (index == -1) {
-		puts("execve import not found");
-		return false;
-	}
-	*/
-	/*
-	auto fsbaseIndex = meta->getSymbolTable().getSymbolIndex(amd64_set_fsbaseNid);
-	for (const auto &plt : plttab) {
-		if (ELF64_R_SYM(plt.r_info) == fsbaseIndex) {
-			auto retptr = hijacker->getTextAllocator().allocate(1);
-			uint8_t ret[]{0xc3}; // NOLINT(*)
-			hijacker->write(retptr, ret);
-			uintptr_t addr = hijacker->getEboot()->imagebase() + plt.r_offset;
-			hijacker->write<uintptr_t>(addr, retptr);
-			break;
-		}
 	}
 
-	for (const auto &plt : plttab) {
-		if (ELF64_R_SYM(plt.r_info) == index) {
-			HookBuilder hooker = HOOKER;
-			auto printfAddr = hijacker->getFunctionAddress(hijacker->getLib(2).get(), printfNid);
-			if (printfAddr == 0) {
-				puts("failed to locate printf");
-				return false;
-			}
-			hooker.setPrintf(printfAddr);
-			hooker.setExecve(execve);
-			hijacker->write(code, hooker.data);
-			uintptr_t addr = hijacker->getEboot()->imagebase() + plt.r_offset;
-			hijacker->write<uintptr_t>(addr, code);
-			hexdump(hooker.data, HookBuilder::CODE_SIZE);
-			return true;
-		}
+	if (elf.launch()) {
+		puts("launch succeeded");
+		return true;
+	}
+	puts("launch failed");
+	return false;
+}
+
+static bool load(UniquePtr<Hijacker> &redis, uint8_t *data) {
+	puts("getting saved stack pointer");
+	while (redis->getSavedRsp() == 0) {
+		usleep(1);
+	}
+	puts("setting process name");
+	redis->getProc()->setName("HomebrewDaemon"_sv);
+	__builtin_printf("new process %s pid %d\n", redis->getProc()->getSelfInfo()->name, redis->getPid());
+	puts("jailbreaking new process");
+	redis->jailbreak();
+
+	// listen on a port for now. in the future embed the daemon and load directly
+
+	if (runElf(redis.get(), data)) {
+		__builtin_printf("process name %s pid %d\n", redis->getProc()->getSelfInfo()->name, redis->getPid());
+		return true;
 	}
 	return false;
-}*/
+}
+
+// Function to read a file into memory using calloc
+UniquePtr<uint8_t[]> readFileIntoBuffer(const char *filename) {
+	struct stat st{};
+	if (stat(filename, &st) == -1) {
+		if (errno != ENOENT) {
+			perror("stat failed");
+		}
+		return nullptr;
+	}
+
+    FileDescriptor fd = open(filename, O_RDONLY); // Open the file in binary mode
+    if (fd == -1) {
+        perror("Error opening file");
+        return nullptr;
+    }
+
+	UniquePtr<uint8_t[]> buf{new uint8_t[st.st_size]};
+
+	if (read(fd, buf.get(), st.st_size) == -1) {
+		perror("read failed");
+		return nullptr;
+	}
+
+	return buf;
+}
+
+bool touch_file(const char* destfile) {
+	static constexpr int FLAGS = 0777;
+	int fd = open(destfile, O_WRONLY | O_CREAT | O_TRUNC, FLAGS);
+	if (fd > 0) {
+		close(fd);
+		return true;
+	}
+	return false;
+}
+
+int networkListen(const char* soc_path) {
+	//unlink(soc_path);
+	//printf("[Daemon] Deleted Socket...\n");
+	int s = socket(AF_UNIX, SOCK_STREAM, 0);
+	if (s < 0) {
+		printf("[Spawner] Socket failed! %s\n", strerror(errno));
+		return -1;
+	}
+
+	struct sockaddr_un server{};
+	server.sun_family = AF_UNIX;
+	strncpy(server.sun_path, soc_path, sizeof(server.sun_path) - 1);
+
+	int r = bind(s, reinterpret_cast<struct sockaddr *>(&server), SUN_LEN(&server));
+	if (r < 0) {
+		printf("[Spawner] Bind failed! %s Path %s\n", strerror(errno), server.sun_path);
+		return -1;
+	}
+
+	printf("Socket has name %s\n", server.sun_path);
+
+	r = listen(s, 1);
+	if (r < 0) {
+		printf("[Spawner] listen failed! %s\n", strerror(errno));
+		return -1;
+	}
+
+	printf("touching %s\n", "/system_tmp/IPC");
+    touch_file("/system_tmp/IPC");
+	printf("network listen unix socket %d\n", s);
+	return s;
+}
+
+static int hookThread(void *unused) noexcept {
+	(void) unused;
+	//static constexpr uint16_t HOOK_PORT = 9999;
+	//static constexpr uint32_t LOCALHOST = 0x0100007f;
+	static constexpr int PING =  0;
+	static constexpr int PONG =  1;
+	static constexpr int PROCESS_LAUNCHED = 1;
+
+	/*
+	int serverSock = socket(AF_UNIX, SOCK_STREAM, 0);
+	if (serverSock == -1) {
+		return 0;
+	}
+
+	int value = 1;
+	if (setsockopt(serverSock, SOL_SOCKET, SO_REUSEADDR, &value, sizeof(int)) == -1) {
+		return 0;
+	}
+
+	struct sockaddr_in server_addr{0, AF_INET, htons(HOOK_PORT), {.s_addr = LOCALHOST}, {}};
+
+	if (bind(serverSock, reinterpret_cast<struct sockaddr*>(&server_addr), sizeof(sockaddr_in)) == -1) {
+		return 0;
+	}
+
+	if (listen(serverSock, 1) == -1) {
+		return 0;
+	}*/
+
+	int serverSock = networkListen("/system_tmp/IPC");
+	if (serverSock == -1) {
+		printf("networkListen %i\n", serverSock);
+		return 0;
+	}
+
+	while (true) {
+		//struct sockaddr client_addr{};
+		//socklen_t addr_len = sizeof(client_addr);
+		//FileDescriptor fd = accept(serverSock, &client_addr, &addr_len);
+		FileDescriptor fd = accept(serverSock, nullptr, nullptr);
+
+		struct result {
+			int cmd;
+			int pid;
+			uintptr_t func;
+		} res{};
+
+		if (_read(fd, &res, sizeof(res)) == -1) {
+			continue;
+		}
+
+		if (res.cmd == PING) {
+			int reply = PONG;
+			if (_write(fd, &reply, sizeof(reply)) == -1) {
+				continue;
+			}
+			if (_read(fd, &res, sizeof(res)) == -1) {
+				continue;
+			}
+		}
+
+		if (res.cmd != PROCESS_LAUNCHED) {
+			continue;
+		}
+
+		// close it so it can be opened in the spawned daemon
+		close(fd);
+
+		LoopBuilder loop = SLEEP_LOOP;
+		const int pid = res.pid;
+
+		UniquePtr<Hijacker> spawned = nullptr;
+		{
+			dbg::Tracer tracer{pid};
+			auto regs = tracer.getRegisters();
+			regs.rip(res.func);
+			tracer.setRegisters(regs);
+
+			// run until execve completion
+			tracer.run();
+
+			while (spawned == nullptr) {
+				// this should grab it first try but I haven't confirmed yet
+				spawned = Hijacker::getHijacker(pid);
+			}
+
+			const uintptr_t nanosleepOffset = getNanosleepOffset(*spawned);
+
+			printf("libkernel imagebase: 0x%08llx\n", spawned->getLibKernelBase());
+
+			puts("spawned process obtained");
+
+			puts("success");
+
+			uintptr_t base = 0;
+			while (base == 0) {
+				// this should also work first try but not confirmed
+				base = spawned->getLibKernelBase();
+			}
+
+			const uintptr_t rsp = spawned->getDataAllocator().allocate(8);
+			loop.setStackPointer(rsp);
+			loop.setTarget(base + nanosleepOffset);
+			base = spawned->imagebase();
+			spawned->pSavedRsp = rsp;
+
+			// force the entrypoint to an infinite loop so that it doesn't start until we're ready
+			dbg::write(pid, base + ENTRYPOINT_OFFSET, loop.data, sizeof(loop.data));
+
+			puts("finished");
+			printf("spawned imagebase 0x%08llx\n", base);
+		}
+
+		// TODO: load elf from file in app0
+		//#error implement me
+		//NOTE: see getProc(int pid) and Kproc::getPath it will return the path in /system_ex
+		auto path = getProc(res.pid)->getPath();
+		auto index = path.rfind('/');
+		if (index == -1) {
+			printf("path missing / : %s\n", path.c_str());
+		}
+
+		path = path.substring(0, index) + "homebrew.elf"_sv;
+
+		printf("loading elf %s\n", path.c_str());
+		auto data = readFileIntoBuffer(path.c_str());
+		if (data == nullptr) {
+			puts("failed to read elf");
+			return -1;
+		}
+
+		if (load(spawned, data.get())) {
+			puts("elf loaded");
+		} else {
+			puts("failed to load elf");
+			return -1;
+		}
+	}
+
+	return 0;
+}
 
 int main() {
 	puts("daemon entered");
 	AbortServer abortServer{};
 	KlogServer klogServer{};
-	ElfServer elfServer{};
+	//ElfServer elfServer{};
 	CommandServer commandServer{};
+	JThread elfLoader{hookThread};
+
 
 	abortServer.TcpServer::run();
 	klogServer.TcpServer::run();
-	elfServer.TcpServer::run();
+	//elfServer.TcpServer::run();
 	commandServer.TcpServer::run();
-
-	/*if (!patchSyscore()) {
-		puts("failed to patch syscore execve");
-	} else {
-		puts("successfully patched syscore execve");
-	}*/
 
 	// finishes on connect
 	abortServer.join();
 	puts("abort thread finished");
 	commandServer.stop();
 	puts("command server done");
-	puts("stopping elf server");
-	elfServer.stop();
-	puts("elf server done");
+	//puts("stopping elf server");
+	//elfServer.stop();
+	//puts("elf server done");
 	puts("stopping klog server");
 	klogServer.stop();
 	puts("klog server done");
