@@ -40,7 +40,7 @@ namespace {
 constexpr size_t NUM_PRELOADED_MODULES = 3;
 constexpr int LIBKERNEL_HANDLE = 0x2001;
 constexpr int LIBC_HANDLE = 2;
-constexpr int LIBSYSMODULE_HANDLE = 0X11;
+//constexpr int LIBSYSMODULE_HANDLE = 0X11;
 constexpr size_t PAGE_ALIGN_MASK = PAGE_SIZE - 1;
 
 constexpr uint32_t MAP_SHARED   = 0x1;
@@ -313,10 +313,10 @@ bool Elf::parseDynamicTable() noexcept {
 			*(preLoadedHandles + handleCount++) = LIBC_HANDLE;
 			continue;
 		}
-		if (filename == "libSceSysmodule.so"_sv) {
-			*(preLoadedHandles + handleCount++) = LIBSYSMODULE_HANDLE;
-			continue;
-		}
+		//if (filename == "libSceSysmodule.so"_sv) {
+		//	*(preLoadedHandles + handleCount++) = LIBSYSMODULE_HANDLE;
+		//	continue;
+		//}
 
 		names[i++] = StringView{filename.c_str(), filename.length() - 3};
 	}
