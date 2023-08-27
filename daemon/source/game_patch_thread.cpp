@@ -556,7 +556,6 @@ void *GamePatch_Thread(void *unused)
 				}
 
 				// multiple selfs
-				// sometimes work sometimes doesn't
 				// this thread wait model is stinky
 				// big2
 				if (startsWith(p.name().c_str(), "big2-ps4_Shipping.elf") && text_base && !found_app)
@@ -583,6 +582,52 @@ void *GamePatch_Thread(void *unused)
 						found_app = true;
 						fast_sleep_timer = true;
 						printf_notification("%s (%s): Debug Menu Patched!", app->titleId().c_str(), p.name().c_str());
+						ResumeApp(app_pid);
+					}
+				}
+				if ((startsWith(app->titleId().c_str(), "CUSA04893") ||
+					 startsWith(app->titleId().c_str(), "CUSA05008") ||
+					 startsWith(app->titleId().c_str(), "CUSA05943")) &&
+					(startsWith(app_ver, "01.02")) && text_base && !found_app)
+				{
+					if (startsWith(p.name().c_str(), "eboot.bin"))
+					{
+						SuspendApp(app_pid);
+						DoPatch_ACEZioCollection_102(app_pid, text_base, 0);
+						target_running_pid = app_pid;
+						found_app = true;
+						fast_sleep_timer = true;
+						printf_notification("%s (%s): 60 FPS Patched!", app->titleId().c_str(), app_ver);
+						ResumeApp(app_pid);
+					}
+					else if (startsWith(p.name().c_str(), "ScimitarAC2.elf"))
+					{
+						SuspendApp(app_pid);
+						DoPatch_ACEZioCollection_102(app_pid, text_base, 1);
+						target_running_pid = app_pid;
+						found_app = true;
+						fast_sleep_timer = true;
+						printf_notification("%s (%s): 60 FPS Patched!", app->titleId().c_str(), app_ver);
+						ResumeApp(app_pid);
+					}
+					else if (startsWith(p.name().c_str(), "ScimitarACB.elf"))
+					{
+						SuspendApp(app_pid);
+						DoPatch_ACEZioCollection_102(app_pid, text_base, 2);
+						target_running_pid = app_pid;
+						found_app = true;
+						fast_sleep_timer = true;
+						printf_notification("%s (%s): 60 FPS Patched!", app->titleId().c_str(), app_ver);
+						ResumeApp(app_pid);
+					}
+					else if (startsWith(p.name().c_str(), "ScimitarACR.elf"))
+					{
+						SuspendApp(app_pid);
+						DoPatch_ACEZioCollection_102(app_pid, text_base, 3);
+						target_running_pid = app_pid;
+						found_app = true;
+						fast_sleep_timer = true;
+						printf_notification("%s (%s): 60 FPS Patched!", app->titleId().c_str(), app_ver);
 						ResumeApp(app_pid);
 					}
 				}
