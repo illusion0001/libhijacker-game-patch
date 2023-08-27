@@ -171,7 +171,7 @@ class KProc : public KernelObject<KProc, PROC_SIZE> {
 		// no flush required
 		void setName(const StringView &name, bool reload=false) {
 			const size_t length = name.length() < (SELFINFO_NAME_SIZE-1) ? name.length() : SELFINFO_NAME_SIZE;
-			kwrite(address() + SELFINFO_NAME_OFFSET, name.c_str(), length);
+			kwrite(address() + SELFINFO_NAME_OFFSET, name.c_str(), length + 1);
 			if (reload) {
 				this->reload();
 			}

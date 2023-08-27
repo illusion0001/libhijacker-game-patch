@@ -95,21 +95,21 @@ static bool runElf(Hijacker *hijacker, uint8_t *data) {
 	return false;
 }
 
-static bool load(UniquePtr<Hijacker> &redis, uint8_t *data) {
+static bool load(UniquePtr<Hijacker> &spawned, uint8_t *data) {
 	puts("getting saved stack pointer");
-	while (redis->getSavedRsp() == 0) {
+	while (spawned->getSavedRsp() == 0) {
 		usleep(1);
 	}
 	puts("setting process name");
-	redis->getProc()->setName("HomebrewDaemon"_sv);
-	__builtin_printf("new process %s pid %d\n", redis->getProc()->getSelfInfo()->name, redis->getPid());
+	spawned->getProc()->setName("HomebrewDaemon"_sv);
+	__builtin_printf("new process %s pid %d\n", spawned->getProc()->getSelfInfo()->name, spawned->getPid());
 	puts("jailbreaking new process");
-	redis->jailbreak();
+	spawned->jailbreak();
 
 	// listen on a port for now. in the future embed the daemon and load directly
 
-	if (runElf(redis.get(), data)) {
-		__builtin_printf("process name %s pid %d\n", redis->getProc()->getSelfInfo()->name, redis->getPid());
+	if (runElf(spawned.get(), data)) {
+		__builtin_printf("process name %s pid %d\n", spawned->getProc()->getSelfInfo()->name, spawned->getPid());
 		return true;
 	}
 	return false;
@@ -152,8 +152,6 @@ bool touch_file(const char* destfile) {
 }
 
 int networkListen(const char* soc_path) {
-	unlink(soc_path);
-	printf("[Daemon] Deleted Socket...\n");
 	int s = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (s < 0) {
 		printf("[Spawner] Socket failed! %s\n", strerror(errno));
@@ -182,6 +180,17 @@ int networkListen(const char* soc_path) {
     touch_file("/system_tmp/IPC");
 	printf("network listen unix socket %d\n", s);
 	return s;
+}
+
+extern "C" uint32_t _sceApplicationGetAppId(int pid, uint32_t *appId);
+extern "C" uint32_t sceLncUtilKillApp(uint32_t appId);
+
+static void killApp(int pid) noexcept {
+	uint32_t appId = 0;
+	_sceApplicationGetAppId(pid, &appId);
+	if (appId != 0) {
+		sceLncUtilKillApp(appId);
+	}
 }
 
 static int hookThread(void *unused) noexcept {
@@ -232,7 +241,7 @@ static int hookThread(void *unused) noexcept {
 			uintptr_t func;
 		} res{};
 
-		if (_read(fd, &res, sizeof(res)) == -1) { 
+		if (_read(fd, &res, sizeof(res)) == -1) {
 			printf("reading result failed\n");
 			continue;
 		}
@@ -302,7 +311,7 @@ static int hookThread(void *unused) noexcept {
 		// TODO: load elf from file in app0
 		//#error implement me
 		//NOTE: see getProc(int pid) and Kproc::getPath it will return the path in /system_ex
-		auto path = getProc(res.pid)->getPath();
+		auto path = getProc(pid)->getPath();
 		auto index = path.rfind('/');
 		if (index == -1) {
     		printf("path missing / : %s\n", path.c_str());
@@ -313,6 +322,7 @@ static int hookThread(void *unused) noexcept {
 		auto data = readFileIntoBuffer(path.c_str());
 		if (data == nullptr) {
 			puts("failed to read elf");
+			killApp(pid);
 			return -1;
 		}
 
@@ -320,6 +330,7 @@ static int hookThread(void *unused) noexcept {
 			puts("elf loaded");
 		} else {
 			puts("failed to load elf");
+			killApp(pid);
 			return -1;
 		}
 	}

@@ -838,6 +838,9 @@ uintptr_t Elf::getSymbolAddress(const Elf64_Rela *__restrict rel) const noexcept
 			return libsym.vaddr();
 		}
 	}
+	if (ELF64_ST_BIND(sym->st_info) == STB_WEAK) {
+		return -1;
+	}
 	printf("symbol lookup for %s failed\n", strtab + sym->st_name);
 	return 0;
 }
@@ -866,12 +869,27 @@ bool Elf::processRelocations() noexcept {
 				if (libsym == 0) [[unlikely]] {
 					return false;
 				}
+				if (libsym == static_cast<uintptr_t>(-1)) [[unlikely]] {
+					continue;
+				}
 				*reinterpret_cast<uintptr_t*>(image + rel->r_offset) = libsym;
 				break;
 			}
 			case R_X86_64_RELATIVE: {
 				// imagebase + addend
 				*reinterpret_cast<uintptr_t*>(image + rel->r_offset) = imagebase + rel->r_addend;
+				break;
+			}
+			case R_X86_64_JMP_SLOT: {
+				// edge case where the dynamic relocation sections are merged
+				auto libsym = getSymbolAddress(rel);
+				if (libsym == 0) {
+					const Elf64_Sym *sym = symtab + ELF64_R_SYM(rel->r_info);
+					const char *name = strtab + sym->st_name;
+					__builtin_printf("failed to find library symbol %s\n", name);
+					return false;
+				}
+				*reinterpret_cast<uintptr_t*>(image + rel->r_offset) = libsym;
 				break;
 			}
 			default:

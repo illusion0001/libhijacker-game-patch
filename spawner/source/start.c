@@ -99,6 +99,11 @@ int __attribute__ ((naked, noinline)) nmount() {
 	);
 }
 
+static __attribute__ ((used)) void *f_unlink = nullptr;
+int __attribute__ ((naked))	unlink(const char *path) {
+	__asm__ volatile("jmp *f_unlink(%rip)");
+}
+
 STUB(sceUserServiceGetForegroundUser)
 STUB(getpid)
 STUB(memset)
@@ -180,6 +185,7 @@ void _start(struct payload_args *args) {
 	LIBKERNEL_LINK(close);
 	LIBKERNEL_LINK(mkdir);
 	LIBKERNEL_LINK(stat);
+	LIBKERNEL_LINK(unlink);
 	LIBKERNEL_LINK(sysctlbyname);
 	LIBKERNEL_LINK(__error);
 	LIBKERNEL_LINK(sceKernelPrintBacktraceWithModuleInfo);

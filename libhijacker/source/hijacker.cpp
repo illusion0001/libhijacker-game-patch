@@ -54,6 +54,9 @@ UniquePtr<TrapFrame> Hijacker::getTrapFrame() const {
 	return td->getFrame();
 }
 
+// NOLINTBEGIN
+
+//
 static inline void copyin(uintptr_t kdst, const void *src, size_t length) {
 	kernel_copyin(const_cast<void *>(src), kdst, length);
 }
@@ -97,3 +100,4 @@ uintptr_t Hijacker::getFunctionAddress(const SharedLib *lib, const Nid &fname) c
 	#endif
 	return sym ? sym.vaddr() : 0;
 }
+// NOLINTEND

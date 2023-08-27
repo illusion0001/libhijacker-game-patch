@@ -648,8 +648,6 @@ bool touch_file(const char* destfile) {
 
 
 int networkListen(const char* soc_path) {
-	//unlink(soc_path);
-	//printf("[Daemon] Deleted Socket...\n");
 	int s = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (s < 0) {
 		printf("[Spawner] Socket failed! %s\n", strerror(errno));
@@ -680,6 +678,25 @@ int networkListen(const char* soc_path) {
 	return s;
 }
 
+class UnixSocket : public FileDescriptor {
+	const char *path;
+
+	public:
+		UnixSocket(const char *path) noexcept : FileDescriptor(networkListen(path)), path(path) {}
+		UnixSocket(const UnixSocket&) = delete;
+		UnixSocket(UnixSocket &&rhs) noexcept = default;
+		UnixSocket &operator=(const UnixSocket &rhs) = delete;
+		UnixSocket &operator=(UnixSocket &&rhs) noexcept {
+			FileDescriptor::operator=((FileDescriptor&&)rhs);
+			path = rhs.path;
+			return *this;
+		}
+		~UnixSocket() {
+			close();
+			unlink(path);
+		}
+};
+
 
 static void *hookThread(void *args) noexcept {
 	//static constexpr uint16_t HOOK_PORT = 0x0f27;
@@ -693,9 +710,9 @@ static void *hookThread(void *args) noexcept {
 	auto hijacker = Hijacker::getHijacker("SceSysCore.elf"_sv);
 
 
-	int serverSock = networkListen("/system_tmp/IPC");
+	UnixSocket serverSock{"/system_tmp/IPC"};
 	if (serverSock == -1) {
-		printf("networkListen %i\n", serverSock);
+		printf("networkListen %i\n", (int)serverSock);
 		return nullptr;
 	}
 
@@ -773,25 +790,22 @@ static void *hookThread(void *args) noexcept {
 	regs.rip(res.func);
 	tracer.setRegisters(regs);
 
+	puts("running until execve completes");
+
 	// run until execve completion
 	tracer.run();
 
-	while (helper->spawned == nullptr) {
-		// this should grab it first try but I haven't confirmed yet
-		helper->spawned = Hijacker::getHijacker(pid);
-	}
+	puts("execve completed");
 
-	printf("libkernel imagebase: 0x%08llx\n", helper->spawned->getLibKernelBase());
+	helper->spawned = Hijacker::getHijacker(pid);
+
+	uintptr_t base = helper->spawned->getLibKernelBase();
+
+	printf("libkernel imagebase: 0x%08llx\n", base);
 
 	puts("spawned process obtained");
 
 	puts("success");
-
-	uintptr_t base = 0;
-	while (base == 0) {
-		// this should also work first try but not confirmed
-		base = helper->spawned->getLibKernelBase();
-	}
 
 	const uintptr_t rsp = helper->spawned->getDataAllocator().allocate(8);
 	loop.setStackPointer(rsp);
@@ -836,7 +850,7 @@ extern "C" int main() {
 	pthread_t td = nullptr;
 	pthread_create(&td, nullptr, hookThread, &helper);
 
-	usleep(10000); // NOLINT(*)
+	usleep(100000); // NOLINT(*)
 
 	int appId = 0;
 	if (!launchApp("BREW00000", &appId)) {
