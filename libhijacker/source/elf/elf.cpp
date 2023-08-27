@@ -446,16 +446,9 @@ bool loadLibraries(Hijacker &hijacker, const dbg::Tracer &tracer, const Array<St
 		}
 	}
 
-	const auto mappedLength = pageAlign(fulltbl.length());
-	auto mappedTbl = tracer.mmap(0, mappedLength, PROT_READ, MAP_FIXED | MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
-	if (mappedTbl == MAP_FAILED) [[unlikely]] {
-		puts("loadLibraries Tracer::mmap failed");
-		return false;
-	}
+	const uintptr_t strtab = hijacker.getDataAllocator().allocate(fulltbl.length() + 1);
 
-	TracedMemory strtab{&tracer, mappedTbl, mappedLength};
-
-	hijacker.write(strtab, fulltbl.c_str(), fulltbl.length());
+	hijacker.write(strtab, fulltbl.c_str(), fulltbl.length() + 1); // include the null terminator
 
 	const auto &lib = hijacker.getLib("libSceSysmodule.sprx"_sv);
 	if (lib == nullptr) [[unlikely]] {
