@@ -2149,3 +2149,30 @@ void DoPatch_t2ps4(pid_t app_pid, u64 text_base, u32 idx)
 	}
 	}
 }
+
+void DoPatch_ACEZioCollection_102(pid_t app_pid, u64 text_base, u32 idx)
+{
+	switch (idx)
+	{
+	case 0: // `eboot.bin`
+	{
+		write_bytes(app_pid, NO_ASLR(0x00c1b6c6), "be00000000");
+		break;
+	}
+	case 1: // `ScimitarAC2.elf`
+	{
+		write_bytes(app_pid, NO_ASLR(0x00ad18de), "be00000000");
+		break;
+	}
+	case 2: // `ScimitarACB.elf`
+	{
+		write_bytes(app_pid, NO_ASLR(0x01574466), "be00000000");
+		break;
+	}
+	case 3: // `ScimitarACR.elf`
+	{
+		write_bytes(app_pid, NO_ASLR(0x014e1705), "be00000000");
+		break;
+	}
+	}
+}
