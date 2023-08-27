@@ -152,8 +152,8 @@ bool touch_file(const char* destfile) {
 }
 
 int networkListen(const char* soc_path) {
-	//unlink(soc_path);
-	//printf("[Daemon] Deleted Socket...\n");
+	unlink(soc_path);
+	printf("[Daemon] Deleted Socket...\n");
 	int s = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (s < 0) {
 		printf("[Spawner] Socket failed! %s\n", strerror(errno));
@@ -224,6 +224,7 @@ static int hookThread(void *unused) noexcept {
 		//socklen_t addr_len = sizeof(client_addr);
 		//FileDescriptor fd = accept(serverSock, &client_addr, &addr_len);
 		FileDescriptor fd = accept(serverSock, nullptr, nullptr);
+		printf("client accepted\n");
 
 		struct result {
 			int cmd;
@@ -231,26 +232,27 @@ static int hookThread(void *unused) noexcept {
 			uintptr_t func;
 		} res{};
 
-		if (_read(fd, &res, sizeof(res)) == -1) {
+		if (_read(fd, &res, sizeof(res)) == -1) { 
+			printf("reading result failed\n");
 			continue;
 		}
 
 		if (res.cmd == PING) {
 			int reply = PONG;
 			if (_write(fd, &reply, sizeof(reply)) == -1) {
+				printf("writing pong failed\n");
 				continue;
 			}
 			if (_read(fd, &res, sizeof(res)) == -1) {
+				printf("reading result failed\n");
 				continue;
 			}
 		}
 
 		if (res.cmd != PROCESS_LAUNCHED) {
+			printf("invalid command %d\n", res.cmd);
 			continue;
 		}
-
-		// close it so it can be opened in the spawned daemon
-		close(fd);
 
 		LoopBuilder loop = SLEEP_LOOP;
 		const int pid = res.pid;
@@ -303,12 +305,11 @@ static int hookThread(void *unused) noexcept {
 		auto path = getProc(res.pid)->getPath();
 		auto index = path.rfind('/');
 		if (index == -1) {
-			printf("path missing / : %s\n", path.c_str());
+    		printf("path missing / : %s\n", path.c_str());
+		} else {
+  			  path = path.substring(0, index + 1) + "homebrew.elf";
+    		  printf("loading elf %s\n", path.c_str());
 		}
-
-		path = path.substring(0, index) + "homebrew.elf"_sv;
-
-		printf("loading elf %s\n", path.c_str());
 		auto data = readFileIntoBuffer(path.c_str());
 		if (data == nullptr) {
 			puts("failed to read elf");

@@ -1,0 +1,1615 @@
+diff --git a/daemon/source/commands.cpp b/daemon/source/commands.cpp
+index 2ccf824..5b675b7 100644
+--- a/daemon/source/commands.cpp
++++ b/daemon/source/commands.cpp
+@@ -106,8 +106,6 @@ static void __attribute__((constructor)) initUserService() {
+ 	sceUserServiceInitialize(&priority);
+ }
+ 
+-extern "C" uint32_t sceLncUtilKillApp(uint32_t appId);
+-
+ static bool killApp(uint32_t appId) {
+ 	uint32_t res = sceLncUtilKillApp(appId);
+ 	printf("sceApplicationKill returned 0x%llx\n", res);
+@@ -161,53 +159,6 @@ static pthread_t launchAppThread(const char *titleId, int *appId) {
+ 	return td;
+ }
+ 
+-/*
+-static constexpr uintptr_t ENTRYPOINT_OFFSET = 0x70;
+-
+-struct LoopBuilder {
+-	static constexpr size_t LOOB_BUILDER_SIZE = 39;
+-	static constexpr size_t LOOP_BUILDER_TARGET_OFFSET = 11;
+-	static constexpr size_t LOOP_BUILDER_STACK_PTR_OFFSET = 5;
+-	uint8_t data[LOOB_BUILDER_SIZE];
+-
+-	void setTarget(uintptr_t addr) {
+-		*reinterpret_cast<uintptr_t *>(data + LOOP_BUILDER_TARGET_OFFSET) = addr;
+-	}
+-	void setStackPointer(uintptr_t addr) {
+-		*reinterpret_cast<uint32_t *>(data + LOOP_BUILDER_STACK_PTR_OFFSET) = (uint32_t)addr;
+-	}
+-};
+-
+-static inline constexpr LoopBuilder SLEEP_LOOP{
+-	// 67 48 89 24 25 xx xx xx xx
+-	// MOV [SAVED_STACK_POINTER], RSP
+-	0x67, 0x48, 0x89, 0x24, 0x25, 0x00, 0x00, 0x00, 0x00,
+-
+-	// // 48 b8 xx xx xx xx xx xx xx xx 48 c7 c7 40 42 0f 00 ff d0 eb eb
+-	//loop:
+-	//	MOV RAX, _nanosleep
+-	0x48, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+-	// MOV RDI, 1000000000 // 1 second
+-	0x48, 0xc7, 0xc7, 0x00, 0xca, 0x9a, 0x3b,
+-	// MOV RSI, 0
+-	0x48, 0xc7, 0xc6, 0x00, 0x00, 0x00, 0x00,
+-	// PUSH RDI
+-	0x57,
+-	// PUSH RSI
+-	0x56,
+-	// CALL RAX
+-	0xff, 0xd0,
+-	// JMP loop
+-	0xeb, 0xe2
+-};
+-
+-
+-static uintptr_t getNanosleepOffset(const Hijacker &hijacker) {
+-	uintptr_t addr = hijacker.getLibKernelFunctionAddress(nid::_nanosleep);
+-	return addr - hijacker.getLibKernelBase();
+-}
+-*/
+-
+ static int getNextPid(const int lastPid) {
+ 	// get the pid of the new process as soon as it is created
+ 	int pid = lastPid;
+@@ -300,7 +251,6 @@ static bool launchApp(const char *titleId) {
+ 	printf("found new pid %d\n", pid);
+ 
+ 	UniquePtr<Hijacker> spawned = nullptr;
+-	dbg::AuthidSwapper idSwapper{dbg::PTRACE_ID};
+ 	{
+ 		// attach to the new process
+ 		dbg::Tracer tracer{pid};
+@@ -325,19 +275,6 @@ static bool launchApp(const char *titleId) {
+ 			base = spawned->getLibKernelBase();
+ 		}
+ 
+-		/*const uintptr_t rsp = spawned->getDataAllocator().allocate(8);
+-		loop.setStackPointer(rsp);
+-		loop.setTarget(base + NANOSLEEP_OFFSET);
+-		base = spawned->imagebase();
+-		spawned->pSavedRsp = rsp;
+-
+-		// insert a software breakpoint at the entry point
+-		// sadly this didn't work :(
+-		// it won't work because we need to detatch which will cause it to exit
+-
+-		// force the entrypoint to an infinite loop so that it doesn't start until we're ready
+-		dbg::write(pid, base + ENTRYPOINT_OFFSET, loop.data, sizeof(loop.data));*/
+-
+ 		puts("joining");
+ 		pthread_join(td, nullptr);
+ 
+diff --git a/daemon/source/elfserver.cpp b/daemon/source/elfserver.cpp
+index d59904f..a4b1f26 100644
+--- a/daemon/source/elfserver.cpp
++++ b/daemon/source/elfserver.cpp
+@@ -5,18 +5,32 @@
+ #include <netinet/in.h>
+ #include <poll.h>
+ #include <stddef.h>
++#include <sys/_stdint.h>
+ #include <sys/socket.h>
+ #include <string.h>
+ #include <stdio.h>
++#include <sys/stat.h>
+ #include <unistd.h>
+ 
+ #include "dbg/dbg.hpp"
++#include "elf/elf.hpp"
+ #include "fd.hpp"
+ #include "hijacker/hijacker.hpp"
+ #include "hijacker/spawner.hpp"
++#include "launcher.hpp"
+ #include "servers.hpp"
+ #include "util.hpp"
+ 
++static constexpr auto json = R"({
++  "applicationCategoryType": 33554432,
++  "localizedParameters": {
++    "defaultLanguage": "en-US",
++    "en-US": {
++      "titleName": "HomebrewDaemon"
++    }
++  },
++)"_sv;
++
+ //static constexpr int STUPID_C_ERROR_VALUE = -1;
+ static constexpr uint32_t ELF_MAGIC = 0x464C457F;
+ 
+@@ -38,6 +52,7 @@ struct LocalProcessArgs {
+ 
+ extern "C" int sceSystemServiceGetAppStatus(AppStatus *status);
+ extern "C" uint64_t sceSystemServiceAddLocalProcess(unsigned int id, const char *path, const char **argv, LocalProcessArgs *args);
++extern "C" int32_t sceSystemServiceGetAppId(const char *titleId);
+ 
+ enum ProcessType : uint8_t {
+ 	INVALID,
+@@ -50,111 +65,446 @@ enum class ResponseType : int8_t {
+ 	ERROR = -1
+ };
+ 
+-/*
+-extern bool launchApp(const char *titleId, bool block=false);
++static bool exists(const char *path) noexcept {
++	struct stat st{};
++	if (stat(path, &st) == -1) {
++		return false;
++	}
++	return S_ISDIR(st.st_mode);
++}
+ 
+-static int runSpawnThread(void *unused) {
+-	if (!launchApp("BREW00000")) {
+-		puts("failed to launch BREW00000");
+-		return 1;
++struct TitleId {
++	static constexpr size_t TITLEID_SIZE = 10;
++	char id[TITLEID_SIZE]{};
++	operator StringView() const noexcept {
++		return {id, TITLEID_SIZE-1};
++	}
++	explicit operator bool() const noexcept {
++		return id[0] != '\0';
+ 	}
+-	return 0;
++	TitleId &operator++() noexcept {
++		++id[TitleId::TITLEID_SIZE-2];
++		return *this;
++	}
++	bool exists() const noexcept {
++		String path = "/system_ex/app/"_sv;
++		path += id;
++		return ::exists(path.c_str());
++	}
++};
++
++static constexpr TitleId DEFAULT_HOMEBREW_ID{"BREW00000"};
++static constexpr TitleId ASTROS_PLAYGROUND_ID{"PPSA01325"};
++
++static pid_t launchApp(const char *titleId, int *appId, ProcessType type);
++
++static TitleId getNextAvailableTitleId() noexcept {
++	static constexpr int MAX_HOMEBREW_APPS = 10;
++	TitleId res = DEFAULT_HOMEBREW_ID;
++	for (uint8_t i = 1; i < MAX_HOMEBREW_APPS; i++) {
++		auto appId = sceSystemServiceGetAppId((++res).id);
++		if (appId == -1) {
++			printf("Next id: %s\n", res.id);
++			return res;
++		}
++	}
++	return TitleId{};
+ }
+-*/
+ 
+-static UniquePtr<Hijacker> spawn(const uint8_t *elf) {
+-	Spawner spawner{};
++static bool killApp(uint32_t appId) {
++	uint32_t res = sceLncUtilKillApp(appId);
++	printf("sceApplicationKill returned 0x%llx\n", res);
++	return true;
++}
+ 
+-	/*
+-	// start the new process
+-	AppStatus status;
+-	int res = sceSystemServiceGetAppStatus(&status);
+-	if (res < 0) [[unlikely]] {
+-		printf("sceSystemServiceGetAppStatus failed 0x%08x\n", (unsigned int)res);
+-		return nullptr;
++static constexpr int STUPID_C_ERROR = -1;
++static constexpr int MKDIR_FLAGS = 0666;
++
++// NOLINTBEGIN(cppcoreguidelines-owning-memory)
++
++static bool copyfile(const char *from, const char *to) {
++	struct stat st{};
++	if (stat(from, &st) == STUPID_C_ERROR) {
++		puts(strerror(errno));
++		return false;
+ 	}
++	UniquePtr<uint8_t[]> buf = new uint8_t[st.st_size];
++	FILE *fp = fopen(from, "rb");
++	if (fp == nullptr) {
++		puts("open failed");
++		puts(strerror(errno));
++		return false;
++	}
++	fread(buf.get(), 1, st.st_size, fp);
++	fclose(fp);
++	fp = fopen(to, "wb+");
++	if (fp == nullptr) {
++		puts("open failed");
++		puts(strerror(errno));
++		return false;
++	}
++	fwrite(buf.get(), 1, st.st_size, fp);
++	fclose(fp);
++	return true;
++}
+ 
+-	LocalProcessArgs param{{0, 0}, 1, -1, {0, 0}};
++static bool mkdir(const char *path) {
++	if (::mkdir(path, MKDIR_FLAGS) == STUPID_C_ERROR) {
++		const int err = errno;
++		if (err != EEXIST) {
++			puts(strerror(errno));
++			return false;
++		}
++	}
++	return true;
++}
+ 
+-	// TODO: find out if the socketpair can be closed or not
+-	if (socketpair(1, 1, 0, (int *) param.fds) == STUPID_C_ERROR_VALUE) {
+-		int err = errno;
+-		printf("socketpair failed %d %s\n", err, strerror(err));
+-		return nullptr;
++static bool makeHomebrewApp(const StringView &titleId) {
++	String path = "/system_ex/app/"_sv;
++	path += titleId;
++	if (mkdir(path.c_str(), MKDIR_FLAGS) == STUPID_C_ERROR) {
++		const int err = errno;
++		if (err != EEXIST) {
++			perror("makenewapp mkdir");
++			return false;
++		}
++		return true;
++	}
++	String ebootPath = path + "/eboot.bin";
++	if (!copyfile("/system_ex/app/NPXS40028/eboot.bin", ebootPath.c_str())) {
++		puts("failed to copy redis eboot.bin");
++		return false;
+ 	}
+ 
+-	printf("status id: %d\n", status.id);
++	String sysPath = path + "/sce_sys"_sv;
++	if (!mkdir(sysPath.c_str())) {
++		return false;
++	}
+ 
+-	// afaik this doesn't block
+-	uint64_t ans = sceSystemServiceAddLocalProcess(status.id, EBOOT_PATH, SPAWN_ARGS, &param);
+-	if (ans < 0) [[unlikely]] {
+-		printf("sceSystemServiceAddLocalProcess failed 0x%08llx\n", (unsigned long long) ans);
+-		return nullptr;
++	String newJsonPath = sysPath + "/param.json"_sv;
++	FILE *fp = fopen(newJsonPath.c_str(), "w+");
++	if (fp == nullptr) {
++		perror("fopen failed");
++		return false;
++	}
++	if (fwrite(json.c_str(), 1, json.length(), fp) != json.length()) {
++		puts("failed to write param.json");
++		fclose(fp);
++		return false;
+ 	}
+ 
+-	close(param.fds[0]);
+-	close(param.fds[1]);
+-	*/
+-	const int pid = dbg::getAllPids()[0];
+-	//JThread spawnThread{runSpawnThread};
+-	while (pid == dbg::getAllPids()[0]);
++	static constexpr auto JSON_TITLE_ID = "  \"titleId\": \""_sv;
++	if (fwrite(JSON_TITLE_ID, 1, JSON_TITLE_ID.length(), fp) != JSON_TITLE_ID.length()) {
++		puts("failed to write param.json");
++		fclose(fp);
++		return false;
++	}
+ 
++	if (fwrite(titleId, 1, titleId.length(), fp) != titleId.length()) {
++		puts("failed to write param.json");
++		fclose(fp);
++		return false;
++	}
+ 
++	static constexpr auto JSON_END = "\"\n}\n"_sv;
++	if (fwrite(JSON_END, 1, JSON_END.length(), fp) != JSON_END.length()) {
++		puts("failed to write param.json");
++		fclose(fp);
++		return false;
++	}
+ 
+-	// race it
+-	return spawner.spawn();
++	fclose(fp);
++	return true;
+ }
+ 
++
++// NOLINTEND(cppcoreguidelines-owning-memory)
++
+ void ElfServer::run(TcpSocket &sock) {
++	puts("ElfServer::run");
+ 	constexpr auto MAX_NAME_SIZE = 32;
+ 	ResponseType response = ResponseType::ERROR;
+ 	ProcessType type = INVALID;
+ 	if (!sock.read(&type, sizeof(type))) {
++		puts("sock read failed");
+ 		return;
+ 	}
+-	switch (type) {
+-		case DAEMON:
+-			break;
+-		case GAME:
+-			sock.write(&response, sizeof(response));
+-			sock.println("Game process not yet supported");
+-			break;
+-		default:
+-			sock.write(&response, sizeof(response));
+-			sock.println("Unexpected process type");
+-			return;
++
++	if (type != DAEMON && type != GAME) {
++		sock.write(&response, sizeof(response));
++		puts("Unexpected process type");
++		return;
+ 	}
+ 
+-	char name[MAX_NAME_SIZE];
++	printf("elf type %d\n", type);
++
++	char name[MAX_NAME_SIZE]{};
+ 	if (!sock.read(name, sizeof(name))) {
+ 		return;
+ 	}
+ 
++	printf("name: %s\n", name);
++
+ 	size_t elfSize = 0;
+ 	if (!sock.read(&elfSize, sizeof(elfSize))) {
+ 		return;
+ 	}
+ 
++	printf("elf size %llu\n", elfSize);
++
+ 	UniquePtr<uint8_t[]> buf = new uint8_t[elfSize];
+ 	if (!sock.read(buf.get(), sizeof(elfSize))) {
+ 		return;
+ 	}
+ 	if (*reinterpret_cast<uint32_t *>(buf.get()) != ELF_MAGIC) {
+ 		sock.write(&response, sizeof(response));
+-		sock.println("invalid elf");
++		puts("invalid elf");
+ 		return;
+ 	}
+ 
+-	auto hijacker = spawn(buf.get());
++	TitleId id = type == GAME ? ASTROS_PLAYGROUND_ID : getNextAvailableTitleId();
++
++	if (type == DAEMON) {
++		// check if titleid exists and if not create it
++		if (!id) {
++			sock.write(&response, sizeof(response));
++			puts("too many homebrew apps are already running");
++			return;
++		}
++
++		if (!id.exists()) {
++
++			if (!makeHomebrewApp(id)) {
++				sock.write(&response, sizeof(response));
++				puts("failed to create new homebrew app in /system_ex/app");
++				return;
++			}
++		}
++	}
++
++	int appId = 0;
++	pid_t pid = launchApp(id.id, &appId, type);
++	if (pid == 0) {
++		puts("spawn failed");
++		sock.write(&response, sizeof(response));
++	}
++
++	auto hijacker = Hijacker::getHijacker(pid);
+ 	if (hijacker == nullptr) {
+ 		sock.write(&response, sizeof(response));
+-		sock.println("spawn failed");
++		puts("spawn failed");
+ 		return;
+ 	}
+ 
++	puts("getting saved stack pointer");
++	while (hijacker->getSavedRsp() == 0) {
++		usleep(1);
++	}
++
++	puts("setting process name");
+ 	hijacker->getProc()->setName(name);
++	__builtin_printf("new process %s pid %d\n", hijacker->getProc()->getSelfInfo()->name, hijacker->getPid());
++	puts("jailbreaking new process");
++	hijacker->jailbreak();
++
++	Elf elf(hijacker.get(), buf.get());
++
++	if (!elf.launch()) {
++		sock.write(&response, sizeof(response));
++		puts("failed to load elf");
++		killApp(appId);
++		return;
++	}
++
++	printf("successfully launched %s\n", name);
+ 
+ 	response = ResponseType::OK;
+ 
+ 	sock.write(&response, sizeof(response));
+ }
++
++struct LaunchArgs {
++	const char *titleId;
++	uint32_t id;
++	int *appId;
++};
++
++static void *doLaunchApp(void *ptr) {
++	UniquePtr<LaunchArgs> args = reinterpret_cast<LaunchArgs*>(ptr);
++	Flag flag = Flag_None;
++	LncAppParam param{sizeof(LncAppParam), args->id, 0, 0, flag};
++
++	int err = sceLncUtilLaunchApp(args->titleId, nullptr, &param);
++	printf("sceLncUtilLaunchApp returned 0x%llx\n", (uint32_t)err);
++	if (err >= 0) {
++		return nullptr;
++	}
++	switch ((uint32_t) err) {
++		case SCE_LNC_UTIL_ERROR_ALREADY_RUNNING:
++			printf("app %s is already running\n", args->titleId);
++			break;
++		case SCE_LNC_ERROR_APP_NOT_FOUND:
++			printf("app %s not found\n", args->titleId);
++			break;
++		default:
++			printf("unknown error 0x%llx\n", (uint32_t) err);
++			break;
++	}
++	return nullptr;
++}
++
++static pthread_t launchAppThread(const char *titleId, int *appId) {
++	puts("launching app");
++	uint32_t id = -1;
++	uint32_t res = sceUserServiceGetForegroundUser(&id);
++	if (res != 0) {
++		printf("sceUserServiceGetForegroundUser failed: 0x%llx\n", res);
++		return nullptr;
++	}
++	printf("user id %u\n", id);
++
++	// the thread will clean this up
++	LaunchArgs *args = new LaunchArgs{titleId, id, appId}; // NOLINT(*)
++	pthread_t td = nullptr;
++	pthread_create(&td, nullptr, doLaunchApp, args);
++	return td;
++}
++
++static int getNextPid(const int lastPid, ProcessType type) {
++	// get the pid of the new process as soon as it is created
++	int pid = lastPid;
++	while (pid == lastPid) {
++		usleep(1000); // NOLINT(*)
++		pid = dbg::getAllPids()[0];
++	}
++	if (type == DAEMON) {
++		return pid;
++	}
++	if (dbg::ProcessInfo{pid}.name() == "ScePfs"_sv) {
++		puts("Skipping ScePfs");
++		return getNextPid(pid, type);
++	}
++	return pid;
++}
++
++static constexpr uintptr_t ENTRYPOINT_OFFSET = 0x70;
++
++struct LoopBuilder {
++	static constexpr size_t LOOB_BUILDER_SIZE = 39;
++	static constexpr size_t LOOP_BUILDER_TARGET_OFFSET = 11;
++	static constexpr size_t LOOP_BUILDER_STACK_PTR_OFFSET = 5;
++	uint8_t data[LOOB_BUILDER_SIZE];
++
++	void setTarget(uintptr_t addr) {
++		*reinterpret_cast<uintptr_t *>(data + LOOP_BUILDER_TARGET_OFFSET) = addr;
++	}
++	void setStackPointer(uintptr_t addr) {
++		*reinterpret_cast<uint32_t *>(data + LOOP_BUILDER_STACK_PTR_OFFSET) = (uint32_t)addr;
++	}
++};
++
++static inline constexpr LoopBuilder SLEEP_LOOP{
++	// 67 48 89 24 25 xx xx xx xx
++	// MOV [SAVED_STACK_POINTER], RSP
++	0x67, 0x48, 0x89, 0x24, 0x25, 0x00, 0x00, 0x00, 0x00,
++
++	// // 48 b8 xx xx xx xx xx xx xx xx 48 c7 c7 40 42 0f 00 ff d0 eb eb
++	//loop:
++	//	MOV RAX, _nanosleep
++	0x48, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
++	// MOV RDI, 1000000000 // 1 second
++	0x48, 0xc7, 0xc7, 0x00, 0xca, 0x9a, 0x3b,
++	// MOV RSI, 0
++	0x48, 0xc7, 0xc6, 0x00, 0x00, 0x00, 0x00,
++	// PUSH RDI
++	0x57,
++	// PUSH RSI
++	0x56,
++	// CALL RAX
++	0xff, 0xd0,
++	// JMP loop
++	0xeb, 0xe2
++};
++
++
++static uintptr_t getNanosleepOffset(int pid) {
++	auto hijacker = Hijacker::getHijacker(pid);
++	uintptr_t addr = hijacker->getLibKernelFunctionAddress(nid::_nanosleep);
++	return addr - hijacker->getLibKernelBase();
++}
++
++extern "C" int cpuset_setaffinity(cpulevel_t level, cpuwhich_t which, id_t id, size_t setsize, const void *mask);
++extern "C" int rtprio_thread(int function, lwpid_t lwpid, void *rtp);
++
++static void setaffinity(int value) noexcept {
++	uint8_t mask[16]{};
++	mask[1] = value;
++	uint16_t prio[]{2, 0x100};
++	cpuset_setaffinity(3, 1, -1, 16, mask);
++	rtprio_thread(1, 0, prio);
++}
++
++static pid_t launchApp(const char *titleId, int *appId, ProcessType type) {
++	//static constexpr size_t NANOSLEEP_OFFSET = 0x28D0;
++	setaffinity(1);
++	LoopBuilder loop = SLEEP_LOOP;
++	const uintptr_t nanosleepOffset = type == DAEMON ? getNanosleepOffset(getpid()) : 0;
++
++	const int lastPid = dbg::getAllPids()[0];
++
++	pthread_t td = launchAppThread(titleId, appId);
++	if (td == nullptr) {
++		puts("failed to start thread");
++		return false;
++	}
++
++	puts("waiting for new process to spawn");
++
++	// get the pid of the new process as soon as it is created
++	int pid = getNextPid(lastPid, type);
++
++	printf("found new pid %d\n", pid);
++
++	UniquePtr<Hijacker> spawned = nullptr;
++	{
++		// attach to the new process
++		dbg::Tracer tracer{pid};
++
++		// run until execve finishes and sends the signal
++		tracer.run();
++
++		while (spawned == nullptr) {
++			// this should grab it first try but I haven't confirmed yet
++			spawned = Hijacker::getHijacker(pid);
++		}
++
++		uintptr_t base = 0;
++		while (base == 0) {
++			// this should also work first try but not confirmed
++			base = spawned->getLibKernelBase();
++		}
++
++		if (type == DAEMON) {
++			const uintptr_t rsp = spawned->getDataAllocator().allocate(8);
++			loop.setStackPointer(rsp);
++			loop.setTarget(base + nanosleepOffset);
++			base = spawned->imagebase();
++			spawned->pSavedRsp = rsp;
++
++			// force the entrypoint to an infinite loop so that it doesn't start until we're ready
++			dbg::write(pid, base + ENTRYPOINT_OFFSET, loop.data, sizeof(loop.data));
++		}
++
++		puts("joining");
++		pthread_join(td, nullptr);
++
++		puts("finished");
++		printf("spawned imagebase 0x%08llx\n", base);
++	}
++
++	//GameServer gs{pid};
++	//gs.TcpServer::run();
++	return true;
++	//sceLncUtilKillApp
++}
++
+diff --git a/daemon/source/launcher.hpp b/daemon/source/launcher.hpp
+index 1efeb34..3e11560 100644
+--- a/daemon/source/launcher.hpp
++++ b/daemon/source/launcher.hpp
+@@ -30,3 +30,4 @@ struct LncAppParam {
+ extern "C" int sceUserServiceGetForegroundUser(uint32_t *userId);
+ extern "C" int sceLncUtilLaunchApp(const char* tid, const char* argv[], LncAppParam* param);
+ extern "C" int sceUserServiceInitialize(const int *);
++extern "C" uint32_t sceLncUtilKillApp(uint32_t appId);
+diff --git a/daemon/source/main.cpp b/daemon/source/main.cpp
+index 9e66ea9..ab2238d 100644
+--- a/daemon/source/main.cpp
++++ b/daemon/source/main.cpp
+@@ -15,185 +15,197 @@ extern int runElfServer(void *unused);
+ extern int runCommandProcessor(void *unused);
+ extern void makenewapp();
+ 
++ssize_t _read(int, void *, size_t);
++ssize_t _write(int, void *, size_t);
++
+ void AbortServer::run(TcpSocket &sock) {
+ 	// any connection signals to shutdown the daemon
+ 	puts("abort signal received");
+ 	sock.close();
+ }
+ 
+-struct HookBuilder {
+-	static constexpr size_t CODE_SIZE = 92;
+-	//static constexpr size_t PRINTF_OFFSET = 0x31;
+-	//static constexpr size_t EXECVE_OFFSET = 0x4F;
+-	static constexpr size_t EXECVE_OFFSET = 0x4D;
+-	uint8_t data[CODE_SIZE];
++static constexpr uintptr_t ENTRYPOINT_OFFSET = 0x70;
++
++struct LoopBuilder {
++	static constexpr size_t LOOB_BUILDER_SIZE = 39;
++	static constexpr size_t LOOP_BUILDER_TARGET_OFFSET = 11;
++	static constexpr size_t LOOP_BUILDER_STACK_PTR_OFFSET = 5;
++	uint8_t data[LOOB_BUILDER_SIZE];
+ 
+-	void setPrintf(uintptr_t addr) {
+-		//*reinterpret_cast<uintptr_t *>(data + PRINTF_OFFSET) = addr;
++	void setTarget(uintptr_t addr) {
++		*reinterpret_cast<uintptr_t *>(data + LOOP_BUILDER_TARGET_OFFSET) = addr;
+ 	}
+-	void setExecve(uintptr_t addr) {
+-		*reinterpret_cast<uintptr_t *>(data + EXECVE_OFFSET) = addr;
++	void setStackPointer(uintptr_t addr) {
++		*reinterpret_cast<uint32_t *>(data + LOOP_BUILDER_STACK_PTR_OFFSET) = (uint32_t)addr;
+ 	}
+ };
+ 
+-// NOLINTBEGIN(*)
++static inline constexpr LoopBuilder SLEEP_LOOP{
++	// 67 48 89 24 25 xx xx xx xx
++	// MOV [SAVED_STACK_POINTER], RSP
++	0x67, 0x48, 0x89, 0x24, 0x25, 0x00, 0x00, 0x00, 0x00,
+ 
+-/*
+-int hookExecve(const char *path, const char **argv, const char **envp) {
+-	printf("execve %s\n", path);
+-	return execve(path, argv, envp);
+-}
+-*/
+-/*
+-static constexpr HookBuilder HOOKER{{
+-    0x48, 0x83, 0xec, 0x28, 0x48, 0xb8, 0x2f, 0x73, 0x79, 0x73, 0x74, 0x65, 0x6d, 0x5f, 0x48, 0xbf,
+-    0x65, 0x78, 0x2f, 0x61, 0x70, 0x70, 0x2f, 0x4e, 0x48, 0xb9, 0x50, 0x58, 0x53, 0x34, 0x30, 0x30,
+-    0x32, 0x38, 0x48, 0x89, 0x04, 0x24, 0x48, 0x89, 0x7c, 0x24, 0x08, 0x48, 0x89, 0xe7, 0x48, 0xb8,
+-    0x2f, 0x65, 0x62, 0x6f, 0x6f, 0x74, 0x2e, 0x62, 0x48, 0x89, 0x4c, 0x24, 0x10, 0x48, 0x89, 0x44,
+-    0x24, 0x18, 0x48, 0xc7, 0x44, 0x24, 0x20, 0x69, 0x6e, 0x00, 0x00, 0x48, 0xb8, 0x00, 0x00, 0x00,
+-	0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xd0, 0x48, 0x83, 0xc4, 0x28, 0xc3
+-}};
+-
+-static constexpr HookBuilder HOOKER{{
+-	// PUSH R15
+-	0x41, 0x57,
+-	// PUSH R14
+-	0x41, 0x56,
+-	// PUSH RBX
+-	0x53,
+-	// SUB RSP, 0x10
+-	0x48, 0x83, 0xec, 0x10,
+-	// MOV R15, RDI
+-	0x49, 0x89, 0xff,
+-	// MOV RAX, 0x2520657663657865
+-	0x48, 0xb8, 0x65, 0x78, 0x65, 0x63, 0x76, 0x65, 0x20, 0x25,
+-	// MOV R14, RSI
+-	0x49, 0x89, 0xf6,
+-	// MOV RDI, RSP
+-	0x48, 0x89, 0xe7,
+-	// MOV RBX, RDX
+-	0x48, 0x89, 0xd3,
+-	// MOV qword ptr [RSP], RAX
+-	0x48, 0x89, 0x04, 0x24,
+-	// MOV RSI, R15
+-	0x4c, 0x89, 0xfe,
+-	// MOV qword ptr [RSP + 0x8], 0x6e5c73
+-	0x48, 0xc7, 0x44, 0x24, 0x08, 0x73, 0x5c, 0x6e, 0x00,
+-	// MOV RAX, printf
++	// // 48 b8 xx xx xx xx xx xx xx xx 48 c7 c7 40 42 0f 00 ff d0 eb eb
++	//loop:
++	//	MOV RAX, _nanosleep
+ 	0x48, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
++	// MOV RDI, 1000000000 // 1 second
++	0x48, 0xc7, 0xc7, 0x00, 0xca, 0x9a, 0x3b,
++	// MOV RSI, 0
++	0x48, 0xc7, 0xc6, 0x00, 0x00, 0x00, 0x00,
++	// PUSH RDI
++	0x57,
++	// PUSH RSI
++	0x56,
+ 	// CALL RAX
+ 	0xff, 0xd0,
+-	// MOV RDI, R15
+-	0x4c, 0x89, 0xff,
+-	// MOV RSI, R14
+-	0x4c, 0x89, 0xf6,
+-	// MOV RDX, RBX
+-	0x48, 0x89, 0xda,
+-	// ADD RSP, 0x10
+-	0x48, 0x83, 0xc4, 0x10,
+-	// POP RBX
+-	0x5b,
+-	// POP R14
+-	0x41, 0x5e,
+-	// POP R15
+-	0x41, 0x5f,
+-	// MOV RAX, execve
+-	0x48, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+-	// JMP RAX
+-	0xff, 0xe0
+-}};
+-*/
+-
+-// NOLINTEND(*)
+-/*
+-bool patchSyscore() {
+-	return true;
+-	puts("patching syscore execve");
+-	auto hijacker = Hijacker::getHijacker("SceSysCore.elf"_sv);
+-	if (hijacker == nullptr) {
+-		puts("failed to get SceSysCore.elf");
+-		return false;
++	// JMP loop
++	0xeb, 0xe2
++};
++
++static uintptr_t getNanosleepOffset(const Hijacker &hijacker) {
++	uintptr_t addr = hijacker.getLibKernelFunctionAddress(nid::_nanosleep);
++	return addr - hijacker.getLibKernelBase();
++}
++
++struct Helper {
++	uintptr_t nanosleepOffset;
++	UniquePtr<Hijacker> spawned;
++};
++
++static int hookThread(void *unused) noexcept {
++	(void) unused;
++	static constexpr uint16_t HOOK_PORT = 9999;
++	static constexpr uint32_t LOCALHOST = 0x100007f;
++	static constexpr int PING =  0;
++	static constexpr int PROCESS_LAUNCHED = 1;
++
++	int serverSock = socket(AF_INET, SOCK_STREAM, 0);
++	if (serverSock == -1) {
++		return 0;
+ 	}
+-	uintptr_t code = hijacker->getTextAllocator().allocate(HookBuilder::CODE_SIZE);
+-	static constexpr Nid execveNid{"kdguLiAheLI"};
+-	//static constexpr Nid printfNid{"hcuQgD53UxM"};
+-	//static constexpr Nid amd64_set_fsbaseNid{"3SVaehJvYFk"};
+-	auto execve = hijacker->getLibKernelFunctionAddress(execveNid);
+-	if (execve == 0) {
+-		puts("failed to locate execve");
+-		return false;
++
++	int value = 1;
++	if (setsockopt(serverSock, SOL_SOCKET, SO_REUSEADDR, &value, sizeof(int)) == -1) {
++		return 0;
+ 	}
+-	auto meta = hijacker->getEboot()->getMetaData();
+-	const auto &plttab = meta->getPltTable();
+-	if (ELF64_R_TYPE(plttab[0].r_info) != R_X86_64_JMP_SLOT) {
+-		puts("wrong table stupid");
+-		return false;
++
++	struct sockaddr_in server_addr{0, AF_INET, htons(HOOK_PORT), {.s_addr = LOCALHOST}, {}};
++
++	if (bind(serverSock, reinterpret_cast<struct sockaddr*>(&server_addr), sizeof(sockaddr_in)) == -1) {
++		return 0;
+ 	}
+-	auto index = meta->getSymbolTable().getSymbolIndex(execveNid);
+-	if (index == -1) {
+-		puts("execve import not found");
+-		return false;
++
++	if (listen(serverSock, 1) == -1) {
++		return 0;
+ 	}
+-	*/
+-	/*
+-	auto fsbaseIndex = meta->getSymbolTable().getSymbolIndex(amd64_set_fsbaseNid);
+-	for (const auto &plt : plttab) {
+-		if (ELF64_R_SYM(plt.r_info) == fsbaseIndex) {
+-			auto retptr = hijacker->getTextAllocator().allocate(1);
+-			uint8_t ret[]{0xc3}; // NOLINT(*)
+-			hijacker->write(retptr, ret);
+-			uintptr_t addr = hijacker->getEboot()->imagebase() + plt.r_offset;
+-			hijacker->write<uintptr_t>(addr, retptr);
+-			break;
++
++	while (true) {
++		struct sockaddr client_addr{};
++		socklen_t addr_len = sizeof(client_addr);
++		FileDescriptor fd = accept(serverSock, &client_addr, &addr_len);
++
++		struct result {
++			int cmd;
++			int pid;
++			uintptr_t func;
++		} res{};
++
++		if (_read(fd, &res, sizeof(res)) == -1) {
++			continue;
+ 		}
+-	}
+ 
+-	for (const auto &plt : plttab) {
+-		if (ELF64_R_SYM(plt.r_info) == index) {
+-			HookBuilder hooker = HOOKER;
+-			auto printfAddr = hijacker->getFunctionAddress(hijacker->getLib(2).get(), printfNid);
+-			if (printfAddr == 0) {
+-				puts("failed to locate printf");
+-				return false;
++		if (res.cmd == PING) {
++			int reply = 1;
++			if (_write(fd, &reply, sizeof(reply)) == -1) {
++				continue;
++			}
++			if (_read(fd, &res, sizeof(res)) == -1) {
++				continue;
++			}
++		}
++
++		if (res.cmd != PROCESS_LAUNCHED) {
++			continue;
++		}
++
++		// close it so it can be opened in the spawned daemon
++		close(fd);
++
++		LoopBuilder loop = SLEEP_LOOP;
++		const int pid = res.pid;
++
++		UniquePtr<Hijacker> spawned = nullptr;
++		{
++			dbg::Tracer tracer{pid};
++			auto regs = tracer.getRegisters();
++			regs.rip(res.func);
++			tracer.setRegisters(regs);
++
++			// run until execve completion
++			tracer.run();
++
++			while (spawned == nullptr) {
++				// this should grab it first try but I haven't confirmed yet
++				spawned = Hijacker::getHijacker(pid);
++			}
++
++			const uintptr_t nanosleepOffset = getNanosleepOffset(*spawned);
++
++			printf("libkernel imagebase: 0x%08llx\n", spawned->getLibKernelBase());
++
++			puts("spawned process obtained");
++
++			puts("success");
++
++			uintptr_t base = 0;
++			while (base == 0) {
++				// this should also work first try but not confirmed
+
++				base = spawned->getLibKernelBase();
+ 			}
+-			hooker.setPrintf(printfAddr);
+-			hooker.setExecve(execve);
+-			hijacker->write(code, hooker.data);
+-			uintptr_t addr = hijacker->getEboot()->imagebase() + plt.r_offset;
+-			hijacker->write<uintptr_t>(addr, code);
+-			hexdump(hooker.data, HookBuilder::CODE_SIZE);
+-			return true;
++
++			const uintptr_t rsp = spawned->getDataAllocator().allocate(8);
++			loop.setStackPointer(rsp);
++			loop.setTarget(base + nanosleepOffset);
++			base = spawned->imagebase();
++			spawned->pSavedRsp = rsp;
++
++			// force the entrypoint to an infinite loop so that it doesn't start until we're ready
++			dbg::write(pid, base + ENTRYPOINT_OFFSET, loop.data, sizeof(loop.data));
++
++			puts("finished");
++			printf("spawned imagebase 0x%08llx\n", base);
+ 		}
++
++		// TODO: load elf from file in app0
++		#error implement me
+ 	}
+-	return false;
+-}*/
++
++	return 0;
++}
+ 
+ int main() {
+ 	puts("daemon entered");
+ 	AbortServer abortServer{};
+ 	KlogServer klogServer{};
+-	ElfServer elfServer{};
++	//ElfServer elfServer{};
+ 	CommandServer commandServer{};
++	JThread elfLoader{hookThread};
++
+ 
+ 	abortServer.TcpServer::run();
+ 	klogServer.TcpServer::run();
+-	elfServer.TcpServer::run();
++	//elfServer.TcpServer::run();
+ 	commandServer.TcpServer::run();
+ 
+-	/*if (!patchSyscore()) {
+-		puts("failed to patch syscore execve");
+-	} else {
+-		puts("successfully patched syscore execve");
+-	}*/
+-
+ 	// finishes on connect
+ 	abortServer.join();
+ 	puts("abort thread finished");
+ 	commandServer.stop();
+ 	puts("command server done");
+-	puts("stopping elf server");
+-	elfServer.stop();
+-	puts("elf server done");
++	//puts("stopping elf server");
++	//elfServer.stop();
++	//puts("elf server done");
+ 	puts("stopping klog server");
+ 	klogServer.stop();
+ 	puts("klog server done");
+diff --git a/daemon/source/servers.hpp b/daemon/source/servers.hpp
+index 4b6a7e8..772f029 100644
+--- a/daemon/source/servers.hpp
++++ b/daemon/source/servers.hpp
+@@ -2,26 +2,6 @@
+ 
+ #include "server.hpp"
+ 
+-class StdoutServer : public TcpServer {
+-
+-	static constexpr uint16_t PORT = 9071;
+-
+-	void run(TcpSocket &sock) override;
+-
+-	public:
+-		StdoutServer() noexcept : TcpServer(PORT) {}
+-
+-		StdoutServer(const StdoutServer&) = delete;
+-
+-		StdoutServer &operator=(const StdoutServer&) = delete;
+-
+-		StdoutServer(StdoutServer &&rhs) noexcept = default;
+-
+-		StdoutServer &operator=(StdoutServer &&rhs) noexcept = default;
+-
+-		~StdoutServer() noexcept override = default;
+-};
+-
+ class ElfServer : public TcpServer {
+ 
+ 	static constexpr uint16_t PORT = 9029;
+diff --git a/include/hijacker/hijacker.hpp b/include/hijacker/hijacker.hpp
+index 0a86e0f..a2da5d1 100644
+--- a/include/hijacker/hijacker.hpp
++++ b/include/hijacker/hijacker.hpp
+@@ -128,7 +128,7 @@ class Hijacker {
+ 		}
+ 
+ 		uintptr_t getLibKernelAddress(const Nid &fname) const {
+-			return getLibKernelFunctionAddress(fname);
++			return getFunctionAddress(getLibKernel(), fname);
+ 		}
+ 
+ 		ProcessMemoryAllocator &getDataAllocator() {
+diff --git a/include/nid.hpp b/include/nid.hpp
+index 066f833..091140c 100644
+--- a/include/nid.hpp
++++ b/include/nid.hpp
+@@ -62,5 +62,10 @@ static inline constexpr Nid sceKernelDlsym{"LwG8g3niqwA"};
+ static inline constexpr Nid setsockopt{"fFxGkxF2bVo"};
+ static inline constexpr Nid execve{"kdguLiAheLI"};
+ static inline constexpr Nid _nanosleep{"NhpspxdjEKU"};
++static inline constexpr Nid close{"bY-PO6JhzhQ"};
++static inline constexpr Nid connect{"XVL8So3QJUk"};
++static inline constexpr Nid _read{"DRuBt2pvICk"};
++static inline constexpr Nid _write{"FxVZqBAA7ks"};
++static inline constexpr Nid rfork_thread{"bSDxEpGzmUE"};
+ 
+ }
+diff --git a/send_elf.py b/send_elf.py
+index 256ea07..6797d5c 100644
+--- a/send_elf.py
++++ b/send_elf.py
+@@ -13,6 +13,7 @@ LOGGER_PORT = 9021
+ KLOGGER_PORT = 9081
+ COMMAND_PORT = 9028
+ ELF_PORT = 9027
++NEW_ELF_PORT = 9029
+ 
+ MAX_PROCESS_NAME_LENGTH = 32
+ DAEMON_TYPE = b'\x01'
+@@ -180,7 +181,7 @@ async def send_elf(args: ParsedArgs):
+     elif nameLength < MAX_PROCESS_NAME_LENGTH:
+         args.name += '\0'*(MAX_PROCESS_NAME_LENGTH - nameLength)
+ 
+-    async with open_connection(args.host, ELF_PORT) as (reader, writer):
++    async with open_connection(args.host, NEW_ELF_PORT) as (reader, writer):
+         data = args.elf.read_bytes()
+         if args.game:
+             writer.write(GAME_TYPE)
+@@ -292,9 +293,10 @@ async def run_loggers(args: ParsedArgs):
+         if not has_daemon:
+             await send_spawner(args)
+             await send_daemon(args)
+-            #spawner = asyncio.create_task(send_daemon(args))
++            #spawner = asyncio.create_task(send_spawner(args))
++            #daemon = asyncio.create_task(send_daemon(args))
+             #logger = asyncio.create_task(logger_client(args))
+-            #await asyncio.wait((spawner, logger), return_when=asyncio.ALL_COMPLETED)
++            #await asyncio.wait((spawner, daemon, logger), return_when=asyncio.ALL_COMPLETED)
+ 
+         if args.elf:
+             if args.name is None:
+@@ -314,7 +316,10 @@ def main():
+         description='Helper script for sending the spawner, an elf to load into spawned process and for logging',
+     )
+     parser.add_argument('ip', help='PS5 ip address')
+-    #parser.add_argument('elf', help='Path to the elf to load into the spawned process')
++    parser.add_argument(
++        '--elf',
++        default=None,
++        help='Path to the elf to load into the spawned process')
+     parser.add_argument(
+         '--spawner',
+         default='bin/spawner.elf',
+diff --git a/shellcode/execve.c b/shellcode/execve.c
+index 0b11d47..9efbea8 100644
+--- a/shellcode/execve.c
++++ b/shellcode/execve.c
+@@ -24,15 +24,17 @@ int execve_hook(const char *path, const char **argv, const char **envp, execve_t
+ 	// call has completed is very limited.
+ 	volatile struct timespec req;
+ 	volatile struct timespec rem;
+-	req.tv_sec = 0;
+-	req.tv_nsec = 200000000; // 200 us
++	req.tv_sec = 1;
++	req.tv_nsec = 0;//200000000; // 200 us
+ 	rem.tv_sec = 0;
+ 	rem.tv_nsec = 0;
+-	while (req.tv_nsec > 0) {
++	while (req.tv_sec > 0 && req.tv_nsec > 0) {
+ 		if (_nanosleep((struct timespec *)&req, (struct timespec *)&rem) == 0) {
+ 			break;
+ 		}
++		req.tv_sec = rem.tv_sec;
+ 		req.tv_nsec = rem.tv_nsec;
++		rem.tv_sec = 0;
+ 		rem.tv_nsec = 0;
+ 	}
+ 	return execve(path, argv, envp);
+diff --git a/spawner/source/main.cpp b/spawner/source/main.cpp
+index 3a0e9f3..8775382 100644
+--- a/spawner/source/main.cpp
++++ b/spawner/source/main.cpp
+@@ -7,6 +7,7 @@
+ #include "hijacker.hpp"
+ #include "kernel/kernel.hpp"
+ #include "kernel/proc.hpp"
++#include "nid.hpp"
+ #include "offsets.hpp"
+ #include "util.hpp"
+ #include <elf.h>
+@@ -239,85 +240,118 @@ struct Args {
+ };
+ 
+ struct ShellcodeBuilder {
+-	static constexpr size_t SHELLCODE_SIZE = 184;
+-	static constexpr size_t EXECVE_ADDR_OFFSET = 2;
+-	static constexpr size_t NANOSLEEP_ADDR_OFFSET = 12;
++	static constexpr size_t SHELLCODE_SIZE = 448;
++	static constexpr size_t RFORK_THREAD_ADDR_OFFSET = 2;
++	static constexpr size_t EXTRA_STUFF_ADDR_OFFSET = 12;
+ 
+ 	uint8_t shellcode[SHELLCODE_SIZE];
+ 
+-	void setExecveAddr(uintptr_t addr) noexcept {
+-		*reinterpret_cast<uintptr_t*>(shellcode + EXECVE_ADDR_OFFSET) = addr;
++	void setRforkThreadAddr(uintptr_t addr) noexcept {
++		*reinterpret_cast<uintptr_t*>(shellcode + RFORK_THREAD_ADDR_OFFSET) = addr;
+ 	}
+ 
+-	void setNanosleepAddr(uintptr_t addr) noexcept {
+-		*reinterpret_cast<uintptr_t*>(shellcode + NANOSLEEP_ADDR_OFFSET) = addr;
++	void setExtraStuffAddr(uintptr_t addr) noexcept {
++		*reinterpret_cast<uintptr_t*>(shellcode + EXTRA_STUFF_ADDR_OFFSET) = addr;
+ 	}
+ };
+ 
+ // insert 0x48, 0xb9, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+ 
+ static constexpr ShellcodeBuilder BUILDER_TEMPLATE{{
+-	0x48, 0xb9, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // MOV RCX, execve
+-	0x49, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // MOV R8, _nanosleep
+-    0x55, 0x41, 0x57, 0x41, 0x56, 0x41, 0x55, 0x41, 0x54, 0x53, 0x48, 0x83, 0xec, 0x28, 0x48, 0x89,
+-    0x4c, 0x24, 0x20, 0x48, 0xc7, 0x04, 0x24, 0x00, 0x00, 0x00, 0x00, 0x48, 0xc7, 0x44, 0x24, 0x08,
+-    0x00, 0xc2, 0xeb, 0x0b, 0x48, 0xc7, 0x44, 0x24, 0x10, 0x00, 0x00, 0x00, 0x00, 0x48, 0xc7, 0x44,
+-    0x24, 0x18, 0x00, 0x00, 0x00, 0x00, 0x49, 0x89, 0xd6, 0x49, 0x89, 0xf7, 0x49, 0x89, 0xfd, 0x48,
+-    0x83, 0x7c, 0x24, 0x08, 0x00, 0x7e, 0x41, 0x4d, 0x89, 0xc4, 0x48, 0x89, 0xe5, 0x48, 0x8d, 0x5c,
+-    0x24, 0x10, 0x66, 0x66, 0x66, 0x66, 0x66, 0x2e, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00,
+-    0x48, 0x89, 0xef, 0x48, 0x89, 0xde, 0x41, 0xff, 0xd4, 0x85, 0xc0, 0x74, 0x1b, 0x48, 0x8b, 0x44,
+-    0x24, 0x18, 0x48, 0x89, 0x44, 0x24, 0x08, 0x48, 0xc7, 0x44, 0x24, 0x18, 0x00, 0x00, 0x00, 0x00,
+-    0x48, 0x83, 0x7c, 0x24, 0x08, 0x00, 0x7f, 0xd8, 0x4c, 0x89, 0xef, 0x4c, 0x89, 0xfe, 0x4c, 0x89,
+-    0xf2, 0xff, 0x54, 0x24, 0x20, 0x48, 0x83, 0xc4, 0x28, 0x5b, 0x41, 0x5c, 0x41, 0x5d, 0x41, 0x5e,
+-    0x41, 0x5f, 0x5d, 0xc3
++	0x48, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // MOV rfork_thread, R8
++	0x49, 0xb9, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // MOV &stuff, R9
++	0x55, 0x41, 0x57, 0x41, 0x56, 0x41, 0x55, 0x41, 0x54, 0x53, 0x48, 0x83, 0xec, 0x48, 0x48, 0x8b,
++    0x01, 0x49, 0x89, 0xcf, 0x49, 0x89, 0xd6, 0x49, 0x89, 0xf4, 0x89, 0xfd, 0x81, 0x78, 0x10, 0x42,
++    0x52, 0x45, 0x57, 0x75, 0x59, 0x45, 0x8b, 0x29, 0x4c, 0x89, 0xcb, 0x4c, 0x89, 0x44, 0x24, 0x20,
++    0x41, 0x83, 0xfd, 0xff, 0x74, 0x6a, 0x48, 0x8d, 0x74, 0x24, 0x04, 0xba, 0x04, 0x00, 0x00, 0x00,
++    0x44, 0x89, 0xef, 0xc7, 0x44, 0x24, 0x04, 0x00, 0x00, 0x00, 0x00, 0xff, 0x53, 0x38, 0x48, 0x83,
++    0xf8, 0xff, 0x74, 0x46, 0x48, 0x8d, 0x74, 0x24, 0x04, 0xba, 0x04, 0x00, 0x00, 0x00, 0x44, 0x89,
++    0xef, 0xff, 0x53, 0x30, 0x48, 0x83, 0xf8, 0xff, 0x0f, 0x84, 0x0e, 0x01, 0x00, 0x00, 0x83, 0x7c,
++    0x24, 0x04, 0x01, 0x0f, 0x84, 0xb0, 0x00, 0x00, 0x00, 0xe9, 0xfe, 0x00, 0x00, 0x00, 0x89, 0xef,
++    0x4c, 0x89, 0xe6, 0x4c, 0x89, 0xf2, 0x4c, 0x89, 0xf9, 0x48, 0x83, 0xc4, 0x48, 0x5b, 0x41, 0x5c,
++    0x41, 0x5d, 0x41, 0x5e, 0x41, 0x5f, 0x5d, 0x41, 0xff, 0xe0, 0x44, 0x89, 0xef, 0xff, 0x53, 0x20,
++    0xbf, 0x02, 0x00, 0x00, 0x00, 0xbe, 0x01, 0x00, 0x00, 0x00, 0x31, 0xd2, 0xff, 0x53, 0x18, 0x89,
++    0x03, 0x83, 0xf8, 0xff, 0x0f, 0x84, 0xb5, 0x00, 0x00, 0x00, 0x48, 0x8d, 0x4c, 0x24, 0x28, 0x89,
++    0xc7, 0xbe, 0xff, 0xff, 0x00, 0x00, 0xba, 0x05, 0x10, 0x00, 0x00, 0x41, 0xb8, 0x10, 0x00, 0x00,
++    0x00, 0x48, 0xc7, 0x44, 0x24, 0x28, 0x00, 0x00, 0x00, 0x00, 0x41, 0x89, 0xc5, 0x48, 0xc7, 0x44,
++    0x24, 0x30, 0xc8, 0x00, 0x00, 0x00, 0xff, 0x53, 0x40, 0x83, 0xf8, 0xff, 0x0f, 0x84, 0x8a, 0x00,
++    0x00, 0x00, 0x48, 0x8d, 0x74, 0x24, 0x08, 0x44, 0x89, 0xef, 0xba, 0x10, 0x00, 0x00, 0x00, 0xc6,
++    0x44, 0x24, 0x08, 0x10, 0xc6, 0x44, 0x24, 0x09, 0x02, 0x66, 0xc7, 0x44, 0x24, 0x0a, 0x27, 0x0f,
++    0xc7, 0x44, 0x24, 0x0c, 0x7f, 0x00, 0x00, 0x01, 0x48, 0xc7, 0x44, 0x24, 0x10, 0x00, 0x00, 0x00,
++    0x00, 0xff, 0x53, 0x28, 0x83, 0xf8, 0xff, 0x74, 0x53, 0x48, 0x8b, 0x53, 0x08, 0x89, 0xef, 0x4c,
++    0x89, 0xe6, 0x4c, 0x89, 0xf9, 0x4c, 0x89, 0x74, 0x24, 0x18, 0xff, 0x54, 0x24, 0x20, 0x83, 0xf8,
++    0xff, 0x74, 0x34, 0xc7, 0x44, 0x24, 0x38, 0x01, 0x00, 0x00, 0x00, 0x41, 0x89, 0xc6, 0x48, 0x8d,
++    0x74, 0x24, 0x38, 0xba, 0x10, 0x00, 0x00, 0x00, 0x44, 0x89, 0xef, 0x48, 0x8b, 0x44, 0x24, 0x18,
++    0x48, 0x89, 0x44, 0x24, 0x40, 0x44, 0x89, 0x74, 0x24, 0x3c, 0xff, 0x53, 0x38, 0xeb, 0x2b, 0x41,
++    0xbd, 0xff, 0xff, 0xff, 0xff, 0xeb, 0x05, 0x4c, 0x8b, 0x74, 0x24, 0x18, 0x44, 0x89, 0xef, 0xff,
++    0x53, 0x20, 0x89, 0xef, 0x4c, 0x89, 0xe6, 0x4c, 0x89, 0xf2, 0x4c, 0x89, 0xf9, 0xc7, 0x03, 0xff,
++    0xff, 0xff, 0xff, 0xff, 0x54, 0x24, 0x20, 0x41, 0x89, 0xc6, 0x44, 0x89, 0xf0, 0x48, 0x83, 0xc4,
++    0x48, 0x5b, 0x41, 0x5c, 0x41, 0x5d, 0x41, 0x5e, 0x41, 0x5f, 0x5d, 0xc3
+ }};
+ 
+ // NOLINTEND(*)
+ 
+-struct Helper {
+-	UniquePtr<Hijacker> hijacker;
+-	uintptr_t pidAddr;
++struct ExtraStuff {
++	int sock;
++	uintptr_t inf_loop; // haha open prospero go brrrrrrr
++	uintptr_t func;
++	uintptr_t socket;
++	uintptr_t close;
++	uintptr_t connect;
++	uintptr_t _read;
++	uintptr_t _write;
++	uintptr_t setsockopt;
++
++	ExtraStuff(Hijacker &hijacker) noexcept :
++		sock(-1), inf_loop(0), func(0),
++		socket(hijacker.getLibKernelAddress(nid::socket)),
++		close(hijacker.getLibKernelAddress(nid::close)),
++		connect(hijacker.getLibKernelAddress(nid::connect)),
++		_read(hijacker.getLibKernelAddress(nid::_read)),
++		_write(hijacker.getLibKernelAddress(nid::_write)),
++		setsockopt(hijacker.getLibKernelAddress(nid::setsockopt)) {}
+ };
+ 
+-Helper patchSyscore() {
++UniquePtr<Hijacker> patchSyscore() {
+ 	puts("patching syscore execve");
+ 	auto hijacker = Hijacker::getHijacker("SceSysCore.elf"_sv);
+ 	if (hijacker == nullptr) {
+ 		puts("failed to get SceSysCore.elf");
+-		return {nullptr, 0};
++		return nullptr;
+ 	}
+ 	uintptr_t code = hijacker->getTextAllocator().allocate(ShellcodeBuilder::SHELLCODE_SIZE);
+ 	//static constexpr Nid printfNid{"hcuQgD53UxM"};
+ 	//static constexpr Nid amd64_set_fsbaseNid{"3SVaehJvYFk"};
+-	auto execve = hijacker->getLibKernelFunctionAddress(nid::execve);
+-	if (execve == 0) {
+-		puts("failed to locate execve");
+-		return {nullptr, 0};
+-	}
+-	auto _nanosleep = hijacker->getLibKernelFunctionAddress(nid::_nanosleep);
+-	if (_nanosleep == 0) {
+-		puts("failed to locate execve");
+-		return {nullptr, 0};
++	auto rfork_thread = hijacker->getLibKernelFunctionAddress(nid::rfork_thread);
++	if (rfork_thread == 0) {
++		puts("failed to locate rfork_thread");
++		return nullptr;
+ 	}
++	auto stuffAddr = hijacker->getDataAllocator().allocate(sizeof(ExtraStuff));
+ 	auto meta = hijacker->getEboot()->getMetaData();
+ 	const auto &plttab = meta->getPltTable();
+-	auto index = meta->getSymbolTable().getSymbolIndex(nid::execve);
++	auto index = meta->getSymbolTable().getSymbolIndex(nid::rfork_thread);
+ 	if (index == -1) {
+-		puts("execve import not found");
+-		return {nullptr, 0};
++		puts("rfork_thread import not found");
++		return nullptr;
+ 	}
+ 	for (const auto &plt : plttab) {
+ 		if (ELF64_R_SYM(plt.r_info) == index) {
+ 			ShellcodeBuilder builder = BUILDER_TEMPLATE;
+-			builder.setExecveAddr(execve);
+-			builder.setNanosleepAddr(_nanosleep);
++			ExtraStuff stuff{*hijacker};
++			builder.setRforkThreadAddr(rfork_thread);
++			builder.setExtraStuffAddr(stuffAddr);
+ 			hijacker->write(code, builder.shellcode);
++			hijacker->write(stuffAddr, stuff);
++
+ 			uintptr_t addr = hijacker->getEboot()->imagebase() + plt.r_offset;
++
++			// write the hook
+ 			hijacker->write<uintptr_t>(addr, code);
+-			return {(UniquePtr<Hijacker>&&)hijacker, 0};
++			return hijacker.release();
+ 		}
+ 	}
+-	return {nullptr, 0};
++	return nullptr;
+ }
+ 
+ extern "C" int sceUserServiceGetForegroundUser(uint32_t *userId);
+@@ -422,44 +456,13 @@ struct LaunchArgs {
+ 	int *appId;
+ };
+ 
+-static void *doLaunchApp(void *ptr) {
+-	UniquePtr<LaunchArgs> args = reinterpret_cast<LaunchArgs*>(ptr);
+-	Flag flag = Flag_None;
+-	LncAppParam param{sizeof(LncAppParam), args->id, 0, 0, flag};
+-	using ftype = int (*)(const char* tid, const char* argv[], LncAppParam* param);
+-	int (*sceLncUtilLaunchApp)(const char* tid, const char* argv[], LncAppParam* param) = reinterpret_cast<ftype>(getSceLncUtilLaunchApp());
+-	if (sceLncUtilLaunchApp == nullptr) {
+-		puts("failed to get address of sceLncUtilLaunchApp");
+-		return nullptr;
+-	}
+-	puts("calling sceLncUtilLaunchApp");
+-	int err = sceLncUtilLaunchApp(args->titleId, nullptr, &param);
+-	*args->appId = err;
+-	printf("sceLncUtilLaunchApp returned 0x%llx\n", (uint32_t)err);
+-	if (err >= 0) {
+-		return nullptr;
+-	}
+-	switch((uint32_t) err) {
+-		case SCE_LNC_UTIL_ERROR_ALREADY_RUNNING:
+-			printf("app %s is already running\n", args->titleId);
+-			break;
+-		case SCE_LNC_ERROR_APP_NOT_FOUND:
+-			printf("app %s not found\n", args->titleId);
+-			break;
+-		default:
+-			printf("unknown error 0x%llx\n", (uint32_t) err);
+-			break;
+-	}
+-	return nullptr;
+-}
+-
+-static pthread_t launchApp(const char *titleId, int *appId) {
++static bool launchApp(const char *titleId, int *appId) {
+ 	puts("launching app");
+ 	uint32_t id = -1;
+ 	uint32_t libUserService = getLibUserService();
+ 	printf("libUserService 0x%08lx\n", libUserService);
+ 	if (libUserService == 0) {
+-		return nullptr;
++		return false;
+ 	}
+ 	static constexpr auto DEFAULT_PRIORITY = 256;
+ 	int priority = DEFAULT_PRIORITY;
+@@ -467,19 +470,19 @@ static pthread_t launchApp(const char *titleId, int *appId) {
+ 	sceKernelDlsym(libUserService, "sceUserServiceInitialize", reinterpret_cast<void**>(&sceUserServiceInitialize));
+ 	if (sceUserServiceInitialize == nullptr) {
+ 		puts("failed to resolve sceUserServiceInitialize");
+-		return nullptr;
++		return false;
+ 	}
+ 	sceUserServiceInitialize(&priority);
+ 	uint32_t (*sceUserServiceGetForegroundUser)(uint32_t *) = nullptr;
+ 	sceKernelDlsym(libUserService, "sceUserServiceGetForegroundUser", reinterpret_cast<void**>(&sceUserServiceGetForegroundUser));
+ 	if (sceUserServiceGetForegroundUser == nullptr) {
+ 		puts("failed to resolve sceUserServiceGetForegroundUser");
+-		return nullptr;
++		return false;
+ 	}
+ 	uint32_t res = sceUserServiceGetForegroundUser(&id);
+ 	if (res != 0) {
+ 		printf("sceUserServiceGetForegroundUser failed: 0x%llx\n", res);
+-		return nullptr;
++		return false;
+ 	}
+ 	printf("user id %u\n", id);
+ 
+@@ -487,10 +490,33 @@ static pthread_t launchApp(const char *titleId, int *appId) {
+ 	printf("libSystemService 0x%08lx\n", libSystemService);
+ 
+ 	// the thread will clean this up
+-	LaunchArgs *args = new LaunchArgs{titleId, id, appId}; // NOLINT(*)
+-	pthread_t td = nullptr;
+-	pthread_create(&td, nullptr, doLaunchApp, args);
+-	return td;
++	Flag flag = Flag_None;
++	LncAppParam param{sizeof(LncAppParam), id, 0, 0, flag};
++	using ftype = int (*)(const char* tid, const char* argv[], LncAppParam* param);
++	int (*sceLncUtilLaunchApp)(const char* tid, const char* argv[], LncAppParam* param) = reinterpret_cast<ftype>(getSceLncUtilLaunchApp());
++	if (sceLncUtilLaunchApp == nullptr) {
++		puts("failed to get address of sceLncUtilLaunchApp");
++		return false;
++	}
++	puts("calling sceLncUtilLaunchApp");
++	int err = sceLncUtilLaunchApp(titleId, nullptr, &param);
++	*appId = err;
++	printf("sceLncUtilLaunchApp returned 0x%llx\n", (uint32_t)err);
++	if (err >= 0) {
++		return true;
++	}
++	switch((uint32_t) err) {
++		case SCE_LNC_UTIL_ERROR_ALREADY_RUNNING:
++			printf("app %s is already running\n", titleId);
++			break;
++		case SCE_LNC_ERROR_APP_NOT_FOUND:
++			printf("app %s not found\n", titleId);
++			break;
++		default:
++			printf("unknown error 0x%llx\n", (uint32_t) err);
++			break;
++	}
++	return false;
+ }
+ 
+ static constexpr uintptr_t ENTRYPOINT_OFFSET = 0x70;
+@@ -541,6 +567,113 @@ extern "C" int _write(int fd, const void *, size_t);
+ 
+ bool makeHomebrewApp();
+ 
++struct Helper {
++	uintptr_t nanosleepOffset;
++	UniquePtr<Hijacker> spawned;
++};
++
++static void *hookThread(void *args) noexcept {
++	static constexpr uint16_t HOOK_PORT = 9999;
++	static constexpr uint32_t LOCALHOST = 0x100007f;
++	static constexpr int PING =  0;
++	static constexpr int PROCESS_LAUNCHED = 1;
++
++	Helper *helper = reinterpret_cast<Helper *>(args);
++
++	int serverSock = socket(AF_INET, SOCK_STREAM, 0);
++	if (serverSock == -1) {
++		return nullptr;
++	}
++
++	int value = 1;
++	if (setsockopt(serverSock, SOL_SOCKET, SO_REUSEADDR, &value, sizeof(int)) == -1) {
++		return nullptr;
++	}
++
++	struct sockaddr_in server_addr{0, AF_INET, htons(HOOK_PORT), {.s_addr = LOCALHOST}, {}};
++
++	if (bind(serverSock, reinterpret_cast<struct sockaddr*>(&server_addr), sizeof(sockaddr_in)) == -1) {
++		return nullptr;
++	}
++
++	if (listen(serverSock, 1) == -1) {
++		return nullptr;
++	}
++
++	struct sockaddr client_addr{};
++	socklen_t addr_len = sizeof(client_addr);
++	FileDescriptor fd = accept(serverSock, &client_addr, &addr_len);
++
++	struct result {
++		int cmd;
++		int pid;
++		uintptr_t func;
++	} res{};
++
++	if (_read(fd, &res, sizeof(res)) == -1) {
++		return nullptr;
++	}
++
++	if (res.cmd == PING) {
++		int reply = 1;
++		if (_write(fd, &reply, sizeof(reply)) == -1) {
++			return nullptr;
++		}
++		if (_read(fd, &res, sizeof(res)) == -1) {
++			return nullptr;
++		}
++	}
++
++	if (res.cmd != PROCESS_LAUNCHED) {
++		return nullptr;
++	}
++
++	// close it so it can be opened in the spawned daemon
++	close(fd);
++
++	LoopBuilder loop = SLEEP_LOOP;
++	const int pid = res.pid;
++
++	dbg::Tracer tracer{pid};
++	auto regs = tracer.getRegisters();
++	regs.rip(res.func);
++	tracer.setRegisters(regs);
++
++	// run until execve completion
++	tracer.run();
++
++	while (helper->spawned == nullptr) {
++		// this should grab it first try but I haven't confirmed yet
++		helper->spawned = Hijacker::getHijacker(pid);
++	}
++
++	printf("libkernel imagebase: 0x%08llx\n", helper->spawned->getLibKernelBase());
++
++	puts("spawned process obtained");
++
++	puts("success");
++
++	uintptr_t base = 0;
++	while (base == 0) {
++		// this should also work first try but not confirmed
++		base = helper->spawned->getLibKernelBase();
++	}
++
++	const uintptr_t rsp = helper->spawned->getDataAllocator().allocate(8);
++	loop.setStackPointer(rsp);
++	loop.setTarget(base + helper->nanosleepOffset);
++	base = helper->spawned->imagebase();
++	helper->spawned->pSavedRsp = rsp;
++
++	// force the entrypoint to an infinite loop so that it doesn't start until we're ready
++	dbg::write(pid, base + ENTRYPOINT_OFFSET, loop.data, sizeof(loop.data));
++
++	puts("finished");
++	printf("spawned imagebase 0x%08llx\n", base);
++
++	return nullptr;
++}
++
+ extern "C" int main() {
+ 	Stdout dummy{};
+ 	//ptrace(PT_ATTACH, pid, 0, 0);
+@@ -555,76 +688,29 @@ extern "C" int main() {
+ 		return 0;
+ 	}
+ 
+-	LoopBuilder loop = SLEEP_LOOP;
+-
+ 	uint8_t qaflags[QAFLAGS_SIZE];
+ 	kread<QAFLAGS_SIZE>(kernel_base + offsets::qa_flags(), qaflags);
+ 	qaflags[1] |= 1 | 2;
+ 	kwrite<QAFLAGS_SIZE>(kernel_base + offsets::qa_flags(), qaflags);
+ 
+ 	auto syscore = patchSyscore();
+-	const uintptr_t nanosleepOffset = getNanosleepOffset(*syscore.hijacker);
++	const uintptr_t nanosleepOffset = getNanosleepOffset(*syscore);
+ 	//puts("spawning daemon");
+ 
+-	const int lastPid = dbg::getAllPids()[0];
++	Helper helper{nanosleepOffset, nullptr};
++	pthread_t td = nullptr;
++	pthread_create(&td, nullptr, hookThread, &helper);
+ 
+ 	int appId = 0;
+-	pthread_t td = launchApp("BREW00000", &appId);
+-	if (td == nullptr) {
+-		puts("failed to start thread");
++	if (!launchApp("BREW00000", &appId)) {
++		// we're screwed
+ 		return 0;
+ 	}
+ 
+-	puts("waiting for new process to spawn");
+-
+-	// get the pid of the new process as soon as it is created
+-	int pid = lastPid;
+-	while (pid == lastPid) {
+-		usleep(1000); // NOLINT(*)
+-		pid = dbg::getAllPids()[0];
+-	}
+-
+-	UniquePtr<Hijacker> spawned = nullptr;
+-	{
+-		// attach to the new process
+-		dbg::Tracer tracer{pid};
+-
+-		// run until execve finishes and sends the signal
+-		tracer.run();
+-
+-		while (spawned == nullptr) {
+-			// this should grab it first try but I haven't confirmed yet
+-			spawned = Hijacker::getHijacker(pid);
+-		}
+-
+-		printf("libkernel imagebase: 0x%08llx\n", spawned->getLibKernelBase());
+-
+-		puts("spawned process obtained");
+-
+-		puts("success");
+-
+-		uintptr_t base = 0;
+-		while (base == 0) {
+-			// this should also work first try but not confirmed
+-			base = spawned->getLibKernelBase();
+-		}
+-
+-		const uintptr_t rsp = spawned->getDataAllocator().allocate(8);
+-		loop.setStackPointer(rsp);
+-		loop.setTarget(base + nanosleepOffset);
+-		base = spawned->imagebase();
+-		spawned->pSavedRsp = rsp;
+-
+-		// force the entrypoint to an infinite loop so that it doesn't start until we're ready
+-		dbg::write(pid, base + ENTRYPOINT_OFFSET, loop.data, sizeof(loop.data));
+-
+-		pthread_join(td, nullptr);
+-
+-		puts("finished");
+-		printf("spawned imagebase 0x%08llx\n", base);
+-	}
++	// the thread should have already completed
++	pthread_join(td, nullptr);
+ 
+-	if (!load(spawned)) {
++	if (!load(helper.spawned)) {
+ 		puts("failed to load elf into new process");
+ 		using ftype = uint32_t (*)(uint32_t);
+ 		auto sceLncUtilKillApp = (ftype) getSceLncUtilKillApp(); // NOLINT(*)
+diff --git a/test_elf/CMakeLists.txt b/test_elf/CMakeLists.txt
+index c4d3e27..b051db9 100644
+--- a/test_elf/CMakeLists.txt
++++ b/test_elf/CMakeLists.txt
+@@ -70,8 +70,6 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0")
+ 
+ target_sources(${PROJECT_NAME} PRIVATE ${SrcFiles})
+ target_link_directories	(${PROJECT_NAME} PUBLIC ${D_CWD} ${D_CWD}/../lib)
+-
+-target_link_libraries	(${PROJECT_NAME} PUBLIC ps5sdk_crt SceLibcInternal kernel_sys)
+-set(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=lld -Xlinker -pie -Xlinker --gc-sections -Xlinker -zmax-page-size=16384 -Xlinker -zcommon-page-size=16384 -Xlinker -T ${CMAKE_CURRENT_SOURCE_DIR}/linker.x -Wl,--build-id=none -Wl,-z,norelro")
+-set (CMAKE_C_LINKER_WRAPPER_FLAG "-Xlinker" " ")
++target_link_libraries	(${PROJECT_NAME} PUBLIC ps5sdk_crt SceLibcInternal kernel)
++set(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=lld -Xlinker -pie -Xlinker -zmax-page-size=16384 -Xlinker -zcommon-page-size=16384 -Xlinker -T ${D_CWD}/linker.x -Wl,--build-id=none -Wl,-z,norelro")
+ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)

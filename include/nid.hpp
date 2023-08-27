@@ -64,8 +64,9 @@ static inline constexpr Nid execve{"kdguLiAheLI"};
 static inline constexpr Nid _nanosleep{"NhpspxdjEKU"};
 static inline constexpr Nid close{"bY-PO6JhzhQ"};
 static inline constexpr Nid connect{"XVL8So3QJUk"};
-static inline constexpr Nid _read{"DRuBt2pvICk"};
-static inline constexpr Nid _write{"FxVZqBAA7ks"};
+static inline constexpr Nid send{"fZOeZIOEmLw"};
+static inline constexpr Nid recv{"Ez8xjo9UF4E"};
 static inline constexpr Nid rfork_thread{"bSDxEpGzmUE"};
-static inline constexpr Nid _open{"1G3lF1Gg1k8"};
+static inline constexpr Nid sceKernelSendNotificationRequest{"zl7hupSO0C0"};
+static inline constexpr Nid printf{"hcuQgD53UxM"};
 }
