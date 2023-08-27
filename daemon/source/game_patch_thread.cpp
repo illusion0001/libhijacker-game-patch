@@ -251,7 +251,7 @@ void *GamePatch_Thread(void *unused)
 				prevTogglePressed = currentTogglePressed;
 				if (checkKillButton(&pData))
 				{
-					//printf_notification("User requested exit for Game Patch thread.");
+					// printf_notification("User requested exit for Game Patch thread.");
 					g_game_patch_thread_running = false;
 					continue;
 				}
@@ -430,21 +430,6 @@ void *GamePatch_Thread(void *unused)
 						printf_notification("%s (%s): Debug Menu Patched!", app->titleId().c_str(), app_ver);
 						ResumeApp(app_pid);
 					}
-					else if ((startsWith(app->titleId().c_str(), "CUSA01399") ||
-							  startsWith(app->titleId().c_str(), "CUSA02320") ||
-							  startsWith(app->titleId().c_str(), "CUSA02343") ||
-							  startsWith(app->titleId().c_str(), "CUSA02344") ||
-							  startsWith(app->titleId().c_str(), "CUSA02826")) &&
-							 startsWith(app_ver, "01.00"))
-					{
-						SuspendApp(app_pid);
-						DoPatch_BigCollection_100(app_pid, text_base, 1);
-						target_running_pid = app_pid;
-						found_app = true;
-						fast_sleep_timer = true;
-						printf_notification("%s (%s): Debug Menu Patched!", app->titleId().c_str(), app_ver);
-						ResumeApp(app_pid);
-					}
 					else if ((startsWith(app->titleId().c_str(), "CUSA07820") ||
 							  startsWith(app->titleId().c_str(), "CUSA10249") ||
 							  startsWith(app->titleId().c_str(), "CUSA13986") ||
@@ -558,9 +543,24 @@ void *GamePatch_Thread(void *unused)
 				// multiple selfs
 				// this thread wait model is stinky
 				// big2
-				if (startsWith(p.name().c_str(), "big2-ps4_Shipping.elf") && text_base && !found_app)
+				if ((startsWith(app->titleId().c_str(), "CUSA01399") ||
+					 startsWith(app->titleId().c_str(), "CUSA02320") ||
+					 startsWith(app->titleId().c_str(), "CUSA02343") ||
+					 startsWith(app->titleId().c_str(), "CUSA02344") ||
+					 startsWith(app->titleId().c_str(), "CUSA02826")) &&
+					startsWith(app_ver, "01.00"))
 				{
-					if (startsWith(app->titleId().c_str(), "CUSA02320"))
+					if (startsWith(p.name().c_str(), "eboot.bin"))
+					{
+						SuspendApp(app_pid);
+						DoPatch_BigCollection_100(app_pid, text_base, 1);
+						target_running_pid = app_pid;
+						found_app = true;
+						fast_sleep_timer = true;
+						printf_notification("%s (%s): Debug Menu Patched!", app->titleId().c_str(), app_ver);
+						ResumeApp(app_pid);
+					}
+					else if (startsWith(p.name().c_str(), "big2-ps4_Shipping.elf"))
 					{
 						SuspendApp(app_pid);
 						DoPatch_BigCollection_100(app_pid, text_base, 2);
@@ -570,11 +570,8 @@ void *GamePatch_Thread(void *unused)
 						printf_notification("%s (%s): Debug Menu Patched!", app->titleId().c_str(), p.name().c_str());
 						ResumeApp(app_pid);
 					}
-				}
-				// big3
-				else if (startsWith(p.name().c_str(), "big3-ps4_Shipping.elf") && text_base && !found_app)
-				{
-					if (startsWith(app->titleId().c_str(), "CUSA02320"))
+					// big3
+					else if (startsWith(p.name().c_str(), "big3-ps4_Shipping.elf"))
 					{
 						SuspendApp(app_pid);
 						DoPatch_BigCollection_100(app_pid, text_base, 3);
@@ -588,7 +585,7 @@ void *GamePatch_Thread(void *unused)
 				if ((startsWith(app->titleId().c_str(), "CUSA04893") ||
 					 startsWith(app->titleId().c_str(), "CUSA05008") ||
 					 startsWith(app->titleId().c_str(), "CUSA05943")) &&
-					(startsWith(app_ver, "01.02")) && text_base && !found_app)
+					(startsWith(app_ver, "01.02")))
 				{
 					if (startsWith(p.name().c_str(), "eboot.bin"))
 					{
@@ -652,23 +649,9 @@ void *GamePatch_Thread(void *unused)
 				// eboot.bin games
 				if (startsWith(p.name().c_str(), "eboot.bin"))
 				{
-					if ((startsWith(app->titleId().c_str(), "PPSA05684") ||
-						 startsWith(app->titleId().c_str(), "PPSA05389") ||
-						 startsWith(app->titleId().c_str(), "PPSA05686") ||
-						 startsWith(app->titleId().c_str(), "PPSA05685")) &&
+					if ((startsWith(app->titleId().c_str(), "PPSA01341") ||
+						 startsWith(app->titleId().c_str(), "PPSA01342")) &&
 						(startsWith(app_ver, "01.000.000")))
-					{
-						SuspendApp(app_pid);
-						DoPatch_Big4R_100(app_pid, text_base, 1);
-						target_running_pid = app_pid;
-						found_app = true;
-						fast_sleep_timer = true;
-						printf_notification("%s (%s): Debug Menu Patched!", app->titleId().c_str(), app_ver);
-						ResumeApp(app_pid);
-					}
-					else if ((startsWith(app->titleId().c_str(), "PPSA01341") ||
-							  startsWith(app->titleId().c_str(), "PPSA01342")) &&
-							 (startsWith(app_ver, "01.000.000")))
 					{
 						SuspendApp(app_pid);
 						DoPatch_DemonSouls(app_pid, text_base, 0x100);
@@ -679,14 +662,24 @@ void *GamePatch_Thread(void *unused)
 						ResumeApp(app_pid);
 					}
 				}
-				// tll big4r
-				else if (startsWith(p.name().c_str(), "tllr-boot.bin") && text_base && !found_app)
+				if ((startsWith(app->titleId().c_str(), "PPSA05684") ||
+					 startsWith(app->titleId().c_str(), "PPSA05389") ||
+					 startsWith(app->titleId().c_str(), "PPSA05686") ||
+					 startsWith(app->titleId().c_str(), "PPSA05685")) &&
+					(startsWith(app_ver, "01.000.000")))
 				{
-					if ((startsWith(app->titleId().c_str(), "PPSA05684") ||
-						 startsWith(app->titleId().c_str(), "PPSA05389") ||
-						 startsWith(app->titleId().c_str(), "PPSA05686") ||
-						 startsWith(app->titleId().c_str(), "PPSA05685")) &&
-						(startsWith(app_ver, "01.000.000")))
+					if (startsWith(p.name().c_str(), "eboot.bin"))
+					{
+						SuspendApp(app_pid);
+						DoPatch_Big4R_100(app_pid, text_base, 1);
+						target_running_pid = app_pid;
+						found_app = true;
+						fast_sleep_timer = true;
+						printf_notification("%s (%s): Debug Menu Patched!", app->titleId().c_str(), app_ver);
+						ResumeApp(app_pid);
+					}
+					// tll big4r
+					else if (startsWith(p.name().c_str(), "tllr-boot.bin"))
 					{
 						SuspendApp(app_pid);
 						DoPatch_Big4R_100(app_pid, text_base, 2);
