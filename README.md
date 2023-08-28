@@ -39,6 +39,7 @@ pip install aiofiles
 
 - Batman: Arkham Knight v1.15: 60 FPS
 - Bloodborne v1.09: 60 FPS by Lance McDonald
+  - Notes: You may encounter softlock during Laurence (optional DLC boss) cinematic. Disable patch to progress.
   - Also includes:
     - No Motion Blur
     - No Chromatic Aberration
@@ -46,7 +47,12 @@ pip install aiofiles
 - Crash Team Racing v1.21: 60 FPS
 - Driveclub v1.28: 60 FPS
 - Gravity Rush 2 v1.11: 60 FPS
+  - Notes: There are some sections where game may softlock.
+  - Implemented button combos:
+  - L3 + Cross (X): Cycle through framerate modes.
+  - R3 + Square: Toggle Replace All Text with Level Names (Debug).
 - The Order 1886: v1.02: 60 FPS
+  - Notes: Softlocks will occur in Chapter 6 and 9 during Quick Time Events. Disable patch to progress.
 - The Last Guardian v1.03: 4K at 60FPS 
 - The Last of Us Remastered 60 FPS + Debug Menu (v1.11)
 - The Last of Us Part 2 60 FPS + Debug Menu (v1.00 + v1.09)
