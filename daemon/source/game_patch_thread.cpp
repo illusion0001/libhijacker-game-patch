@@ -341,16 +341,28 @@ void *GamePatch_Thread(void *unused)
 					}
 					else if ((startsWith(app->titleId().c_str(), "CUSA03041") ||
 							  startsWith(app->titleId().c_str(), "CUSA08519") ||
-							  startsWith(app->titleId().c_str(), "CUSA08568")) &&
-							 (startsWith(app_ver, "01.29")))
+							  startsWith(app->titleId().c_str(), "CUSA08568")))
 					{
-						SuspendApp(app_pid);
-						DoPatch_RDR2_129(app_pid, text_base);
-						target_running_pid = app_pid;
-						found_app = true;
-						fast_sleep_timer = false;
-						printf_notification("%s (%s): 60 FPS Patched!", app->titleId().c_str(), app_ver);
-						ResumeApp(app_pid);
+						if (startsWith(app_ver, "01.00"))
+						{
+							SuspendApp(app_pid);
+							write_bytes(app_pid, NO_ASLR(0x04a8ee1d), "be00000000");
+							target_running_pid = app_pid;
+							found_app = true;
+							fast_sleep_timer = false;
+							printf_notification("%s (%s): 60 FPS Patched!", app->titleId().c_str(), app_ver);
+							ResumeApp(app_pid);
+						}
+						else if (startsWith(app_ver, "01.29"))
+						{
+							SuspendApp(app_pid);
+							write_bytes(app_pid, NO_ASLR(0x0578ab57), "be00000000");
+							target_running_pid = app_pid;
+							found_app = true;
+							fast_sleep_timer = false;
+							printf_notification("%s (%s): 60 FPS Patched!", app->titleId().c_str(), app_ver);
+							ResumeApp(app_pid);
+						}
 					}
 					else if ((startsWith(app->titleId().c_str(), "CUSA00035") ||
 							  startsWith(app->titleId().c_str(), "CUSA00070") ||
