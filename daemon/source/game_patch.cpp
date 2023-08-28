@@ -1300,11 +1300,6 @@ void DoPatch_GravityDaze2_111(pid_t app_pid, u64 text_base)
 	write_bytes(app_pid, NO_ASLR(0x01832f1b), "c3");
 }
 
-void DoPatch_RDR2_129(pid_t app_pid, u64 text_base)
-{
-	write_bytes(app_pid, NO_ASLR(0x0578ab57), "be00000000");
-}
-
 void DoPatch_SOTC_100(pid_t app_pid, u64 text_base)
 {
 	write_bytes(app_pid, NO_ASLR(0x0042437f), "0f1f440000");

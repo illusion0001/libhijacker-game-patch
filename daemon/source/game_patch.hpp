@@ -2,7 +2,6 @@
 
 void DoPatch_Bloodborne109(pid_t app_pid, u64 text_base);
 void DoPatch_GravityDaze2_111(pid_t app_pid, u64 text_base);
-void DoPatch_RDR2_129(pid_t app_pid, u64 text_base);
 void DoPatch_SOTC_100(pid_t app_pid, u64 text_base);
 void DoPatch_BigCollection_100(pid_t app_pid, u64 text_base, u32 idx);
 void DoPatch_TheOrder1886_102(pid_t app_pid, u64 text_base);
