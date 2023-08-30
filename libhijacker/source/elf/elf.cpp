@@ -390,6 +390,8 @@ static inline size_t pageAlign(size_t length) {
 static constexpr int PROT_READ = 1;
 static constexpr int PROT_WRITE = 2;
 static constexpr int PROT_EXEC = 4;
+static constexpr int PROT_GPU_READ = 0x10;
+static constexpr int PROT_GPU_WRITE = 0x20;
 
 static bool loadLibrariesInplace(Hijacker &hijacker, const Array<String> &names, Array<SymbolLookupTable> &libs, const size_t reserved) noexcept {
 	for (const auto &name : names) {
@@ -516,10 +518,10 @@ static inline int toMmapProt(const Elf64_Phdr *__restrict phdr) noexcept {
 		res |= PROT_EXEC;
 	}
 	if (phdr->p_flags & PF_R) [[likely]] {
-		res |= PROT_READ;
+		res |= PROT_READ | PROT_GPU_READ;
 	}
 	if (phdr->p_flags & PF_W) {
-		res |= PROT_WRITE;
+		res |= PROT_WRITE | PROT_GPU_WRITE;
 	}
 	return res;
 }
@@ -567,8 +569,8 @@ bool Elf::processProgramHeaders() noexcept {
 		tracer.munmap(mem, totalSize);
 	}
 
-	int fd = inplace ? jitshm_create(0, textLength, PROT_READ | PROT_WRITE | PROT_EXEC) :
-		tracer.jitshm_create(0, textLength, PROT_READ | PROT_WRITE | PROT_EXEC);
+	int fd = inplace ? jitshm_create(0, textLength, PROT_READ | PROT_WRITE | PROT_EXEC | PROT_GPU_READ) :
+		tracer.jitshm_create(0, textLength, PROT_READ | PROT_WRITE | PROT_EXEC | PROT_GPU_READ);
 	if (fd < 0) [[unlikely]] {
 		tracer.perror("mmap Elf::processProgramHeaders Tracer::jitshm_create");
 		return false;
