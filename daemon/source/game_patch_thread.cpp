@@ -524,8 +524,8 @@ void *GamePatch_Thread(void *unused)
 						SuspendApp(app_pid);
 						// 60 FPS
 						write_bytes(app_pid, NO_ASLR(0x009fa57e), "be00000000");
-						write_bytes(app_pid, NO_ASLR(0x009fb766), "41bc04000000");
-						write_bytes(app_pid, NO_ASLR(0x009fb9e1), "0f85a9000000");
+						write_bytes(app_pid, NO_ASLR(0x009fa596), "b800000000"); // vsync
+						write_bytes(app_pid, NO_ASLR(0x009fb9e1), "48e9a9000000"); // no GUseFixedTimeStep
 						target_running_pid = app_pid;
 						found_app = true;
 						fast_sleep_timer = false;
