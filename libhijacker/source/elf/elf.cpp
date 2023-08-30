@@ -528,12 +528,14 @@ bool Elf::processProgramHeaders() noexcept {
 	size_t textLength = 0;
 	size_t totalSize = 0;
 	size_t numLoadable = 0;
+	const Elf64_Phdr *__restrict text = nullptr;
 	for (auto i = 0; i < e_phnum; i++) {
 		const auto *__restrict phdr = phdrs + i;
 		if (isLoadable(phdr)) {
 			numLoadable++;
 			totalSize += pageAlign(phdr->p_memsz);
 			if (phdr->p_flags & PF_X) [[unlikely]] {
+				text = phdr;
 				textLength = pageAlign(phdr->p_memsz);
 				textOffset = phdr->p_offset;
 			}
@@ -576,9 +578,9 @@ bool Elf::processProgramHeaders() noexcept {
 		jitFd = fd;
 	}
 
-	// it's very picky with what it allows for jit
-	imagebase = inplace ? mmap(mem, textLength, PROT_EXEC, MAP_FIXED | MAP_SHARED, fd, 0) :
-		tracer.mmap(mem, textLength, PROT_EXEC, MAP_FIXED | MAP_SHARED, fd, 0);
+	const auto prot = toMmapProt(text);
+	imagebase = inplace ? mmap(mem, textLength, prot, MAP_FIXED | MAP_SHARED, fd, 0) :
+		tracer.mmap(mem, textLength, prot, MAP_FIXED | MAP_SHARED, fd, 0);
 	if (imagebase == MAP_FAILED) [[unlikely]] {
 		tracer.perror("mmap Elf::processProgramHeaders Tracer::mmap text");
 		return false;
