@@ -550,6 +550,25 @@ void *GamePatch_Thread(void *unused)
 						printf_notification("%s (%s): 60 FPS Patched!", app->titleId().c_str(), app_ver);
 						ResumeApp(app_pid);
 					}
+					else if ((startsWith(app->titleId().c_str(), "CUSA18097") ||
+							  startsWith(app->titleId().c_str(), "CUSA18100") || 
+							  startsWith(app->titleId().c_str(), "CUSA19278")) &&
+							 (startsWith(app_ver, "01.04")))
+					{
+						SuspendApp(app_pid);
+						// 60 FPS
+						write_bytes(app_pid, NO_ASLR(0x0312a29a), "418b7c240831f60f1f8000000000"); // fliprate
+						// write_bytes(app_pid, NO_ASLR(0x0311ea1b), "b801000000"); // use vsync on base ps4 // redundant?
+						write_bytes32(app_pid, NO_ASLR(0x045a1a10), 0x3c888889); // menu
+						write_bytes(app_pid, NO_ASLR(0x01be8ba9), "41c7471808000000660f1f4400000f1f8000000000"); // gameplay
+						write_bytes32(app_pid, NO_ASLR(0x045f6f28), 0); // logo movies
+						write_bytes32(app_pid, NO_ASLR(0x045f6f3d), 0);
+						target_running_pid = app_pid;
+						found_app = true;
+						fast_sleep_timer = false;
+						printf_notification("%s (%s): 60 FPS Patched!", app->titleId().c_str(), app_ver);
+						ResumeApp(app_pid);
+					}
 				}
 
 				// multiple selfs
