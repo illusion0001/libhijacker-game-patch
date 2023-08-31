@@ -60,6 +60,7 @@ pip install aiofiles
 - Shadow of the Colossus: 1440p at 60FPS + Debug Menu
 - Silent Hills: P.T at 60FPS
 - Red Dead Redemption 2 v1.29: 60FPS
+- Mafia Definitive Edition v1.04: 60 FPS + Skip logo movies
 
 ## PS5
 
