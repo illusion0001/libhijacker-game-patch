@@ -113,10 +113,6 @@ static bool runElf(Hijacker *hijacker) {
 }
 
 static bool load(UniquePtr<Hijacker> &redis) {
-	puts("getting saved stack pointer");
-	while (redis->getSavedRsp() == 0) {
-		usleep(1);
-	}
 	puts("setting process name");
 	redis->getProc()->setName("HomebrewDaemon"_sv);
 	__builtin_printf("new process %s pid %d\n", redis->getProc()->getSelfInfo()->name, redis->getPid());
@@ -586,23 +582,15 @@ static constexpr uintptr_t ENTRYPOINT_OFFSET = 0x70;
 
 struct LoopBuilder {
 	static constexpr size_t LOOB_BUILDER_SIZE = 39;
-	static constexpr size_t LOOP_BUILDER_TARGET_OFFSET = 11;
-	static constexpr size_t LOOP_BUILDER_STACK_PTR_OFFSET = 5;
+	static constexpr size_t LOOP_BUILDER_TARGET_OFFSET = 2;
 	uint8_t data[LOOB_BUILDER_SIZE];
 
 	void setTarget(uintptr_t addr) {
 		*reinterpret_cast<uintptr_t *>(data + LOOP_BUILDER_TARGET_OFFSET) = addr;
 	}
-	void setStackPointer(uintptr_t addr) {
-		*reinterpret_cast<uint32_t *>(data + LOOP_BUILDER_STACK_PTR_OFFSET) = (uint32_t)addr;
-	}
 };
 
 static inline constexpr LoopBuilder SLEEP_LOOP{
-	// 67 48 89 24 25 xx xx xx xx
-	// MOV [SAVED_STACK_POINTER], RSP
-	0x67, 0x48, 0x89, 0x24, 0x25, 0x00, 0x00, 0x00, 0x00,
-
 	// // 48 b8 xx xx xx xx xx xx xx xx 48 c7 c7 40 42 0f 00 ff d0 eb eb
 	//loop:
 	//	MOV RAX, _nanosleep
@@ -807,11 +795,8 @@ static void *hookThread(void *args) noexcept {
 
 	puts("success");
 
-	const uintptr_t rsp = helper->spawned->getDataAllocator().allocate(8);
-	loop.setStackPointer(rsp);
 	loop.setTarget(base + helper->nanosleepOffset);
 	base = helper->spawned->imagebase();
-	helper->spawned->pSavedRsp = rsp;
 
 	// force the entrypoint to an infinite loop so that it doesn't start until we're ready
 	dbg::write(pid, base + ENTRYPOINT_OFFSET, loop.data, sizeof(loop.data));

@@ -22,9 +22,6 @@ class Hijacker {
 
 	private:
 		mutable UniquePtr<SharedLib> libkernel;
-	public:
-		uintptr_t pSavedRsp = 0;
-	private:
 		mutable int mainThreadId = -1;
 		bool isMainThreadRunning = true;
 
@@ -47,7 +44,7 @@ class Hijacker {
 			return meta ? meta->getMetaData() : nullptr;
 		}
 
-		public:
+	public:
 		uintptr_t getLibKernelBase() const {
 			RtldMeta *meta = getLibKernelMetaData();
 			return meta ? meta->imageBase : 0;
@@ -171,10 +168,6 @@ class Hijacker {
 		template <typename T>
 		ProcessPointer<T> getPointer(uintptr_t addr) const {
 			return {getPid(), addr};
-		}
-
-		uintptr_t getSavedRsp() const {
-			return *getPointer<uintptr_t>(pSavedRsp);
 		}
 
 		void hexdump(uintptr_t addr, size_t size) {

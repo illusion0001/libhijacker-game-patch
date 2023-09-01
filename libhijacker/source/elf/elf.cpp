@@ -1,3 +1,4 @@
+#include <stddef.h>
 #define _MMAP_DECLARED
 #include "dbg/dbg.hpp"
 #include "elfldr.hpp"
@@ -41,7 +42,9 @@ constexpr size_t NUM_PRELOADED_MODULES = 3;
 constexpr int LIBKERNEL_HANDLE = 0x2001;
 constexpr int LIBC_HANDLE = 2;
 //constexpr int LIBSYSMODULE_HANDLE = 0X11;
-constexpr size_t PAGE_ALIGN_MASK = PAGE_SIZE - 1;
+constexpr size_t _PAGE_SIZE = 0x4000; // PAGE_SIZE is a c macro set to 0x100000
+constexpr size_t PAGE_ALIGN_MASK = _PAGE_SIZE - 1;
+constexpr size_t STACK_ALIGN = 0x10;
 
 constexpr uint32_t MAP_SHARED   = 0x1;
 constexpr uint32_t MAP_PRIVATE   = 0x2;
@@ -718,7 +721,6 @@ uintptr_t Elf::setupKernelRW() noexcept {
 	auto newtbl = hijacker->getProc()->getFdTbl();
 	const uintptr_t pipeaddr = kread<uintptr_t>(newtbl.getFile(files[2]));
 
-	hijacker->pSavedRsp -= (sizeof(struct payload_args) + sizeof(int));
 	auto regs = tracer.getRegisters();
 	regs.rsp(regs.rsp() - sizeof(files));
 	const uintptr_t newFiles = regs.rsp();
@@ -803,6 +805,11 @@ bool Elf::launch() noexcept {
 	return start(args);
 }
 
+static void correctRsp(dbg::Registers &regs) noexcept {
+	constexpr auto mask = ~(STACK_ALIGN - 1);
+	regs.rsp((regs.rsp() & mask) - sizeof(mask));
+}
+
 bool Elf::start(uintptr_t args) noexcept {
 	if (hijacker->getPid() == getpid()) {
 		auto fun = reinterpret_cast<int(*)(uintptr_t)>(imagebase + e_entry); // NOLINT(*)
@@ -815,7 +822,7 @@ bool Elf::start(uintptr_t args) noexcept {
 	}
 	(void) args;
 	dbg::Registers regs = tracer.getRegisters();
-	//regs.rsp(hijacker->getSavedRsp()); this breaks it for some reason
+	correctRsp(regs);
 	printf("imagebase: 0x%08llx\n", imagebase);
 	regs.rdi(args);
 	regs.rip(imagebase + e_entry);
