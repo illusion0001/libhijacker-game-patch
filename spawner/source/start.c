@@ -106,6 +106,7 @@ int __attribute__ ((naked))	unlink(const char *path) {
 
 STUB(sceUserServiceGetForegroundUser)
 STUB(getpid)
+STUB(getppid)
 STUB(memset)
 STUB(putchar)
 STUB(memcpy)
@@ -176,6 +177,7 @@ void _start(struct payload_args *args) {
 	LIBKERNEL_LINK(accept);
 	LIBKERNEL_LINK(usleep);
 	LIBKERNEL_LINK(getpid);
+	LIBKERNEL_LINK(getppid);
 	LIBKERNEL_LINK(get_authinfo);
 	syscall_addr = (uintptr_t)f_get_authinfo + SYSCALL_OFFSET;
 

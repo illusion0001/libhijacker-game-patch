@@ -63,7 +63,7 @@ set(CMAKE_C_FLAGS "--target=x86_64-freebsd-pc-elf -march=znver2 -mavx2 -DPPR -DP
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_POSIX_SOURCE -D_POSIX_C_SOURCE=200112 -D__BSD_VISIBLE=1 -D__XSI_VISIBLE=500")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-builtin -nostdlib -Wall") #  -nostartfiles
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
-set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -DDEBUG -gfull -gdwarf-2 -O0 -march=znver2 -mavx2 -Wall -Wextra -Wmove -Wmost -Werror -pedantic -pedantic-errors -fno-exceptions")
+set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS}  -O3 -march=znver2 -mavx2 -Wall -Wextra -Wmove -Wmost -Werror -pedantic -pedantic-errors -fno-exceptions")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g0 -O0")
 target_include_directories(${PROJECT_NAME} PRIVATE "${D_CWD}/../include")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)

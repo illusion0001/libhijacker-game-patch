@@ -8,7 +8,7 @@
 
 // Maximum length of the sun_path field
 #define UNIX_PATH_MAX 104
-#define VERBOSE 1
+//#define VERBOSE 0
 
 typedef unsigned int sa_family_t;
 
@@ -131,16 +131,22 @@ static inline int __attribute__((always_inline)) reconnect(ExtraStuff *restrict 
 
 static inline int __attribute__((always_inline)) reconnect(ExtraStuff *restrict stuff) {
     volatile struct sockaddr_un server;
+	#ifdef VERBOSE
 	notify_request_t req;
+	#endif
 
 	volatile unsigned long long *str = (unsigned long long*)&server.sun_path[0];
+	#ifdef VERBOSE
 	volatile unsigned long long *msg = (unsigned long long*)&req.message[0];
+	#endif
 
     stuff->sock = stuff->socket(AF_UNIX, SOCK_STREAM, 0);
 	if (stuff->sock == -1) {
+		#ifdef VERBOSE
 		msg[0] = 0x662074656b636f73;
 		msg[1] = 0x00000064656c696100;
 		stuff->notifi(0, &req, sizeof(req), 0);
+		#endif
 		return -1;
 	}
 
@@ -153,10 +159,12 @@ static inline int __attribute__((always_inline)) reconnect(ExtraStuff *restrict 
 	str[1] = 0x004350492f706d74;  // Little-endian
 
     if (stuff->connect(stuff->sock, (void*)&server, SERVER_SIZE) == -1){
+		#ifdef VERBOSE
 		msg[0] = 0x697463656e6e6f63;
 		msg[1] = 0x656c69616620676e;
 		msg[2] = 0x000000000000006400;
 		stuff->notifi(0, &req, sizeof(req), 0);
+		#endif
 		stuff->close(stuff->sock);
 		stuff->sock = -1;
 		return -1;
@@ -245,7 +253,7 @@ static int __attribute__((used)) rfork_thread_hook(int flags, void *stack, func_
             #endif
 
 			if (reconnect(stuff) == -1) {
-				
+
  			    #ifdef VERBOSE
 				//str[0] = 0x63656e6e6f636572;
 				//str[1] = 0x64656c6961662074;
@@ -256,7 +264,7 @@ static int __attribute__((used)) rfork_thread_hook(int flags, void *stack, func_
 		} else {
 			int reply = 0;
 			if (stuff->recv(stuff->sock, &reply, sizeof(reply), MSG_NOSIGNAL) == -1) {
-				
+
 				#ifdef VERBOSE
                 str[0] = 0x6620312076636572;
                 str[1] = 0x00000064656c6961;
