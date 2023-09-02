@@ -92,7 +92,7 @@ static bool load(UniquePtr<Hijacker> &spawned, uint8_t *data) {
 	spawned->getProc()->setName("HomebrewDaemon"_sv);
 	__builtin_printf("new process %s pid %d\n", spawned->getProc()->getSelfInfo()->name, spawned->getPid());
 	puts("jailbreaking new process");
-	spawned->jailbreak();
+	spawned->jailbreak(false);
 
 	// listen on a port for now. in the future embed the daemon and load directly
 

@@ -117,7 +117,7 @@ class Hijacker {
 		}
 
 		UniquePtr<TrapFrame> getTrapFrame() const;
-		void jailbreak() const;
+		void jailbreak(bool escapeSandbox=true) const;
 		uintptr_t getFunctionAddress(const SharedLib *lib, const Nid &fname) const noexcept;
 
 		uintptr_t getLibKernelFunctionAddress(const Nid &fname) const {

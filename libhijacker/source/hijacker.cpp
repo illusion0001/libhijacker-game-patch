@@ -61,7 +61,7 @@ static inline void copyin(uintptr_t kdst, const void *src, size_t length) {
 	kernel_copyin(const_cast<void *>(src), kdst, length);
 }
 
-void Hijacker::jailbreak() const {
+void Hijacker::jailbreak(bool escapeSandbox) const {
 	auto p = getProc();
 	uintptr_t ucred = p->p_ucred();
 	uintptr_t fd = p->p_fd();
@@ -79,9 +79,11 @@ void Hijacker::jailbreak() const {
 	copyin(ucred + 0x10, &ngroups_store, 0x4);	  // cr_ngroups
 	copyin(ucred + 0x14, &uid_store, 0x4);		  // cr_rgid
 
-	// Escape sandbox
-	copyin(fd + 0x10, rootvnode_area_store.get(), 0x8);  // fd_rdir
-	copyin(fd + 0x18, rootvnode_area_store.get(), 0x8);  // fd_jdir
+	if (escapeSandbox) {
+		// Escape sandbox
+		copyin(fd + 0x10, rootvnode_area_store.get(), 0x8);  // fd_rdir
+		copyin(fd + 0x18, rootvnode_area_store.get(), 0x8);  // fd_jdir
+	}
 
 	// Escalate sony privileges
 	copyin(ucred + 0x58, &authid_store, 0x8);	 // cr_sceAuthID
