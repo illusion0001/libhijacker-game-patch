@@ -67,8 +67,6 @@ static inline constexpr Nid connect{"XVL8So3QJUk"};
 static inline constexpr Nid send{"fZOeZIOEmLw"};
 static inline constexpr Nid recv{"Ez8xjo9UF4E"};
 static inline constexpr Nid rfork_thread{"bSDxEpGzmUE"};
-static inline constexpr Nid sceKernelSendNotificationRequest{"zl7hupSO0C0"};
-static inline constexpr Nid printf{"hcuQgD53UxM"};
-static inline constexpr Nid stat{"E6ao34wPw+U"};
+static inline constexpr Nid access{"8vE6Z6VEYyk"};
 
 }

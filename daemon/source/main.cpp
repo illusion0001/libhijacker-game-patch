@@ -1,8 +1,11 @@
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <poll.h>
+#include <signal.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <sys/_pthreadtypes.h>
+#include <sys/signal.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/un.h>
@@ -181,142 +184,147 @@ static void killApp(int pid) noexcept {
 	}
 }
 
-static int hookThread(void *unused) noexcept {
-	(void) unused;
-	//static constexpr uint16_t HOOK_PORT = 9999;
-	//static constexpr uint32_t LOCALHOST = 0x0100007f;
+static bool handleIpc(const int syscore, const int fd) noexcept {
 	static constexpr int PING =  0;
 	static constexpr int PONG =  1;
 	static constexpr int PROCESS_LAUNCHED = 1;
 
-	/*
-	int serverSock = socket(AF_UNIX, SOCK_STREAM, 0);
-	if (serverSock == -1) {
-		return 0;
+	bool result = true;
+
+	struct result {
+		int cmd;
+		int pid;
+		uintptr_t func;
+	} res{};
+
+	if (recv(fd, &res, sizeof(res), MSG_NOSIGNAL) == -1) {
+		printf("reading result failed\n");
+		return result;
 	}
 
-	int value = 1;
-	if (setsockopt(serverSock, SOL_SOCKET, SO_REUSEADDR, &value, sizeof(int)) == -1) {
-		return 0;
-	}
-
-	struct sockaddr_in server_addr{0, AF_INET, htons(HOOK_PORT), {.s_addr = LOCALHOST}, {}};
-
-	if (bind(serverSock, reinterpret_cast<struct sockaddr*>(&server_addr), sizeof(sockaddr_in)) == -1) {
-		return 0;
-	}
-
-	if (listen(serverSock, 1) == -1) {
-		return 0;
-	}*/
-
-	int serverSock = networkListen("/system_tmp/IPC");
-	if (serverSock == -1) {
-		printf("networkListen %i\n", serverSock);
-		return 0;
-	}
-
-	while (true) {
-		//struct sockaddr client_addr{};
-		//socklen_t addr_len = sizeof(client_addr);
-		//FileDescriptor fd = accept(serverSock, &client_addr, &addr_len);
-		FileDescriptor fd = accept(serverSock, nullptr, nullptr);
-		printf("client accepted\n");
-
-		struct result {
-			int cmd;
-			int pid;
-			uintptr_t func;
-		} res{};
-
-		if (_read(fd, &res, sizeof(res)) == -1) {
+	if (res.cmd == PING) {
+		int reply = PONG;
+		if (_write(fd, &reply, sizeof(reply)) == -1) {
+			printf("writing pong failed\n");
+			return result;
+		}
+		if (recv(fd, &res, sizeof(res), MSG_NOSIGNAL) == -1) {
 			printf("reading result failed\n");
-			continue;
+			return result;
+		}
+	}
+
+	if (res.cmd != PROCESS_LAUNCHED) {
+		printf("unexpected command %d\n", res.cmd);
+		return result;
+	}
+
+	result = false;
+
+	LoopBuilder loop = SLEEP_LOOP;
+	const int pid = res.pid;
+
+	UniquePtr<Hijacker> spawned = nullptr;
+	{
+		dbg::Tracer tracer{pid};
+		auto regs = tracer.getRegisters();
+		regs.rip(res.func);
+		tracer.setRegisters(regs);
+
+		// run until execve completion
+		tracer.run();
+
+		while (spawned == nullptr) {
+			// this should grab it first try but I haven't confirmed yet
+			spawned = Hijacker::getHijacker(pid);
 		}
 
-		if (res.cmd == PING) {
-			int reply = PONG;
-			if (_write(fd, &reply, sizeof(reply)) == -1) {
-				printf("writing pong failed\n");
-				continue;
+		const uintptr_t nanosleepOffset = getNanosleepOffset(*spawned);
+
+		printf("libkernel imagebase: 0x%08llx\n", spawned->getLibKernelBase());
+
+		puts("spawned process obtained");
+
+		puts("success");
+
+		uintptr_t base = 0;
+		while (base == 0) {
+			// this should also work first try but not confirmed
+			base = spawned->getLibKernelBase();
+		}
+
+		loop.setTarget(base + nanosleepOffset);
+		base = spawned->imagebase();
+
+		// force the entrypoint to an infinite loop so that it doesn't start until we're ready
+		dbg::write(pid, base + ENTRYPOINT_OFFSET, loop.data, sizeof(loop.data));
+
+		puts("finished");
+		printf("spawned imagebase 0x%08llx\n", base);
+	}
+
+	auto path = getProc(pid)->getPath();
+	auto index = path.rfind('/');
+	if (index == -1) {
+		printf("path missing / : %s\n", path.c_str());
+	} else {
+		path = path.substring(0, index + 1) + "homebrew.elf";
+		printf("loading elf %s\n", path.c_str());
+	}
+	auto data = readFileIntoBuffer(path.c_str());
+	if (data == nullptr) {
+		puts("failed to read elf");
+		killApp(pid);
+		return result;
+	}
+
+	if (load(spawned, data.get())) {
+		puts("elf loaded");
+	} else {
+		puts("failed to load elf");
+		killApp(pid);
+	}
+	return result;
+}
+
+class UnixSocket : public FileDescriptor {
+	const char *path;
+
+	public:
+		UnixSocket(const char *path) noexcept : FileDescriptor(networkListen(path)), path(path) {}
+		UnixSocket(const UnixSocket&) = delete;
+		UnixSocket(UnixSocket &&rhs) noexcept = default;
+		UnixSocket &operator=(const UnixSocket &rhs) = delete;
+		UnixSocket &operator=(UnixSocket &&rhs) noexcept {
+			FileDescriptor::operator=((FileDescriptor&&)rhs);
+			path = rhs.path;
+			return *this;
+		}
+		~UnixSocket() {
+			unlink(path);
+		}
+};
+
+void dummy(int) {}
+
+static void *hookThread(void *args) noexcept {
+	signal(SIGUSR1, dummy);
+
+	UnixSocket *serverSock = reinterpret_cast<UnixSocket *>(args);
+	if (*serverSock == -1) {
+		printf("networkListen %i\n", (int) *serverSock);
+		return 0;
+	}
+
+	const int syscore = getppid();
+	FileDescriptor fd = accept(*serverSock, nullptr, nullptr);
+	while (true) {
+		if (handleIpc(syscore, fd)) {
+			fd = accept(*serverSock, nullptr, nullptr);
+			if (fd == -1) {
+				// we're done
+				return 0;
 			}
-			if (_read(fd, &res, sizeof(res)) == -1) {
-				printf("reading result failed\n");
-				continue;
-			}
-		}
-
-		if (res.cmd != PROCESS_LAUNCHED) {
-			printf("invalid command %d\n", res.cmd);
-			continue;
-		}
-
-		LoopBuilder loop = SLEEP_LOOP;
-		const int pid = res.pid;
-
-		UniquePtr<Hijacker> spawned = nullptr;
-		{
-			dbg::Tracer tracer{pid};
-			auto regs = tracer.getRegisters();
-			regs.rip(res.func);
-			tracer.setRegisters(regs);
-
-			// run until execve completion
-			tracer.run();
-
-			while (spawned == nullptr) {
-				// this should grab it first try but I haven't confirmed yet
-				spawned = Hijacker::getHijacker(pid);
-			}
-
-			const uintptr_t nanosleepOffset = getNanosleepOffset(*spawned);
-
-			printf("libkernel imagebase: 0x%08llx\n", spawned->getLibKernelBase());
-
-			puts("spawned process obtained");
-
-			puts("success");
-
-			uintptr_t base = 0;
-			while (base == 0) {
-				// this should also work first try but not confirmed
-				base = spawned->getLibKernelBase();
-			}
-
-			loop.setTarget(base + nanosleepOffset);
-			base = spawned->imagebase();
-
-			// force the entrypoint to an infinite loop so that it doesn't start until we're ready
-			dbg::write(pid, base + ENTRYPOINT_OFFSET, loop.data, sizeof(loop.data));
-
-			puts("finished");
-			printf("spawned imagebase 0x%08llx\n", base);
-		}
-
-		// TODO: load elf from file in app0
-		//#error implement me
-		//NOTE: see getProc(int pid) and Kproc::getPath it will return the path in /system_ex
-		auto path = getProc(pid)->getPath();
-		auto index = path.rfind('/');
-		if (index == -1) {
-    		printf("path missing / : %s\n", path.c_str());
-		} else {
-  			  path = path.substring(0, index + 1) + "homebrew.elf";
-    		  printf("loading elf %s\n", path.c_str());
-		}
-		auto data = readFileIntoBuffer(path.c_str());
-		if (data == nullptr) {
-			puts("failed to read elf");
-			killApp(pid);
-			return -1;
-		}
-
-		if (load(spawned, data.get())) {
-			puts("elf loaded");
-		} else {
-			puts("failed to load elf");
-			killApp(pid);
-			return -1;
 		}
 	}
 
@@ -327,14 +335,13 @@ int main() {
 	puts("daemon entered");
 	AbortServer abortServer{};
 	KlogServer klogServer{};
-	//ElfServer elfServer{};
 	CommandServer commandServer{};
-	JThread elfLoader{hookThread};
-
+	pthread_t elfHandler = nullptr;
+	UniquePtr<UnixSocket> serverSock{new UnixSocket{"/system_tmp/IPC"}};
+	pthread_create(&elfHandler, nullptr, hookThread, serverSock.get());
 
 	abortServer.TcpServer::run();
 	klogServer.TcpServer::run();
-	//elfServer.TcpServer::run();
 	commandServer.TcpServer::run();
 
 	// finishes on connect
@@ -342,9 +349,11 @@ int main() {
 	puts("abort thread finished");
 	commandServer.stop();
 	puts("command server done");
-	//puts("stopping elf server");
-	//elfServer.stop();
-	//puts("elf server done");
+	puts("stopping elf handler");
+	serverSock = nullptr; // closed the socket
+	pthread_kill(elfHandler, SIGUSR1);
+	pthread_join(elfHandler, nullptr);
+	puts("elf handler done");
 	puts("stopping klog server");
 	klogServer.stop();
 	puts("klog server done");
