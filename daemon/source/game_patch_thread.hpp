@@ -1,3 +1,3 @@
 void* GamePatch_Thread(void* unused);
 
-extern bool g_game_patch_thread_running;
+extern int32_t g_game_patch_thread_running;

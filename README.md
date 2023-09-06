@@ -43,7 +43,6 @@ pip install aiofiles
   - Also includes:
     - No Motion Blur
     - No Chromatic Aberration
-    - Debug Camera by Lance McDonald
 - Crash Team Racing v1.21: 60 FPS
 - Driveclub v1.28: 60 FPS
 - Gravity Rush 2 v1.11: 60 FPS
@@ -65,6 +64,23 @@ pip install aiofiles
 
 - Demon Souls v1.00: 60 FPS Unlock in Cinematic Mode
 - Uncharted: Legacy of Thieves Collection v1.00: Debug Menu
+
+# Supported Titles (120Hz)
+
+| Games                                        | Enabled by default                      | Notes                                                                                                                            |
+|----------------------------------------------|-----------------------------------------|----------------------------------------------------------------------------------------------------------------------------------|
+| Battlefield 4 v1.24                          | Yes                                     | -                                                                                                                                |
+| Bloodborne v1.09                             | No (Hold Cross Button during Launch)    | Does not reach locked 120FPS                                                                                                     |
+| Gravity Rush Remastered v1.00                | Yes                                     | -                                                                                                                                |
+| Gravity Rush 2 v1.11                         | No (Hold Cross Button during Launch)    | Does not reach locked 120FPS<br>Fast cameras, broken in-game cinematics                                                          |
+| Demon Souls v1.00                            | No (Hold Cross Button during Launch)    | Does not reach locked 120FPS<br>Half speed in Cinematic Mode.<br>Use performance mode in Graphics Options for proper game speed. |
+| Mirror's Edge Catalyst v1.02                 | Yes                                     | -                                                                                                                                |
+| The Last Guardian v1.03                      | No (Hold Cross Button during Launch)    | Does not reach locked 120FPS                                                                                                     |
+| The Last of Us Remastered v1.11              | Yes                                     | -                                                                                                                                |
+| The Last of Us Part 2 v1.09                  | No (Hold Cross Button during Launch)    | Does not reach locked 120FPS                                                                                                     |
+| Shadow of the Colossus v1.00/v1.01           | Yes (Use Performance Mode in Game Menu) | -                                                                                                                                |
+| Uncharted: The Nathan Drake Collection v1.00 | Yes                                     | -                                                                                                                                |
+| Killzone: Shadow Fall v1.81                  | No (Hold Cross Button during Launch)    | Does not reach locked 120FPS                                                                                                     |
 
 # Known Issues (specific to this fork)
 

@@ -62,12 +62,12 @@ set(CMAKE_C_FLAGS "--target=x86_64-freebsd-pc-elf -DPPR -DPS5 -DPS5_FW_VERSION=$
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_POSIX_SOURCE -D_POSIX_C_SOURCE=200112 -D__BSD_VISIBLE=1 -D__XSI_VISIBLE=500")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fshort-wchar -fno-builtin -nostdlib -Wall") #  -nostartfiles
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC -fPIE -march=znver2 -Wall -Werror")
-set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -DDEBUG -O3 -pedantic -pedantic-errors")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0")
+set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -DDEBUG -gfull -gdwarf-2 -O0 -pedantic -pedantic-errors")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -gfull -gdwarf-2 -O0")
 
 target_sources(${PROJECT_NAME} PRIVATE ${SrcFiles})
 target_include_directories(${PROJECT_NAME} PRIVATE "${D_CWD}/../include")
 target_link_directories	(${PROJECT_NAME} PUBLIC "${PROJECT_ROOT}/lib")
-target_link_libraries	(${PROJECT_NAME} PUBLIC hijacker SceLibcInternal SceSystemService SceUserService SceSysmodule SceSysCore ScePad kernel_sys)
+target_link_libraries	(${PROJECT_NAME} PUBLIC hijacker SceLibcInternal SceSystemService SceUserService SceSysmodule SceSysCore ScePad SceVideoOut kernel_sys)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=lld -Xlinker -pie -Xlinker -zmax-page-size=16384 -Xlinker -zcommon-page-size=16384 -Xlinker -T ${D_CWD}/linker.x -Wl,--build-id=none -Wl,-z,norelro")
