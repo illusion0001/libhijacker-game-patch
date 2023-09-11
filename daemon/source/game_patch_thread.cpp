@@ -551,7 +551,7 @@ void *GamePatch_Thread(void *unused)
 						ResumeApp(app_pid);
 					}
 					else if ((startsWith(app->titleId().c_str(), "CUSA18097") ||
-							  startsWith(app->titleId().c_str(), "CUSA18100") || 
+							  startsWith(app->titleId().c_str(), "CUSA18100") ||
 							  startsWith(app->titleId().c_str(), "CUSA19278")) &&
 							 (startsWith(app_ver, "01.04")))
 					{
@@ -762,3 +762,12 @@ void *GamePatch_Thread(void *unused)
 
 #undef _MAX_PATH
 #undef startsWith
+
+static void TestCallback(void *args) {
+	(void) args;
+}
+
+static constexpr TitleIdMap TITLEID_HANDLERS{{
+	{TestCallback, "BREW00000"_tid},
+	{TestCallback, {"BREW00001"}}
+}};
