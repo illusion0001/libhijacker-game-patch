@@ -569,6 +569,40 @@ void *GamePatch_Thread(void *unused)
 						printf_notification("%s (%s): 60 FPS Patched!", app->titleId().c_str(), app_ver);
 						ResumeApp(app_pid);
 					}
+					else if ((startsWith(app->titleId().c_str(), "CUSA00341") ||
+							  startsWith(app->titleId().c_str(), "CUSA00912") || 
+							  startsWith(app->titleId().c_str(), "CUSA00917") ||
+							  startsWith(app->titleId().c_str(), "CUSA00918") ||
+							  startsWith(app->titleId().c_str(), "CUSA04529")) &&
+							 (startsWith(app_ver, "01.33")))
+					{
+						SuspendApp(app_pid);
+						// 60 FPS
+						write_bytes(app_pid, NO_ASLR(0x020e9880), "31f6");
+						write_bytes(app_pid, NO_ASLR(0x020e9882), "ff25804e4600");
+						target_running_pid = app_pid;
+						found_app = true;
+						fast_sleep_timer = false;
+						printf_notification("%s (%s): 60 FPS Patched!", app->titleId().c_str(), app_ver);
+						ResumeApp(app_pid);
+					}
+					else if ((startsWith(app->titleId().c_str(), "CUSA07875") ||
+							  startsWith(app->titleId().c_str(), "CUSA09564") || 
+							  startsWith(app->titleId().c_str(), "CUSA07737") ||
+							  startsWith(app->titleId().c_str(), "CUSA08347") ||
+							  startsWith(app->titleId().c_str(), "CUSA08352")) &&
+							 (startsWith(app_ver, "01.09")))
+					{
+						SuspendApp(app_pid);
+						// 60 FPS
+						write_bytes(app_pid, NO_ASLR(0x022193f0), "31f6");
+						write_bytes(app_pid, NO_ASLR(0x022193f2), "ff25b8484800");
+						target_running_pid = app_pid;
+						found_app = true;
+						fast_sleep_timer = false;
+						printf_notification("%s (%s): 60 FPS Patched!", app->titleId().c_str(), app_ver);
+						ResumeApp(app_pid);
+					}
 				}
 
 				// multiple selfs

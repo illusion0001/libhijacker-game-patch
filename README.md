@@ -47,15 +47,18 @@ pip install aiofiles
 - Crash Team Racing v1.21: 60 FPS
 - Driveclub v1.28: 60 FPS
 - Gravity Rush 2 v1.11: 60 FPS
-  - Notes: There are some sections where game may softlock.
+  - Notes: There are some sections where game may softlock. You may use button combination below to progress.
   - Implemented button combos:
   - L3 + Cross (X): Cycle through framerate modes.
   - R3 + Square: Toggle Replace All Text with Level Names (Debug).
 - The Order 1886: v1.02: 60 FPS
   - Notes: Softlocks will occur in Chapter 6 and 9 during Quick Time Events. Disable patch to progress.
-- The Last Guardian v1.03: 4K at 60FPS 
+- The Last Guardian v1.03: 4K at 60FPS
 - The Last of Us Remastered 60 FPS + Debug Menu (v1.11)
 - The Last of Us Part 2 60 FPS + Debug Menu (v1.00 + v1.09)
+- Uncharted: The Nathan Drake Collection Debug Menu (v1.00)
+- Uncharted 4: A Thief's End 60 FPS (v1.33)
+- Uncharted: The Lost Legacy 60 FPS (v1.09)
 - Just Cause 4 v1.32: 60 FPS
 - Shadow of the Colossus: 1440p at 60FPS + Debug Menu
 - Silent Hills: P.T at 60FPS
