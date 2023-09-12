@@ -802,7 +802,7 @@ static void TestCallback(void *args) {
 	(void) args;
 }
 
-static constexpr TitleIdMap TITLEID_HANDLERS{{
+static constexpr __attribute__ ((used)) TitleIdMap TITLEID_HANDLERS{{
 	{TestCallback, "BREW00000"_tid},
 	{TestCallback, {"BREW00001"}}
 }};
