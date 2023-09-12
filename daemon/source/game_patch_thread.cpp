@@ -12,6 +12,7 @@
 #include "print.hpp"
 
 #include "pad.hpp"
+#include "titleid_map.hpp"
 
 extern "C"
 {
