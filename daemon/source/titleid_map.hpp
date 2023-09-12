@@ -1,3 +1,5 @@
+#pragma once
+
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -30,9 +32,10 @@ struct TitleId {
 };
 
 constexpr TitleId operator"" _tid(const char *str, unsigned long len) {
-	// this will cause an error at compile time if the string is too long
 	TitleId tmp{};
-	__builtin_memcpy(tmp.id, str, len);
+	// this will cause an error at compile time if the string is too long
+	// include the null terminator
+	__builtin_memcpy(tmp.id, str, len + 1);
 	return tmp;
 }
 
@@ -96,13 +99,9 @@ constexpr TitleIdKeyValueArray<N> sort(const TitleIdKeyValue (&array)[N]) {
 
 template <size_t N>
 class TitleIdMap {
-	// this implementation is stupid
-	// don't try this one at home
-
 	friend struct SymbolLookupTable;
 
 	TitleIdKeyValueArray<N> entries;
-	// there is no intention of ever growing this since the symtab size is known
 
 	constexpr int_fast64_t binarySearch(const TitleId &key) const {
 		int_fast64_t lo = 0;
@@ -118,8 +117,7 @@ class TitleIdMap {
 
 			if (n < 0) {
 				lo = m + 1;
-			}
-			else {
+			} else {
 				hi = m - 1;
 			}
 		}
