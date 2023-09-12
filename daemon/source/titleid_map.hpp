@@ -137,6 +137,6 @@ class TitleIdMap {
 			if (index < 0) {
 				return nullptr;
 			}
-			return entries.get() + index;
+			return entries.array + index;
 		}
 };
