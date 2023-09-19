@@ -1008,38 +1008,25 @@ void DoPatch_Bloodborne109(pid_t app_pid, u64 text_base)
 
 void DoPatch_GravityDaze2_111(pid_t app_pid, u64 text_base)
 {
-	write_bytes(app_pid, NO_ASLR(0x01802d10), "657030315f636f6d00");
-	write_bytes(app_pid, NO_ASLR(0x01803125), "657030305f630000");
-	write_bytes(app_pid, NO_ASLR(0x0180312d), "657030315f640000");
-	write_bytes(app_pid, NO_ASLR(0x01803135), "657030325f610000");
-	write_bytes(app_pid, NO_ASLR(0x0180313d), "736d303800");
-	write_bytes(app_pid, NO_ASLR(0x01803142), "736d303900");
-	write_bytes(app_pid, NO_ASLR(0x01803147), "657030335f700000");
-	write_bytes(app_pid, NO_ASLR(0x0180314f), "657030375f660000");
-	write_bytes(app_pid, NO_ASLR(0x01803157), "657030375f680000");
-	write_bytes(app_pid, NO_ASLR(0x0180315f), "657030385f620000");
-	write_bytes(app_pid, NO_ASLR(0x01803167), "657030385f640000");
-	write_bytes(app_pid, NO_ASLR(0x0180316f), "657030395f690000");
-	write_bytes(app_pid, NO_ASLR(0x01803177), "657031325f660000");
-	write_bytes(app_pid, NO_ASLR(0x0180317f), "657031335f636f00");
-	write_bytes(app_pid, NO_ASLR(0x01803187), "6570733135000000");
-	write_bytes(app_pid, NO_ASLR(0x0180318f), "657031355f650000");
-	write_bytes(app_pid, NO_ASLR(0x01803197), "657031365f610000");
-	write_bytes(app_pid, NO_ASLR(0x0180319f), "657032325f630000");
-	write_bytes(app_pid, NO_ASLR(0x018031bd), "736d313000");
-	write_bytes(app_pid, NO_ASLR(0x018031c2), "736d31325f620000");
-	write_bytes(app_pid, NO_ASLR(0x018031ca), "736d313300");
-	write_bytes(app_pid, NO_ASLR(0x018031d4), "657032375f636f00");
-	write_bytes(app_pid, NO_ASLR(0x018031ad), "646d30365f630000");
-	write_bytes(app_pid, NO_ASLR(0x018031b5), "646d30365f640000");
-	write_bytes(app_pid, NO_ASLR(0x018038e9), "5468697320706174636820776173206372656174656420627920696c6c7573696f6e0a57697468206c6f766520746f2047726176697479205275736820446576656c6f7065727320616e642046616e732e");
+	// <!-- Boot game in unused 60FPS Mode -->
+	write_bytes(app_pid, NO_ASLR(0x00854ac5), "c605bc656a0100");
+	write_bytes(app_pid, NO_ASLR(0x00854acc), "c705ae656a0100007042");
+	write_bytes(app_pid, NO_ASLR(0x00854ad6), "c705a0656a018988883c");
+	write_bytes(app_pid, NO_ASLR(0x00854b12), "c705f4656a018988883c");
+	write_bytes(app_pid, NO_ASLR(0x00854b1c), "c7050a666a018988883c");
+	write_bytes(app_pid, NO_ASLR(0x00854b26), "c70520666a0100007042");
+	// <!-- No fliprate -->
 	write_bytes(app_pid, NO_ASLR(0x00846980), "be00000000");
+	// <!-- No wait in render thread (up to 240fps) -->
 	write_bytes(app_pid, NO_ASLR(0x0084dda4), "bf46100000");
 	write_bytes(app_pid, NO_ASLR(0x0084dda9), "eb08");
-	write_bytes(app_pid, NO_ASLR(0x0084ddab), "90");
 	write_bytes(app_pid, NO_ASLR(0x0085e9cc), "e8cd43fa00");
-	write_bytes(app_pid, NO_ASLR(0x01802d90), "00247449");
-	write_bytes(app_pid, NO_ASLR(0x01802d94), "6b04010000000000");
+	// <!-- delta time to timestep -->
+	// <!-- const -->
+	write_bytes32(app_pid, NO_ASLR(0x01802d90), 0x49742400);
+	// <!-- 15fps limit -->
+	write_bytes64(app_pid, NO_ASLR(0x01802d94), 0x000000000001046b);
+	// <!-- delta time to timestep func -->
 	write_bytes(app_pid, NO_ASLR(0x01802d9e), "4889150b533000");
 	write_bytes(app_pid, NO_ASLR(0x01802da5), "48893d0c533000");
 	write_bytes(app_pid, NO_ASLR(0x01802dac), "488b3de1ffffff");
@@ -1057,6 +1044,7 @@ void DoPatch_GravityDaze2_111(pid_t app_pid, u64 text_base)
 	write_bytes(app_pid, NO_ASLR(0x01802de7), "488b15c2523000");
 	write_bytes(app_pid, NO_ASLR(0x01802dee), "488b3dc3523000");
 	write_bytes(app_pid, NO_ASLR(0x01802df5), "c3");
+	// <!-- menu fixes -->
 	write_bytes32(app_pid, NO_ASLR(0x018c4934), 0x3c888889);
 	write_bytes32(app_pid, NO_ASLR(0x013e46e8), 0x3c888889);
 	write_bytes32(app_pid, NO_ASLR(0x018c491c), 0x3c888889);
@@ -1112,6 +1100,7 @@ void DoPatch_GravityDaze2_111(pid_t app_pid, u64 text_base)
 	write_bytes(app_pid, NO_ASLR(0x013c8f5a), "e9249e4300");
 	write_bytes(app_pid, NO_ASLR(0x01802d83), "c605e652300002");
 	write_bytes(app_pid, NO_ASLR(0x01802d8a), "c3");
+	/*
 	write_bytes(app_pid, NO_ASLR(0x01627921), "e81cb41d00");
 	write_bytes(app_pid, NO_ASLR(0x01802d42), "43c6043c00");
 	write_bytes(app_pid, NO_ASLR(0x01802d47), "e929020000");
@@ -1298,6 +1287,7 @@ void DoPatch_GravityDaze2_111(pid_t app_pid, u64 text_base)
 	write_bytes(app_pid, NO_ASLR(0x01832f12), "45884264");
 	write_bytes(app_pid, NO_ASLR(0x01832f16), "e88c0b0000");
 	write_bytes(app_pid, NO_ASLR(0x01832f1b), "c3");
+	*/
 }
 
 void DoPatch_SOTC_100(pid_t app_pid, u64 text_base)
