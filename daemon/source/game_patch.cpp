@@ -1010,16 +1010,22 @@ void DoPatch_GravityDaze2_111(pid_t app_pid, u64 text_base)
 {
 	// <!-- Boot game in unused 60FPS Mode -->
 	write_bytes(app_pid, NO_ASLR(0x00854ac5), "c605bc656a0100");
+	/*
 	write_bytes(app_pid, NO_ASLR(0x00854acc), "c705ae656a0100007042");
 	write_bytes(app_pid, NO_ASLR(0x00854ad6), "c705a0656a018988883c");
 	write_bytes(app_pid, NO_ASLR(0x00854b12), "c705f4656a018988883c");
 	write_bytes(app_pid, NO_ASLR(0x00854b1c), "c7050a666a018988883c");
 	write_bytes(app_pid, NO_ASLR(0x00854b26), "c70520666a0100007042");
+ 	*/
+	// <!-- half rate EnemyBrain:getPlayMotionFrame -->
+	// <!-- for 120hz, maybe keep this? -->
+	write_bytes32(app_pid, NO_ASLR(0x018c7374), 0x41f00000);
 	// <!-- No fliprate -->
 	write_bytes(app_pid, NO_ASLR(0x00846980), "be00000000");
 	// <!-- No wait in render thread (up to 240fps) -->
 	write_bytes(app_pid, NO_ASLR(0x0084dda4), "bf46100000");
 	write_bytes(app_pid, NO_ASLR(0x0084dda9), "eb08");
+	// <!-- branch to delta time to timestep func -->
 	write_bytes(app_pid, NO_ASLR(0x0085e9cc), "e8cd43fa00");
 	// <!-- delta time to timestep -->
 	// <!-- const -->
@@ -1044,7 +1050,7 @@ void DoPatch_GravityDaze2_111(pid_t app_pid, u64 text_base)
 	write_bytes(app_pid, NO_ASLR(0x01802de7), "488b15c2523000");
 	write_bytes(app_pid, NO_ASLR(0x01802dee), "488b3dc3523000");
 	write_bytes(app_pid, NO_ASLR(0x01802df5), "c3");
-	// <!-- menu fixes -->
+	// <!-- menu fixes (incomplete) -->
 	write_bytes32(app_pid, NO_ASLR(0x018c4934), 0x3c888889);
 	write_bytes32(app_pid, NO_ASLR(0x013e46e8), 0x3c888889);
 	write_bytes32(app_pid, NO_ASLR(0x018c491c), 0x3c888889);
