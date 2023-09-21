@@ -11,6 +11,7 @@ static constexpr uint32_t V300 = 0x3000000;
 static constexpr uint32_t V310 = 0x3100000;
 static constexpr uint32_t V320 = 0x3200000;
 static constexpr uint32_t V321 = 0x3210000;
+static constexpr uint32_t V400 = 0x4000000;
 static constexpr uint32_t V402 = 0x4020000;
 static constexpr uint32_t V403 = 0x4030000;
 static constexpr uint32_t V450 = 0x4500000;
@@ -42,6 +43,7 @@ size_t allproc() {
 		case V321:
 			allprocOffset = 0x276DC58;
 			break;
+		case V400:
 		case V402:
 		case V403:
 		case V450:
@@ -62,6 +64,8 @@ size_t security_flags() {
 		case V320:
 		case V321:
 			return 0x6466474;
+		case V400:
+			return 0x6506474;
 		case V402:
 		case V403:
 		case V450:
@@ -81,6 +85,7 @@ size_t qa_flags() {
 			return 0x6466498;
 		case V402:
 			return 0x6505498;
+		case V400:
 		case V403:
 		case V450:
 		case V451:
@@ -99,6 +104,7 @@ size_t utoken_flags() {
 			return 0x6466500;
 		case V402:
 			return 0x6505500;
+		case V400:
 		case V403:
 		case V450:
 		case V451:
@@ -117,6 +123,7 @@ size_t root_vnode() {
 			return 0x67AB4C0;
 		case V402:
 			return 0x66E64C0;
+		case V400:
 		case V403:
 		case V450:
 		case V451:
