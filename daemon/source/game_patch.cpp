@@ -1294,6 +1294,15 @@ void DoPatch_GravityDaze2_111(pid_t app_pid, u64 text_base)
 	write_bytes(app_pid, NO_ASLR(0x01832f16), "e88c0b0000");
 	write_bytes(app_pid, NO_ASLR(0x01832f1b), "c3");
 	*/
+	// Force Enable Raven DLC
+	write_bytes(app_pid, NO_ASLR(0x00430a63), "488d3d15000000");
+	write_bytes(app_pid, NO_ASLR(0x00430a6a), "31f6");
+	write_bytes(app_pid, NO_ASLR(0x00430a6c), "31d2");
+	write_bytes(app_pid, NO_ASLR(0x00430a6e), "e8bd5b4300");
+	write_bytes(app_pid, NO_ASLR(0x00430a73), "0fb605a9ee8a01");
+	write_bytes(app_pid, NO_ASLR(0x00430a7a), "e9bf554300");
+	write_bytes(app_pid, NO_ASLR(0x00430a7f), "43524f5700");
+	write_bytes(app_pid, NO_ASLR(0x00866037), "e927aabcff");
 }
 
 void DoPatch_SOTC_100(pid_t app_pid, u64 text_base)
