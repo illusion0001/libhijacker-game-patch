@@ -1303,6 +1303,19 @@ void DoPatch_GravityDaze2_111(pid_t app_pid, u64 text_base)
 	write_bytes(app_pid, NO_ASLR(0x00430a7a), "e9bf554300");
 	write_bytes(app_pid, NO_ASLR(0x00430a7f), "43524f5700");
 	write_bytes(app_pid, NO_ASLR(0x00866037), "e927aabcff");
+	// <!-- dm06_03000 check -->
+	write_bytes(app_pid, NO_ASLR(0x011bb6cc), "e9647a6400");
+	write_bytes(app_pid, NO_ASLR(0x01802d10), "646d30365f303330303000");
+	write_bytes(app_pid, NO_ASLR(0x01803135), "488d3dd4fbffff");
+	write_bytes(app_pid, NO_ASLR(0x0180313c), "4889de");
+	write_bytes(app_pid, NO_ASLR(0x0180313f), "e8dc25ffff");
+	write_bytes(app_pid, NO_ASLR(0x01803144), "83f801");
+	write_bytes(app_pid, NO_ASLR(0x01803147), "7407");
+	write_bytes(app_pid, NO_ASLR(0x01803149), "c605204f300003");
+	write_bytes(app_pid, NO_ASLR(0x01803150), "4889df");
+	write_bytes(app_pid, NO_ASLR(0x01803153), "e82825ffff");
+	write_bytes(app_pid, NO_ASLR(0x01803158), "4989c4");
+	write_bytes(app_pid, NO_ASLR(0x0180315b), "e977859bff");
 }
 
 void DoPatch_SOTC_100(pid_t app_pid, u64 text_base)
