@@ -431,7 +431,8 @@ void *GamePatch_Thread(void *unused)
 						printf_notification("%s (%s): 60 FPS Patched!", app->titleId().c_str(), app_ver);
 						ResumeApp(app_pid);
 					}
-					else if ((startsWith(app->titleId().c_str(), "CUSA08034")) &&
+					else if ((startsWith(app->titleId().c_str(), "CUSA08034") ||
+							  startsWith(app->titleId().c_str(), "CUSA08804")) &&
 							 (startsWith(app_ver, "01.00") ||
 							  startsWith(app_ver, "01.01")))
 					{
