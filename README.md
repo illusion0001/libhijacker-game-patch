@@ -12,7 +12,7 @@ Proper credits will be attributed later.
 - 3.00
 - 3.10
 - 3.20
-- 4.00 (needs checking)
+- 4.00
 - 4.02 (needs checking)
 - 4.03
 - 4.50
