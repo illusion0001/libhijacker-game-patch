@@ -579,8 +579,12 @@ void *GamePatch_Thread(void *unused)
 					{
 						SuspendApp(app_pid);
 						// 60 FPS
+						write_bytes32(app_pid, NO_ASLR(0x00616e54), 0x1);
 						write_bytes(app_pid, NO_ASLR(0x020e9880), "31f6");
 						write_bytes(app_pid, NO_ASLR(0x020e9882), "ff25804e4600");
+						// Debug Menu
+						write_bytes(app_pid, NO_ASLR(0x005c8d97), "c7c101000000");
+						write_bytes(app_pid, NO_ASLR(0x005c8d9d), "41b401");
 						target_running_pid = app_pid;
 						found_app = true;
 						fast_sleep_timer = false;
@@ -596,8 +600,13 @@ void *GamePatch_Thread(void *unused)
 					{
 						SuspendApp(app_pid);
 						// 60 FPS
+						write_bytes32(app_pid, NO_ASLR(0x00623bff), 0x1);
 						write_bytes(app_pid, NO_ASLR(0x022193f0), "31f6");
 						write_bytes(app_pid, NO_ASLR(0x022193f2), "ff25b8484800");
+						// Debug Menu
+						write_bytes(app_pid, NO_ASLR(0x005c8fc3), "31c9");
+						write_bytes(app_pid, NO_ASLR(0x005c8fc5), "0f1f4000");
+						write_bytes(app_pid, NO_ASLR(0x005c8fd6), "31d2");
 						target_running_pid = app_pid;
 						found_app = true;
 						fast_sleep_timer = false;
