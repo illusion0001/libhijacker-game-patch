@@ -613,6 +613,21 @@ void *GamePatch_Thread(void *unused)
 						printf_notification("%s (%s): 60 FPS Patched!", app->titleId().c_str(), app_ver);
 						ResumeApp(app_pid);
 					}
+					else if ((startsWith(app->titleId().c_str(), "CUSA00663") ||
+							  startsWith(app->titleId().c_str(), "CUSA00605") ||
+							  startsWith(app->titleId().c_str(), "CUSA00476")) &&
+							 (startsWith(app_ver, "01.05")))
+					{
+						SuspendApp(app_pid);
+						// 60 FPS
+						write_bytes(app_pid, NO_ASLR(0x042f034e), "be00000000");
+						write_bytes(app_pid, NO_ASLR(0x03ffaadb), "0f85");
+						target_running_pid = app_pid;
+						found_app = true;
+						fast_sleep_timer = false;
+						printf_notification("%s (%s): 60 FPS Patched!", app->titleId().c_str(), app_ver);
+						ResumeApp(app_pid);
+					}
 				}
 
 				// multiple selfs
