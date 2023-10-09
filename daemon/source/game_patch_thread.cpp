@@ -783,6 +783,7 @@ void *GamePatch_Thread(void *unused)
 						SuspendApp(app_pid);
 						// 60 FPS
 						write_bytes(app_pid, NO_ASLR(0x042f034e), "be00000000");
+						// Startup logo skip
 						write_bytes(app_pid, NO_ASLR(0x03ffaadb), "0f85");
 						target_running_pid = app_pid;
 						found_app = true;
@@ -827,7 +828,25 @@ void *GamePatch_Thread(void *unused)
 						target_running_pid = app_pid;
 						found_app = true;
 						fast_sleep_timer = false;
-						printf_notification("%s (%s): Patched!", app_id, app_ver);
+						printf_notification("%s (%s): 120 FPS Patched!", app_id, app_ver);
+						ResumeApp(app_pid);
+					}
+					else if ((startsWith(app_id, "CUSA00220") ||
+							  startsWith(app_id, "CUSA00503") ||
+							  startsWith(app_id, "CUSA00728") ||
+							  startsWith(app_id, "CUSA01425")) &&
+							 (startsWith(app_ver, "01.12")))
+					{
+						SuspendApp(app_pid);
+						// 60 FPS
+						write_bytes(app_pid, NO_ASLR(0x015dcc1f), "be00000000");
+						write_bytes(app_pid, NO_ASLR(0x012517d1), "c744202800007042");
+						write_bytes(app_pid, NO_ASLR(0x012517d9), "c644205201");
+						write_bytes(app_pid, NO_ASLR(0x015dcc5f), "b800000000");
+						target_running_pid = app_pid;
+						found_app = true;
+						fast_sleep_timer = false;
+						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
 						ResumeApp(app_pid);
 					}
 				}

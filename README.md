@@ -44,6 +44,7 @@ pip install aiofiles
     - No Motion Blur
     - No Chromatic Aberration
 - Crash Team Racing v1.21: 60 FPS
+- Dragon Age: Inquisition v1.12: 60 FPS
 - Driveclub v1.28: 60 FPS
 - Gravity Rush 2 v1.11: 60 FPS
 - The Order 1886: v1.02: 60 FPS
