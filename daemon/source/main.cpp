@@ -342,6 +342,8 @@ int main() {
 	// remove this when it's possible to load elf into games at boot
 	pthread_t game_patch_thread_id = nullptr;
 	pthread_create(&game_patch_thread_id, nullptr, GamePatch_Thread, nullptr);
+	pthread_t game_patch_input_thread_id = nullptr;
+	pthread_create(&game_patch_input_thread_id, nullptr, GamePatch_InputThread, nullptr);
 
 	g_game_patch_thread_running = true;
 
@@ -373,6 +375,8 @@ int main() {
 	puts("klog server done");
 	pthread_join(game_patch_thread_id, nullptr);
 	puts("game patch thread finished");
+	pthread_join(game_patch_input_thread_id, nullptr);
+	puts("game patch input thread finished");
 
 	printf_notification("daemon exit");
 

@@ -3,8 +3,7 @@
 #include "print.hpp"
 #include "notify.hpp"
 
-int32_t is120HzUsable;
-int32_t isPatch120Hz;
+int32_t g_isPatch120Hz;
 
 void DoPatch_Bloodborne109(pid_t app_pid, uint64_t text_base)
 {
@@ -1014,7 +1013,7 @@ void DoPatch_Bloodborne109(pid_t app_pid, uint64_t text_base)
 	write_bytes(app_pid, NO_ASLR(0x01402d12), "e9ee900000");
 #endif
 	// 120Hz
-	if (isPatch120Hz)
+	if (g_isPatch120Hz)
 	{
 		/*
 		LEA RAX,[0x057e4ee8]
@@ -1522,7 +1521,7 @@ void DoPatch_GravityDaze2_111(pid_t app_pid, uint64_t text_base)
 	JMP 0x00846813
 	*/
 	// 120Hz
-	if (isPatch120Hz)
+	if (g_isPatch120Hz)
 	{
 		write_bytes(app_pid, NO_ASLR(0x0050bc03), "488d3d5efaa601");
 		write_bytes(app_pid, NO_ASLR(0x0050bc0a), "8907");
@@ -1646,7 +1645,7 @@ void DoPatch_BigCollection(pid_t app_pid, uint64_t text_base, uint32_t idx)
 		RET
 		*/
 		// 120Hz
-		// if (isPatch120Hz)
+		// if (g_isPatch120Hz)
 		{
 			write_bytes(app_pid, NO_ASLR(0x007fbdc9), "e96ed13800");
 			write_bytes(app_pid, NO_ASLR(0x00b88f3c), "488d055de51f00");
@@ -1800,7 +1799,7 @@ void DoPatch_BigCollection(pid_t app_pid, uint64_t text_base, uint32_t idx)
 		RET
 		*/
 		// 120Hz
-		// if (isPatch120Hz)
+		// if (g_isPatch120Hz)
 		{
 			write_bytes(app_pid, NO_ASLR(0x00986279), "e9e2995900");
 			write_bytes(app_pid, NO_ASLR(0x00f1fc60), "488d05d1253400");
@@ -1894,7 +1893,7 @@ void DoPatch_BigCollection(pid_t app_pid, uint64_t text_base, uint32_t idx)
 		RET
 		*/
 		// 120Hz
-		// if (isPatch120Hz)
+		// if (g_isPatch120Hz)
 		{
 			write_bytes(app_pid, NO_ASLR(0x00931af9), "e9b276a100");
 			write_bytes(app_pid, NO_ASLR(0x013491b0), "488d0509cb4a00");
@@ -1961,7 +1960,7 @@ void DoPatch_BigCollection(pid_t app_pid, uint64_t text_base, uint32_t idx)
 		// Debug Menu
 		write_bytes(app_pid, NO_ASLR(0x009cf259), "41c686ba39000000");
 		// 120Hz
-		// if (isPatch120Hz)
+		// if (g_isPatch120Hz)
 		{
 			/*
 				LEA RAX,[0x00d4b888]
@@ -2038,7 +2037,7 @@ void DoPatch_BigCollection(pid_t app_pid, uint64_t text_base, uint32_t idx)
 		// Debug Menu
 		write_bytes(app_pid, NO_ASLR(0x010e22fe), "41c686ba39000000");
 		// 120Hz
-		// if (isPatch120Hz)
+		// if (g_isPatch120Hz)
 		{
 			/*
 				LEA RAX,[0x0144bae0]
@@ -2132,7 +2131,7 @@ void DoPatch_BigCollection(pid_t app_pid, uint64_t text_base, uint32_t idx)
 		// Debug Menu
 		write_bytes(app_pid, NO_ASLR(0x01337ac9), "41c686ba39000000");
 		// 120hz
-		// if (isPatch120Hz)
+		// if (g_isPatch120Hz)
 		{
 			/*
 				LEA RAX,[0x01ae3d78]
@@ -2245,6 +2244,7 @@ void DoPatch_Big4R_100(pid_t app_pid, uint64_t text_base, uint32_t idx)
 	case 1: // `eboot.bin`
 	{
 		// 75 2a 84 d2 74 26
+		// write_bytes(app_pid, BASE_ASLR_OFFSET(0x01000000, 0x015b7650), "cc");
 		write_bytes(app_pid, BASE_ASLR_OFFSET(0x01000000, 0x01578838), "eb2a");
 		break;
 	}
@@ -2287,7 +2287,7 @@ void DoPatch_DemonSouls(pid_t app_pid, uint64_t text_base, uint32_t idx)
 		JMP 0x36719091
 		*/
 		// 120Hz
-		if (isPatch120Hz)
+		if (g_isPatch120Hz)
 		{
 			write_bytes(app_pid, BASE_ASLR_OFFSET(0x35b4c000, 0x3671908c), "e9b91c0501");
 			write_bytes(app_pid, BASE_ASLR_OFFSET(0x35b4c000, 0x3776ad4a), "488d05a7501a01");
@@ -2460,7 +2460,7 @@ void DoPatch_TheLastGuardian_103(pid_t app_pid, uint64_t text_base)
 	write_bytes(app_pid, NO_ASLR(0x018d4a20), "31c0");
 	write_bytes(app_pid, NO_ASLR(0x018d4a22), "5d");
 	write_bytes(app_pid, NO_ASLR(0x018d4a23), "c3");
-	if (isPatch120Hz)
+	if (g_isPatch120Hz)
 	{
 		// force 1080p on 4k display
 		write_bytes64(app_pid, NO_ASLR(0x01aec3e8), 0x0438078004380780);
@@ -2807,7 +2807,7 @@ void DoPatch_t1ps4_111(pid_t app_pid, uint64_t text_base)
 	write_bytes(app_pid, NO_ASLR(0x00e3134d), "5d");
 	write_bytes(app_pid, NO_ASLR(0x00e3134e), "c3");
 	// 120Hz
-	// if (isPatch120Hz)
+	// if (g_isPatch120Hz)
 	{
 		write_bytes(app_pid, NO_ASLR(0x00f3d26b), "e9c06a9300");
 		write_bytes(app_pid, NO_ASLR(0x01873d30), "e8eb33c1ff");
@@ -3153,7 +3153,7 @@ void DoPatch_t2ps4(pid_t app_pid, uint64_t text_base, uint32_t idx)
 		write_bytes(app_pid, NO_ASLR(0x020412d6), "e865e31600");
 		write_bytes(app_pid, NO_ASLR(0x020412db), "e9ff000000");
 		// 120Hz
-		if (isPatch120Hz)
+		if (g_isPatch120Hz)
 		{
 			// force 1080p mode for max perf
 			write_bytes32(app_pid, NO_ASLR(0x00a17631), 0);
@@ -3282,7 +3282,7 @@ void DoPatchBF4_124(pid_t app_pid, uint64_t text_base)
 
 void DoPatchKillzone_181(pid_t app_pid, uint64_t text_base)
 {
-	if (isPatch120Hz)
+	if (g_isPatch120Hz)
 	{
 		/*
 		CALL 0x0156c218

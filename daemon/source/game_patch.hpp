@@ -2,8 +2,7 @@
 
 extern uint32_t FlipRate_ConfigureOutput_Ptr;
 extern uint32_t FlipRate_isVideoModeSupported_Ptr;
-extern int32_t is120HzUsable;
-extern int32_t isPatch120Hz;
+extern int32_t g_isPatch120Hz;
 
 void DoPatch_Bloodborne109(pid_t app_pid, uint64_t text_base);
 void DoPatch_GravityDaze2_111(pid_t app_pid, uint64_t text_base);
