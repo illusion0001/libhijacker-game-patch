@@ -2244,12 +2244,14 @@ void DoPatch_Big4R_100(pid_t app_pid, uint64_t text_base, uint32_t idx)
 	{
 	case 1: // `eboot.bin`
 	{
-		write_bytes(app_pid, BASE_ASLR(0x005b087c), "9090c680453300000148e9"); // eww
+		// 75 2a 84 d2 74 26
+		write_bytes(app_pid, BASE_ASLR_OFFSET(0x01000000, 0x01578838), "eb2a");
 		break;
 	}
 	case 2: // `tllr-boot.bin`
 	{
-		write_bytes(app_pid, BASE_ASLR(0x005b02fc), "9090c680453300000148e9"); // eww
+		// 75 2a 84 d2 74 26
+		write_bytes(app_pid, BASE_ASLR_OFFSET(0x01000000, 0x015783e8), "eb2a");
 		break;
 	}
 	}
