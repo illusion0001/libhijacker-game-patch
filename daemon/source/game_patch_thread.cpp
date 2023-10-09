@@ -133,7 +133,7 @@ static int32_t get_app_info(const char *title_id, char *out_app_ver, char *out_m
 
 		fread(json_data, 1, file_size, file);
 		fclose(file);
-		constexpr u32 MAX_TOKENS = 256;
+		constexpr uint32_t MAX_TOKENS = 256;
 		json_t pool[MAX_TOKENS]{};
 		json_t const *my_json = json_create(json_data, pool, MAX_TOKENS);
 		if (!my_json)

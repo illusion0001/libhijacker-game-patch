@@ -29,7 +29,7 @@ void hexdump1(void *data, size_t size)
 }
 
 // valid hex look up table.
-const u8 hex_lut[] = {
+const uint8_t hex_lut[] = {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -53,40 +53,40 @@ const u8 hex_lut[] = {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00};
 
-__attribute__((noinline)) static u8 *hexstrtochar2(const char *hexstr, s64 *size)
+__attribute__((noinline)) static uint8_t *hexstrtochar2(const char *hexstr,size_t *size)
 {
 	if (!hexstr || *hexstr == '\0' || !size || *size < 0)
 	{
 		return nullptr;
 	}
-	u32 str_len = strlen(hexstr);
-	s64 data_len = ((str_len + 1) / 2) * sizeof(u8);
-	*size = (str_len) * sizeof(u8);
-	u8 *data = (u8 *)malloc(*size);
+	uint32_t str_len = strlen(hexstr);
+	size_t data_len = ((str_len + 1) / 2) * sizeof(uint8_t);
+	*size = (str_len) * sizeof(uint8_t);
+	uint8_t *data = (uint8_t *)malloc(*size);
 	if (!data)
 	{
 		return nullptr;
 	}
-	u32 j = 0; // hexstr position
-	u32 i = 0; // data position
+	uint32_t j = 0; // hexstr position
+	uint32_t i = 0; // data position
 
 	if (str_len % 2 == 1)
 	{
-		data[i] = (u8)(hex_lut[0] << 4) | hex_lut[(u8)hexstr[j]];
+		data[i] = (uint8_t)(hex_lut[0] << 4) | hex_lut[(uint8_t)hexstr[j]];
 		j = ++i;
 	}
 
 	for (; j < str_len; j += 2, i++)
 	{
-		data[i] = (u8)(hex_lut[(u8)hexstr[j]] << 4) |
-				  hex_lut[(u8)hexstr[j + 1]];
+		data[i] = (uint8_t)(hex_lut[(uint8_t)hexstr[j]] << 4) |
+				  hex_lut[(uint8_t)hexstr[j + 1]];
 	}
 
 	*size = data_len;
 	return data;
 }
 
-void dump_bytes_vm(pid_t pid, u64 addr, size_t bytes_size)
+void dump_bytes_vm(pid_t pid, uint64_t addr, size_t bytes_size)
 {
 #ifdef DEBUG
 	constexpr size_t MAX_BYTES = 256;
@@ -98,10 +98,10 @@ void dump_bytes_vm(pid_t pid, u64 addr, size_t bytes_size)
 #endif
 }
 
-void write_bytes(pid_t pid, u64 addr, const char *hexString, enum write_flag special_flag)
+void write_bytes(pid_t pid, uint64_t addr, const char *hexString, enum write_flag special_flag)
 {
-	u8 *byteArray = nullptr;
-	s64 bytesize = 0;
+	uint8_t *byteArray = nullptr;
+	size_t bytesize = 0;
 	byteArray = hexstrtochar2(hexString, &bytesize);
 	if (!byteArray)
 	{
@@ -132,67 +132,67 @@ void write_bytes(pid_t pid, u64 addr, const char *hexString, enum write_flag spe
 	}
 }
 
-void write_bytes32(pid_t pid, u64 addr, const u32 val)
+void write_bytes32(pid_t pid, uint64_t addr, const uint32_t val)
 {
 	_printf("addr: 0x%lx\n", addr);
 	_printf("val: 0x%08x\n", val);
-	dump_bytes_vm(pid, addr, sizeof(u32));
-	dbg::write(pid, addr, (void*)&val, sizeof(u32));
-	dump_bytes_vm(pid, addr, sizeof(u32));
+	dump_bytes_vm(pid, addr, sizeof(uint32_t));
+	dbg::write(pid, addr, (void*)&val, sizeof(uint32_t));
+	dump_bytes_vm(pid, addr, sizeof(uint32_t));
 }
 
-void write_bytes64(pid_t pid, u64 addr, const s64 val)
+void write_bytes64(pid_t pid, uint64_t addr, const size_t val)
 {
 	_printf("addr: 0x%lx\n", addr);
 	_printf("val: 0x%016lx\n", val);
-	dump_bytes_vm(pid, addr, sizeof(s64));
-	dbg::write(pid, addr, (void*)&val, sizeof(s64));
-	dump_bytes_vm(pid, addr, sizeof(s64));
+	dump_bytes_vm(pid, addr, sizeof(size_t));
+	dbg::write(pid, addr, (void*)&val, sizeof(size_t));
+	dump_bytes_vm(pid, addr, sizeof(size_t));
 }
 
-void write_string(pid_t pid, u64 addr, const char *string)
+void write_string(pid_t pid, uint64_t addr, const char *string)
 {
 	_printf("addr: 0x%lx\n", addr);
 	_printf("val: %s", string);
-	s64 len = strlen(string) + 1;
+	size_t len = strlen(string) + 1;
 	dump_bytes_vm(pid, addr, len);
 	dbg::write(pid, addr, string, len);
 	dump_bytes_vm(pid, addr, len);
 }
 
-void write_float32(pid_t pid, u64 addr, const f32 val)
+void write_float32(pid_t pid, uint64_t addr, const float val)
 {
 	_printf("addr: 0x%lx\n", addr);
 	_printf("val: %f\n", val);
-	dump_bytes_vm(pid, addr, sizeof(f32));
-	dbg::write(pid, addr, (void*)&val, sizeof(f32));
-	dump_bytes_vm(pid, addr, sizeof(f32));
+	dump_bytes_vm(pid, addr, sizeof(float));
+	dbg::write(pid, addr, (void*)&val, sizeof(float));
+	dump_bytes_vm(pid, addr, sizeof(float));
 }
 
-void write_float64(pid_t pid, u64 addr, const f64 val)
+void write_float64(pid_t pid, uint64_t addr, const double val)
 {
 	_printf("addr: 0x%lx\n", addr);
 	_printf("val: %lf\n", val);
-	dump_bytes_vm(pid, addr, sizeof(f64));
-	dbg::write(pid, addr, (void*)&val, sizeof(f64));
-	dump_bytes_vm(pid, addr, sizeof(f64));
+	dump_bytes_vm(pid, addr, sizeof(double));
+	dbg::write(pid, addr, (void*)&val, sizeof(double));
+	dump_bytes_vm(pid, addr, sizeof(double));
 }
 
 // Must use `-fshort-wchar`
 // Otherwise, in freebsd target, wchar_t is 32 bit characters 
 extern "C" size_t wcslen( const wchar_t *str );
 
-void write_wstring(pid_t pid, u64 addr, const wchar_t* string)
+void write_wstring(pid_t pid, uint64_t addr, const wchar_t* string)
 {
-	s64 len = (wcslen(string) * sizeof(wchar_t)) + (1 * sizeof(wchar_t));
+	size_t len = (wcslen(string) * sizeof(wchar_t)) + (1 * sizeof(wchar_t));
 	dump_bytes_vm(pid, addr, len);
 	dbg::write(pid, addr, string, len);
 	dump_bytes_vm(pid, addr, len);
 }
 
-static u32 pattern_to_byte(const char *pattern, uint8_t *bytes)
+static uint32_t pattern_to_byte(const char *pattern, uint8_t *bytes)
 {
-	u32 count = 0;
+	uint32_t count = 0;
 	const char *start = pattern;
 	const char *end = pattern + strlen(pattern);
 
@@ -224,28 +224,28 @@ static u32 pattern_to_byte(const char *pattern, uint8_t *bytes)
  * @credit            https://github.com/OneshotGH/CSGOSimple-master/blob/59c1f2ec655b2fcd20a45881f66bbbc9cd0e562e/CSGOSimple/helpers/utils.cpp#L182
  * @returns           Address of the first occurrence
  */
-u8 *PatternScan(const uint64_t module_base, const uint64_t module_size, const char *signature)
+uint8_t *PatternScan(const uint64_t module_base, const uint64_t module_size, const char *signature)
 {
 	_printf("module_base: 0x%lx module_size: 0x%lx\n", module_base, module_size);
 	if (!module_base || !module_size)
 	{
 		return nullptr;
 	}
-	constexpr u32 MAX_PATTERN_LENGTH = 256;
-	u8 patternBytes[MAX_PATTERN_LENGTH];
+	constexpr uint32_t MAX_PATTERN_LENGTH = 256;
+	uint8_t patternBytes[MAX_PATTERN_LENGTH];
 	(void)memset(patternBytes, 0, MAX_PATTERN_LENGTH);
-	s32 patternLength = pattern_to_byte(signature, patternBytes);
+	int32_t patternLength = pattern_to_byte(signature, patternBytes);
 	if (patternLength <= 0 || patternLength >= MAX_PATTERN_LENGTH)
 	{
 		_printf("Pattern length too large or invalid! %i (0x%08x)\n", patternLength, patternLength);
 		_printf("Input Pattern %s\n", signature);
 		return nullptr;
 	}
-	u8 *scanBytes = (u8 *)module_base;
-	for (u64 i = 0; i < module_size; ++i)
+	uint8_t *scanBytes = (uint8_t *)module_base;
+	for (uint64_t i = 0; i < module_size; ++i)
 	{
 		bool found = true;
-		for (s32 j = 0; j < patternLength; ++j)
+		for (int32_t j = 0; j < patternLength; ++j)
 		{
 			if (scanBytes[i + j] != patternBytes[j] && patternBytes[j] != 0xff)
 			{

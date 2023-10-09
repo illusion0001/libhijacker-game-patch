@@ -6,7 +6,7 @@
 int32_t is120HzUsable;
 int32_t isPatch120Hz;
 
-void DoPatch_Bloodborne109(pid_t app_pid, u64 text_base)
+void DoPatch_Bloodborne109(pid_t app_pid, uint64_t text_base)
 {
 	// skip logos
 	write_bytes32(app_pid, NO_ASLR(0x04d99138), 0);
@@ -1183,7 +1183,7 @@ void DoPatch_Bloodborne109(pid_t app_pid, u64 text_base)
 	*/
 }
 
-void DoPatch_GravityDaze2_111(pid_t app_pid, u64 text_base)
+void DoPatch_GravityDaze2_111(pid_t app_pid, uint64_t text_base)
 {
 	write_bytes(app_pid, NO_ASLR(0x00901c26), "c5fa10058a68fb00");
 	write_bytes(app_pid, NO_ASLR(0x00907e20), "c3");
@@ -1552,7 +1552,7 @@ void DoPatch_GravityDaze2_111(pid_t app_pid, u64 text_base)
 	}
 }
 
-void DoPatch_SOTC_100(pid_t app_pid, u64 text_base)
+void DoPatch_SOTC_100(pid_t app_pid, uint64_t text_base)
 {
 	write_bytes(app_pid, NO_ASLR(0x0042437f), "0f1f440000");
 	// write_bytes(app_pid, NO_ASLR(0x01390090), "31c0c3");
@@ -1582,7 +1582,7 @@ void DoPatch_SOTC_100(pid_t app_pid, u64 text_base)
 	write_bytes(app_pid, NO_ASLR(0x019938cc), "e9d820b0fe");
 }
 
-void DoPatch_BigCollection(pid_t app_pid, u64 text_base, u32 idx)
+void DoPatch_BigCollection(pid_t app_pid, uint64_t text_base, uint32_t idx)
 {
 	switch (idx)
 	{
@@ -2224,7 +2224,7 @@ void DoPatch_BigCollection(pid_t app_pid, u64 text_base, u32 idx)
 	}
 }
 
-void DoPatch_TheOrder1886_102(pid_t app_pid, u64 text_base)
+void DoPatch_TheOrder1886_102(pid_t app_pid, uint64_t text_base)
 {
 	// 60 FPS
 	write_bytes(app_pid, NO_ASLR(0x008507c4), "01");
@@ -2238,7 +2238,7 @@ void DoPatch_TheOrder1886_102(pid_t app_pid, u64 text_base)
 	*/
 }
 
-void DoPatch_Big4R_100(pid_t app_pid, u64 text_base, u32 idx)
+void DoPatch_Big4R_100(pid_t app_pid, uint64_t text_base, uint32_t idx)
 {
 	switch (idx)
 	{
@@ -2255,7 +2255,7 @@ void DoPatch_Big4R_100(pid_t app_pid, u64 text_base, u32 idx)
 	}
 }
 
-void DoPatch_DemonSouls(pid_t app_pid, u64 text_base, u32 idx)
+void DoPatch_DemonSouls(pid_t app_pid, uint64_t text_base, uint32_t idx)
 {
 	switch (idx)
 	{
@@ -2323,7 +2323,7 @@ void DoPatch_DemonSouls(pid_t app_pid, u64 text_base, u32 idx)
 	}
 }
 
-void DoPatch_DriveClub_128(pid_t app_pid, u64 text_base)
+void DoPatch_DriveClub_128(pid_t app_pid, uint64_t text_base)
 {
 	// 60 FPS
 	write_bytes(app_pid, NO_ASLR(0x01184800), "b801000000");
@@ -2334,7 +2334,7 @@ void DoPatch_DriveClub_128(pid_t app_pid, u64 text_base)
 	write_bytes(app_pid, NO_ASLR(0x01187ce7), "b801000000");
 }
 
-void DoPatch_TheLastGuardian_103(pid_t app_pid, u64 text_base)
+void DoPatch_TheLastGuardian_103(pid_t app_pid, uint64_t text_base)
 {
 	// 60 FPS
 	write_bytes(app_pid, NO_ASLR(0x0105151a), "be00000000");
@@ -2494,7 +2494,7 @@ void DoPatch_TheLastGuardian_103(pid_t app_pid, u64 text_base)
 	}
 }
 
-void DoPatch_CTR_121(pid_t app_pid, u64 text_base, u32 idx)
+void DoPatch_CTR_121(pid_t app_pid, uint64_t text_base, uint32_t idx)
 {
 	switch (idx)
 	{
@@ -2513,7 +2513,7 @@ void DoPatch_CTR_121(pid_t app_pid, u64 text_base, u32 idx)
 	}
 }
 
-void DoPatch_t1ps4_111(pid_t app_pid, u64 text_base)
+void DoPatch_t1ps4_111(pid_t app_pid, uint64_t text_base)
 {
 	// Debug Menu
 	write_bytes(app_pid, NO_ASLR(0x004021a4), "75");
@@ -2842,7 +2842,7 @@ void DoPatch_t1ps4_111(pid_t app_pid, u64 text_base)
 	}
 }
 
-void DoPatch_t2ps4(pid_t app_pid, u64 text_base, u32 idx)
+void DoPatch_t2ps4(pid_t app_pid, uint64_t text_base, uint32_t idx)
 {
 	switch (idx)
 	{
@@ -3183,7 +3183,7 @@ void DoPatch_t2ps4(pid_t app_pid, u64 text_base, u32 idx)
 	}
 }
 
-void DoPatch_ACEZioCollection_102(pid_t app_pid, u64 text_base, u32 idx)
+void DoPatch_ACEZioCollection_102(pid_t app_pid, uint64_t text_base, uint32_t idx)
 {
 	switch (idx)
 	{
@@ -3210,7 +3210,7 @@ void DoPatch_ACEZioCollection_102(pid_t app_pid, u64 text_base, u32 idx)
 	}
 }
 
-void DoPatchBF4_124(pid_t app_pid, u64 text_base)
+void DoPatchBF4_124(pid_t app_pid, uint64_t text_base)
 {
 	/*
 	LEA RAX,[0x03576f20]
@@ -3262,7 +3262,7 @@ void DoPatchBF4_124(pid_t app_pid, u64 text_base)
 	write_bytes(app_pid, NO_ASLR(0x01c2db2e), "e937b472ff");
 }
 
-void DoPatchKillzone_181(pid_t app_pid, u64 text_base)
+void DoPatchKillzone_181(pid_t app_pid, uint64_t text_base)
 {
 	if (isPatch120Hz)
 	{
@@ -3318,7 +3318,7 @@ void DoPatchKillzone_181(pid_t app_pid, u64 text_base)
 	}
 }
 
-void DoPatchGravityDaze_101(pid_t app_pid, u64 text_base)
+void DoPatchGravityDaze_101(pid_t app_pid, uint64_t text_base)
 {
 	write_bytes(app_pid, NO_ASLR(0x0040266a), "c70001000000");
 	write_bytes(app_pid, NO_ASLR(0x004152d3), "e904255d01");
@@ -3345,7 +3345,7 @@ void DoPatchGravityDaze_101(pid_t app_pid, u64 text_base)
 	write_bytes(app_pid, NO_ASLR(0x019e7823), "e9bfdaa2fe");
 }
 
-void DoPatchMEC_102(pid_t app_pid, u64 text_base)
+void DoPatchMEC_102(pid_t app_pid, uint64_t text_base)
 {
 	write_bytes(app_pid, NO_ASLR(0x01f746fa), "e9e76d8300");
 	write_bytes(app_pid, NO_ASLR(0x027ab4e6), "c4817a1106");
