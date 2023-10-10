@@ -2872,7 +2872,8 @@ void DoPatch_t2ps4(pid_t app_pid, uint64_t text_base, uint32_t idx)
 		// Debug Menu
 		write_bytes(app_pid, NO_ASLR(0x00a141dd), "b000");
 		// 60 FPS
-		write_bytes(app_pid, NO_ASLR(0x02bbb5f0), "31c0c3");
+		write_bytes(app_pid, NO_ASLR(0x02bbb5f0), "31f6");
+		write_bytes(app_pid, NO_ASLR(0x02bbb5f2), "ff25e0e17e00");
 		// Skip Startup Logos
 		write_bytes(app_pid, NO_ASLR(0x01c85f20), "c3");
 		write_bytes(app_pid, NO_ASLR(0x020b1952), "48e8f85cb200");
@@ -3151,33 +3152,48 @@ void DoPatch_t2ps4(pid_t app_pid, uint64_t text_base, uint32_t idx)
 		write_bytes(app_pid, NO_ASLR(0x020412d3), "830001");
 		write_bytes(app_pid, NO_ASLR(0x020412d6), "e865e31600");
 		write_bytes(app_pid, NO_ASLR(0x020412db), "e9ff000000");
-		// 120Hz (debug only)
+		// 120Hz
 		if (isPatch120Hz)
 		{
-			write_bytes(app_pid, NO_ASLR(0x029bb2a2), "eb4f");
-			write_bytes(app_pid, NO_ASLR(0x029bb2f3), "488d05dee49e00");
-			write_bytes(app_pid, NO_ASLR(0x029bb2fa), "488b00");
-			write_bytes(app_pid, NO_ASLR(0x029bb2fd), "4805ffffffff", isOffsetVideoModeSupported);
-			write_bytes(app_pid, NO_ASLR(0x029bb303), "488d3dbeb7cc01");
-			write_bytes(app_pid, NO_ASLR(0x029bb30a), "8b3f");
-			write_bytes(app_pid, NO_ASLR(0x029bb30c), "be0f000000");
-			write_bytes(app_pid, NO_ASLR(0x029bb311), "31d2");
-			write_bytes(app_pid, NO_ASLR(0x029bb313), "31c9");
-			write_bytes(app_pid, NO_ASLR(0x029bb315), "4531c0");
-			write_bytes(app_pid, NO_ASLR(0x029bb318), "ffd0");
-			write_bytes(app_pid, NO_ASLR(0x029bb31a), "83f801");
-			write_bytes(app_pid, NO_ASLR(0x029bb31d), "9090");
-			write_bytes(app_pid, NO_ASLR(0x029bb31f), "488d05b2e49e00");
-			write_bytes(app_pid, NO_ASLR(0x029bb326), "488b00");
-			write_bytes(app_pid, NO_ASLR(0x029bb329), "482dffffffff", isOffsetConfigureOutput);
-			write_bytes(app_pid, NO_ASLR(0x029bb32f), "488d3d92b7cc01");
-			write_bytes(app_pid, NO_ASLR(0x029bb336), "8b3f");
-			write_bytes(app_pid, NO_ASLR(0x029bb338), "be0f000000");
-			write_bytes(app_pid, NO_ASLR(0x029bb33d), "31d2");
-			write_bytes(app_pid, NO_ASLR(0x029bb33f), "31c9");
-			write_bytes(app_pid, NO_ASLR(0x029bb341), "4531c0");
-			write_bytes(app_pid, NO_ASLR(0x029bb344), "ffd0");
-			write_bytes(app_pid, NO_ASLR(0x029bb346), "e973ffffff");
+			// force 1080p mode for max perf
+			write_bytes32(app_pid, NO_ASLR(0x00a17631), 0);
+			// no delay
+			write_bytes(app_pid, NO_ASLR(0x021bae80), "66c705ef1a1b020000");
+			write_bytes(app_pid, NO_ASLR(0x0218e5a3), "e9d911ce00");
+			write_bytes(app_pid, NO_ASLR(0x02e6f781), "488d3d48ae5e00");
+			write_bytes(app_pid, NO_ASLR(0x02e6f788), "8907");
+			write_bytes(app_pid, NO_ASLR(0x02e6f78a), "488d059fac5300");
+			write_bytes(app_pid, NO_ASLR(0x02e6f791), "488b00");
+			write_bytes(app_pid, NO_ASLR(0x02e6f794), "48050df0a70c", isOffsetVideoModeSupported);
+			write_bytes(app_pid, NO_ASLR(0x02e6f79a), "488d3d27738101");
+			write_bytes(app_pid, NO_ASLR(0x02e6f7a1), "8b3f");
+			write_bytes(app_pid, NO_ASLR(0x02e6f7a3), "be0f000000");
+			write_bytes(app_pid, NO_ASLR(0x02e6f7a8), "31d2");
+			write_bytes(app_pid, NO_ASLR(0x02e6f7aa), "31c9");
+			write_bytes(app_pid, NO_ASLR(0x02e6f7ac), "4531c0");
+			write_bytes(app_pid, NO_ASLR(0x02e6f7af), "ffd0");
+			write_bytes(app_pid, NO_ASLR(0x02e6f7b1), "83f801");
+			write_bytes(app_pid, NO_ASLR(0x02e6f7b4), "7527");
+			write_bytes(app_pid, NO_ASLR(0x02e6f7b6), "488d0573ac5300");
+			write_bytes(app_pid, NO_ASLR(0x02e6f7bd), "488b00");
+			write_bytes(app_pid, NO_ASLR(0x02e6f7c0), "48050df0ed5e", isOffsetConfigureOutput);
+			write_bytes(app_pid, NO_ASLR(0x02e6f7c6), "488d3dfb728101");
+			write_bytes(app_pid, NO_ASLR(0x02e6f7cd), "8b3f");
+			write_bytes(app_pid, NO_ASLR(0x02e6f7cf), "be0f000000");
+			write_bytes(app_pid, NO_ASLR(0x02e6f7d4), "31d2");
+			write_bytes(app_pid, NO_ASLR(0x02e6f7d6), "31c9");
+			write_bytes(app_pid, NO_ASLR(0x02e6f7d8), "4531c0");
+			write_bytes(app_pid, NO_ASLR(0x02e6f7db), "ffd0");
+			write_bytes(app_pid, NO_ASLR(0x02e6f7dd), "85c0");
+			write_bytes(app_pid, NO_ASLR(0x02e6f7df), "e9c5ed31ff");
+			write_float32(app_pid, NO_ASLR(0x0138f9d5 + 6), (120.f));
+			write_float32(app_pid, NO_ASLR(0x0138f9ec + 3), (1./120.));
+			write_float32(app_pid, NO_ASLR(0x013c62be + 6), (120.f));
+			write_float32(app_pid, NO_ASLR(0x013c62d8 + 3), (1./120.));
+			write_float32(app_pid, NO_ASLR(0x013c71d7 + 6), (120.f));
+			write_float32(app_pid, NO_ASLR(0x013c71f1 + 3), (1./120.));
+			write_float32(app_pid, NO_ASLR(0x0144e8bd + 6), (120.f));
+			write_float32(app_pid, NO_ASLR(0x0144e8d7 + 3), (1./120.));
 			printf_notification("Applied 120Hz Patch");
 		}
 		break;
