@@ -91,13 +91,13 @@ pip install aiofiles
 
 # Building
 
-1. Install LLVM 16.
+1. Install Clang + LLVM 14+.
 2. Build and install [PS5SDK](https://github.com/PS5Dev/PS5SDK) (firmware does not matter).
 3. Clone this repo with recursive submodules.
 4. Generate libary stubs using stubber which can be found in  [`/stubber`](/stubber) folder.
    - Build `main.go`: `go build`
-   - Dump `/system/lib/common/` folder from your console (4.03) in decrypted prx files using the [ps5-self-dumper](https://github.com/sleirsgoevy/ps4jb-payloads/tree/bd-jb/ps5-self-dumper) payload from sleirsgoevy.
-   - Or use my [pre generated](https://github.com/illusion0001/libhijacker/releases/tag/stubber-lib).
+   - Dump `/system/lib/common/` folder from your console in decrypted prx files using the [PS5-SELF-Decrypter](https://github.com/Cryptogenic/PS5-SELF-Decrypter) payload from SpecterDev.
+   - Or use my [pre generated stubs](https://github.com/illusion0001/libhijacker/releases/tag/stubber-lib).
    - Run the stubber. `./main aerolib.csv (PS5 System Folder) (Output Folder)`
    - Copy `.so` files to this repository folder into `lib`. (Create one if it does not exist)
 5. Build the hijacker
