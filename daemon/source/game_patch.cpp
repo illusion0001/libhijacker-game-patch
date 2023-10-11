@@ -1185,8 +1185,8 @@ void DoPatch_Bloodborne109(pid_t app_pid, uint64_t text_base)
 
 void DoPatch_GravityDaze2_111(pid_t app_pid, uint64_t text_base)
 {
-	write_bytes(app_pid, NO_ASLR(0x00901c26), "c5fa10058a68fb00");
-	write_bytes(app_pid, NO_ASLR(0x00907e20), "c3");
+	// write_bytes(app_pid, NO_ASLR(0x00901c26), "c5fa10058a68fb00");
+	// write_bytes(app_pid, NO_ASLR(0x00907e20), "c3");
 	// <!-- Boot game in unused 60FPS Mode -->
 	write_bytes(app_pid, NO_ASLR(0x00854ac5), "c605bc656a0100");
 	/*
