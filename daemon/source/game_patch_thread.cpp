@@ -241,7 +241,7 @@ void *GamePatch_InputThread(void *unused)
 				{
 					g_doPatchGames = !g_doPatchGames;
 					printf_notification("User requested to patch games: %s", g_doPatchGames ? "true" : "false");
-					_printf("doPatchGames: 0x%02x\n", g_doPatchGames);
+					// _printf("doPatchGames: 0x%02x\n", g_doPatchGames);
 				}
 				prevTogglePressed = currentTogglePressed;
 				if (checkKillButton(&pData))
@@ -262,6 +262,7 @@ void *GamePatch_InputThread(void *unused)
 	{
 		print_ret(scePadClose(pad_handle));
 	}
+	printf_notification("Game Patch Input thread has requested to stop");
 	pthread_exit(nullptr);
 	return nullptr;
 }
@@ -298,29 +299,55 @@ void *GamePatch_Thread(void *unused)
 		is120HzUsable = false;
 	}
 
-	// multiple self games
-	pid_t target_running_pid = 0;
+	pid_t target_running_pid = -1;
 	g_game_patch_thread_running = true;
 
 	int32_t doPatchGames = true;
-	int32_t Shellcore_Patched = false;
+	{
+		const UniquePtr<Hijacker> executable = Hijacker::getHijacker("SceShellCore"_sv);
+		uintptr_t text_base = 0;
+		uint64_t text_size = 0;
+		pid_t shellcore_pid = 0;
+		if (executable)
+		{
+			text_base = executable->getEboot()->getTextSection()->start();
+			text_size = executable->getEboot()->getTextSection()->sectionLength();
+			shellcore_pid = executable->getPid();
+			if (is120HzUsable)
+			{
+				if (patchShellCore(shellcore_pid, text_base, text_size))
+				{
+					printf_notification("Patches for ShellCore has been installed.");
+				}
+				else
+				{
+					printf_notification("Failed to install patches for ShellCore.");
+				}
+			}
+		}
+		else
+		{
+			printf_notification("SceShellCore not found");
+		}
+	}
 
 	while (g_game_patch_thread_running)
 	{
 		if (!doPatchGames)
 		{
+			usleep(1000);
 			continue;
 		}
 		if (dbg::getProcesses().length() == 0)
 		{
-			_puts("(dbg::getProcesses().length() == 0), continuing");
+			printf_notification("(dbg::getProcesses().length() == 0), continuing");
 			continue;
 		}
 		for (auto p : dbg::getProcesses())
 		{
 			if (g_foundApp)
 			{
-				// puts("if (g_foundApp) break;");
+				usleep(1000);
 				break;
 			}
 			const pid_t app_pid = p.pid();
@@ -339,18 +366,6 @@ void *GamePatch_Thread(void *unused)
 			if (text_base == 0 || text_size == 0)
 			{
 				continue;
-			}
-			if ((!Shellcore_Patched && is120HzUsable) && startsWith(p.name().c_str(), "SceShellCore"))
-			{
-				if (patchShellCore(app_pid, text_base, text_size))
-				{
-					printf_notification("Patches for ShellCore has been installed.");
-				}
-				else
-				{
-					printf_notification("Failed to install patches for ShellCore.");
-				}
-				Shellcore_Patched = true;
 			}
 			const auto app = getProc(app_pid);
 			String titleId = app->titleId();
@@ -377,6 +392,7 @@ void *GamePatch_Thread(void *unused)
 					g_foundApp = true;
 					target_running_pid = app_pid;
 				}
+				dbg::Tracer app_tracer{app_pid};
 				if (startsWith(process_name_c_str, "eboot.bin"))
 				{
 					if ((startsWith(app_id, "CUSA00547") ||
@@ -385,12 +401,8 @@ void *GamePatch_Thread(void *unused)
 						 startsWith(app_id, "CUSA04943")) &&
 						(startsWith(app_ver, "01.11")))
 					{
-						dbg::Tracer tracer{app_pid};
 						DoPatch_GravityDaze2_111(app_pid, text_base);
-						target_running_pid = app_pid;
-						g_foundApp = true;
 						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
-						tracer.run(false);
 					}
 					else if ((startsWith(app_id, "PCAS00035") ||
 							  startsWith(app_id, "PCJS50004") ||
@@ -403,12 +415,8 @@ void *GamePatch_Thread(void *unused)
 							  startsWith(app_id, "CUSA02318")) &&
 							 (startsWith(app_ver, "01.00")))
 					{
-						dbg::Tracer tracer{app_pid};
 						DoPatchGravityDaze_101(app_pid, text_base);
-						target_running_pid = app_pid;
-						g_foundApp = true;
 						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
-						tracer.run(false);
 					}
 					else if ((startsWith(app_id, "CUSA00900") ||
 							  startsWith(app_id, "CUSA00207") ||
@@ -417,12 +425,8 @@ void *GamePatch_Thread(void *unused)
 							  startsWith(app_id, "CUSA01363")) &&
 							 (startsWith(app_ver, "01.09")))
 					{
-						dbg::Tracer tracer{app_pid};
 						DoPatch_Bloodborne109(app_pid, text_base);
-						target_running_pid = app_pid;
-						g_foundApp = true;
 						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
-						tracer.run(false);
 					}
 					else if ((startsWith(app_id, "CUSA03041") ||
 							  startsWith(app_id, "CUSA08519") ||
@@ -430,21 +434,13 @@ void *GamePatch_Thread(void *unused)
 					{
 						if (startsWith(app_ver, "01.00"))
 						{
-							dbg::Tracer tracer{app_pid};
 							write_bytes(app_pid, NO_ASLR(0x04a8ee1d), "be00000000");
-							target_running_pid = app_pid;
-							g_foundApp = true;
 							printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
-							tracer.run(false);
 						}
 						else if (startsWith(app_ver, "01.29"))
 						{
-							dbg::Tracer tracer{app_pid};
 							write_bytes(app_pid, NO_ASLR(0x0578ab57), "be00000000");
-							target_running_pid = app_pid;
-							g_foundApp = true;
 							printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
-							tracer.run(false);
 						}
 					}
 					else if ((startsWith(app_id, "CUSA00035") ||
@@ -455,12 +451,8 @@ void *GamePatch_Thread(void *unused)
 							  startsWith(app_id, "CUSA00670")) &&
 							 (startsWith(app_ver, "01.02")))
 					{
-						dbg::Tracer tracer{app_pid};
 						DoPatch_TheOrder1886_102(app_pid, text_base);
-						target_running_pid = app_pid;
-						g_foundApp = true;
 						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
-						tracer.run(false);
 					}
 					else if ((startsWith(app_id, "CUSA00003") ||
 							  startsWith(app_id, "CUSA00064") ||
@@ -469,56 +461,36 @@ void *GamePatch_Thread(void *unused)
 							  startsWith(app_id, "CUSA00879")) &&
 							 (startsWith(app_ver, "01.28")))
 					{
-						dbg::Tracer tracer{app_pid};
 						DoPatch_DriveClub_128(app_pid, text_base);
-						target_running_pid = app_pid;
-						g_foundApp = true;
 						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
-						tracer.run(false);
 					}
 					else if ((startsWith(app_id, "CUSA03627") ||
 							  startsWith(app_id, "CUSA03745") ||
 							  startsWith(app_id, "CUSA04936")) &&
 							 (startsWith(app_ver, "01.03")))
 					{
-						dbg::Tracer tracer{app_pid};
 						DoPatch_TheLastGuardian_103(app_pid, text_base);
-						target_running_pid = app_pid;
-						g_foundApp = true;
 						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
-						tracer.run(false);
 					}
 					else if ((startsWith(app_id, "CUSA13795")) &&
 							 (startsWith(app_ver, "01.21")))
 					{
-						dbg::Tracer tracer{app_pid};
 						DoPatch_CTR_121(app_pid, text_base, 1);
-						target_running_pid = app_pid;
-						g_foundApp = true;
 						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
-						tracer.run(false);
 					}
 					else if ((startsWith(app_id, "CUSA14876")) &&
 							 (startsWith(app_ver, "01.21")))
 					{
-						dbg::Tracer tracer{app_pid};
 						DoPatch_CTR_121(app_pid, text_base, 2);
-						target_running_pid = app_pid;
-						g_foundApp = true;
 						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
-						tracer.run(false);
 					}
 					else if ((startsWith(app_id, "CUSA08034") ||
 							  startsWith(app_id, "CUSA08804")) &&
 							 (startsWith(app_ver, "01.00") ||
 							  startsWith(app_ver, "01.01")))
 					{
-						dbg::Tracer tracer{app_pid};
 						DoPatch_SOTC_100(app_pid, text_base);
-						target_running_pid = app_pid;
-						g_foundApp = true;
 						printf_notification("%s (%s): Debug Menu Patched!", app_id, app_ver);
-						tracer.run(false);
 					}
 					else if ((startsWith(app_id, "CUSA07820") ||
 							  startsWith(app_id, "CUSA10249") ||
@@ -526,12 +498,8 @@ void *GamePatch_Thread(void *unused)
 							  startsWith(app_id, "CUSA14006")) &&
 							 (startsWith(app_ver, "01.00")))
 					{
-						dbg::Tracer tracer{app_pid};
 						DoPatch_t2ps4(app_pid, text_base, 0x100);
-						target_running_pid = app_pid;
-						g_foundApp = true;
 						printf_notification("%s (%s): 60 FPS + Debug Menu Patched!", app_id, app_ver);
-						tracer.run(false);
 					}
 					else if ((startsWith(app_id, "CUSA07820") ||
 							  startsWith(app_id, "CUSA10249") ||
@@ -539,12 +507,8 @@ void *GamePatch_Thread(void *unused)
 							  startsWith(app_id, "CUSA14006")) &&
 							 (startsWith(app_ver, "01.09")))
 					{
-						dbg::Tracer tracer{app_pid};
 						DoPatch_t2ps4(app_pid, text_base, 0x109);
-						target_running_pid = app_pid;
-						g_foundApp = true;
 						printf_notification("%s (%s): 60 FPS + Debug Menu Patched!", app_id, app_ver);
-						tracer.run(false);
 					}
 					else if ((startsWith(app_id, "CUSA00552") ||
 							  startsWith(app_id, "CUSA00556") ||
@@ -552,25 +516,17 @@ void *GamePatch_Thread(void *unused)
 							  startsWith(app_id, "CUSA00559")) &&
 							 (startsWith(app_ver, "01.11")))
 					{
-						dbg::Tracer tracer{app_pid};
 						DoPatch_t1ps4_111(app_pid, text_base);
-						target_running_pid = app_pid;
-						g_foundApp = true;
 						printf_notification("%s (%s): 60 FPS + Debug Menu Patched!", app_id, app_ver);
-						tracer.run(false);
 					}
 					else if ((startsWith(app_id, "CUSA01127") ||
 							  startsWith(app_id, "CUSA01114") ||
 							  startsWith(app_id, "CUSA01098")) &&
 							 (startsWith(app_ver, "01.00")))
 					{
-						dbg::Tracer tracer{app_pid};
 						// 60 FPS
 						write_bytes(app_pid, NO_ASLR(0x00d8a713), "be00000000");
-						target_running_pid = app_pid;
-						g_foundApp = true;
 						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
-						tracer.run(false);
 					}
 					else if ((startsWith(app_id, "CUSA09254") ||
 							  startsWith(app_id, "CUSA09264") ||
@@ -579,7 +535,6 @@ void *GamePatch_Thread(void *unused)
 							  startsWith(app_id, "CUSA13318")) &&
 							 (startsWith(app_ver, "01.32")))
 					{
-						dbg::Tracer tracer{app_pid};
 						// 60 FPS
 						write_bytes(app_pid, NO_ASLR(0x0264c85d), "41be00000000");
 						write_bytes(app_pid, NO_ASLR(0x005b6bcd), "41be01000000");
@@ -596,45 +551,33 @@ void *GamePatch_Thread(void *unused)
 						write_bytes32(app_pid, NO_ASLR(0x026533d0), 2160);
 						*/
 						// cheats
-						target_running_pid = app_pid;
-						g_foundApp = true;
 						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
-						tracer.run(false);
 					}
 					else if ((startsWith(app_id, "CUSA01493") ||
 							  startsWith(app_id, "CUSA02747") ||
 							  startsWith(app_id, "CUSA02748")) &&
 							 (startsWith(app_ver, "01.05")))
 					{
-						dbg::Tracer tracer{app_pid};
 						// 60 FPS
 						write_bytes(app_pid, NO_ASLR(0x00a1f817), "4831c9");
 						write_bytes(app_pid, NO_ASLR(0x01ddd118), "41c7c403000000");
-						target_running_pid = app_pid;
-						g_foundApp = true;
 						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
-						tracer.run(false);
 					}
 					else if ((startsWith(app_id, "CUSA00133") ||
 							  startsWith(app_id, "CUSA00135") ||
 							  startsWith(app_id, "CUSA01009")) &&
 							 (startsWith(app_ver, "01.15")))
 					{
-						dbg::Tracer tracer{app_pid};
 						// 60 FPS
 						write_bytes(app_pid, NO_ASLR(0x009fa57e), "be00000000");
 						write_bytes(app_pid, NO_ASLR(0x009fa596), "b800000000");   // vsync
 						write_bytes(app_pid, NO_ASLR(0x009fb9e1), "48e9a9000000"); // no GUseFixedTimeStep
-						target_running_pid = app_pid;
-						g_foundApp = true;
 						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
-						tracer.run(false);
 					}
 					else if ((startsWith(app_id, "CUSA07399") ||
 							  startsWith(app_id, "CUSA07402")) &&
 							 (startsWith(app_ver, "01.07")))
 					{
-						dbg::Tracer tracer{app_pid};
 						// 60 FPS
 						write_bytes(app_pid, NO_ASLR(0x00f52de0), "be00000000909090909090909090");
 						// Resolution Patch
@@ -642,17 +585,13 @@ void *GamePatch_Thread(void *unused)
 						// Doesn't seem to be a difference in term of drops when new area loads
 						write_bytes32(app_pid, NO_ASLR(0x00529cdb), 0x3fd55555); // 1.667f
 						write_bytes32(app_pid, NO_ASLR(0x01c75680), 0x3fd55555); // 1.667f
-						target_running_pid = app_pid;
-						g_foundApp = true;
 						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
-						tracer.run(false);
 					}
 					else if ((startsWith(app_id, "CUSA18097") ||
 							  startsWith(app_id, "CUSA18100") ||
 							  startsWith(app_id, "CUSA19278")) &&
 							 (startsWith(app_ver, "01.04")))
 					{
-						dbg::Tracer tracer{app_pid};
 						// 60 FPS
 						write_bytes(app_pid, NO_ASLR(0x0312a29a), "418b7c240831f60f1f8000000000"); // fliprate
 						// write_bytes(app_pid, NO_ASLR(0x0311ea1b), "b801000000"); // use vsync on base ps4 // redundant?
@@ -660,10 +599,7 @@ void *GamePatch_Thread(void *unused)
 						write_bytes(app_pid, NO_ASLR(0x01be8ba9), "41c7471808000000660f1f4400000f1f8000000000"); // gameplay
 						write_bytes32(app_pid, NO_ASLR(0x045f6f28), 0);											 // logo movies
 						write_bytes32(app_pid, NO_ASLR(0x045f6f3d), 0);
-						target_running_pid = app_pid;
-						g_foundApp = true;
 						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
-						tracer.run(false);
 					}
 					else if ((startsWith(app_id, "CUSA00341") ||
 							  startsWith(app_id, "CUSA00912") ||
@@ -672,7 +608,6 @@ void *GamePatch_Thread(void *unused)
 							  startsWith(app_id, "CUSA04529")) &&
 							 (startsWith(app_ver, "01.33")))
 					{
-						dbg::Tracer tracer{app_pid};
 						// 60 FPS
 						write_bytes32(app_pid, NO_ASLR(0x00616e54), 0x1);
 						write_bytes(app_pid, NO_ASLR(0x020e9880), "31f6");
@@ -680,10 +615,7 @@ void *GamePatch_Thread(void *unused)
 						// Debug Menu
 						write_bytes(app_pid, NO_ASLR(0x005c8d97), "c7c101000000");
 						write_bytes(app_pid, NO_ASLR(0x005c8d9d), "41b401");
-						target_running_pid = app_pid;
-						g_foundApp = true;
 						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
-						tracer.run(false);
 					}
 					else if ((startsWith(app_id, "CUSA07875") ||
 							  startsWith(app_id, "CUSA09564") ||
@@ -692,7 +624,6 @@ void *GamePatch_Thread(void *unused)
 							  startsWith(app_id, "CUSA08352")) &&
 							 (startsWith(app_ver, "01.09")))
 					{
-						dbg::Tracer tracer{app_pid};
 						// 60 FPS
 						write_bytes32(app_pid, NO_ASLR(0x00623bff), 0x1);
 						write_bytes(app_pid, NO_ASLR(0x022193f0), "31f6");
@@ -701,37 +632,26 @@ void *GamePatch_Thread(void *unused)
 						write_bytes(app_pid, NO_ASLR(0x005c8fc3), "31c9");
 						write_bytes(app_pid, NO_ASLR(0x005c8fc5), "0f1f4000");
 						write_bytes(app_pid, NO_ASLR(0x005c8fd6), "31d2");
-						target_running_pid = app_pid;
-						g_foundApp = true;
 						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
-						tracer.run(false);
 					}
 					else if ((startsWith(app_id, "CUSA00663") ||
 							  startsWith(app_id, "CUSA00605") ||
 							  startsWith(app_id, "CUSA00476")) &&
 							 (startsWith(app_ver, "01.05")))
 					{
-						dbg::Tracer tracer{app_pid};
 						// 60 FPS
 						write_bytes(app_pid, NO_ASLR(0x042f034e), "be00000000");
 						// Startup logo skip
 						write_bytes(app_pid, NO_ASLR(0x03ffaadb), "0f85");
-						target_running_pid = app_pid;
-						g_foundApp = true;
 						printf_notification("%s (%s): 60 FPS Patched!", app->titleId().c_str(), app_ver);
-						tracer.run(false);
 					}
 					else if ((startsWith(app_id, "CUSA00049") ||
 							  startsWith(app_id, "CUSA00110") ||
 							  startsWith(app_id, "CUSA00157")) &&
 							 (startsWith(app_ver, "01.24")))
 					{
-						dbg::Tracer tracer{app_pid};
 						DoPatchBF4_124(app_pid, text_base);
-						target_running_pid = app_pid;
-						g_foundApp = true;
 						printf_notification("%s (%s): 120 FPS Patched!", app_id, app_ver);
-						tracer.run(false);
 					}
 					else if ((startsWith(app_id, "CUSA00002") ||
 							  startsWith(app_id, "CUSA00008") ||
@@ -739,24 +659,16 @@ void *GamePatch_Thread(void *unused)
 							  startsWith(app_id, "CUSA00190")) &&
 							 (startsWith(app_ver, "01.81")))
 					{
-						dbg::Tracer tracer{app_pid};
 						DoPatchKillzone_181(app_pid, text_base);
-						target_running_pid = app_pid;
-						g_foundApp = true;
 						printf_notification("%s (%s): Patched!", app_id, app_ver);
-						tracer.run(false);
 					}
 					else if ((startsWith(app_id, "CUSA01499") ||
 							  startsWith(app_id, "CUSA01542") ||
 							  startsWith(app_id, "CUSA01566")) &&
 							 (startsWith(app_ver, "01.02")))
 					{
-						dbg::Tracer tracer{app_pid};
 						DoPatchMEC_102(app_pid, text_base);
-						target_running_pid = app_pid;
-						g_foundApp = true;
 						printf_notification("%s (%s): 120 FPS Patched!", app_id, app_ver);
-						tracer.run(false);
 					}
 					else if ((startsWith(app_id, "CUSA00220") ||
 							  startsWith(app_id, "CUSA00503") ||
@@ -764,16 +676,12 @@ void *GamePatch_Thread(void *unused)
 							  startsWith(app_id, "CUSA01425")) &&
 							 (startsWith(app_ver, "01.12")))
 					{
-						dbg::Tracer tracer{app_pid};
 						// 60 FPS
 						write_bytes(app_pid, NO_ASLR(0x015dcc1f), "be00000000");
 						write_bytes(app_pid, NO_ASLR(0x012517d1), "c744202800007042");
 						write_bytes(app_pid, NO_ASLR(0x012517d9), "c644205201");
 						write_bytes(app_pid, NO_ASLR(0x015dcc5f), "b800000000");
-						target_running_pid = app_pid;
-						g_foundApp = true;
 						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
-						tracer.run(false);
 					}
 					else if ((startsWith(app_id, "CUSA18471") ||
 							  startsWith(app_id, "CUSA18742") ||
@@ -781,12 +689,8 @@ void *GamePatch_Thread(void *unused)
 							  startsWith(app_id, "CUSA19072")) &&
 							 (startsWith(app_ver, "01.03")))
 					{
-						dbg::Tracer tracer{app_pid};
 						DoPatchNier103(app_pid, text_base);
-						target_running_pid = app_pid;
-						g_foundApp = true;
 						printf_notification("%s (%s): 120 FPS Patched!", app_id, app_ver);
-						tracer.run(false);
 					}
 				}
 
@@ -803,31 +707,19 @@ void *GamePatch_Thread(void *unused)
 					{
 						if (startsWith(process_name_c_str, "eboot.bin"))
 						{
-							dbg::Tracer tracer{app_pid};
 							DoPatch_BigCollection(app_pid, text_base, (0x100 << 1));
-							target_running_pid = app_pid;
-							g_foundApp = true;
 							printf_notification("%s (%s): Debug Menu Patched!", app_id, app_ver);
-							tracer.run(false);
 						}
 						else if (startsWith(process_name_c_str, "big2-ps4_Shipping.elf"))
 						{
-							dbg::Tracer tracer{app_pid};
 							DoPatch_BigCollection(app_pid, text_base, (0x100 << 2));
-							target_running_pid = app_pid;
-							g_foundApp = true;
 							printf_notification("%s (%s): Debug Menu Patched!", app_id, process_name_c_str);
-							tracer.run(false);
 						}
 						// big3
 						else if (startsWith(process_name_c_str, "big3-ps4_Shipping.elf"))
 						{
-							dbg::Tracer tracer{app_pid};
 							DoPatch_BigCollection(app_pid, text_base, (0x100 << 3));
-							target_running_pid = app_pid;
-							g_foundApp = true;
 							printf_notification("%s (%s): Debug Menu Patched!", app_id, process_name_c_str);
-							tracer.run(false);
 						}
 					}
 					else if (startsWith(app_ver, "01.02"))
@@ -835,31 +727,19 @@ void *GamePatch_Thread(void *unused)
 
 						if (startsWith(process_name_c_str, "eboot.bin"))
 						{
-							dbg::Tracer tracer{app_pid};
 							DoPatch_BigCollection(app_pid, text_base, (0x102 << 1));
-							target_running_pid = app_pid;
-							g_foundApp = true;
 							printf_notification("%s (%s): Debug Menu Patched!", app_id, app_ver);
-							tracer.run(false);
 						}
 						else if (startsWith(process_name_c_str, "big2-ps4_Shipping.elf"))
 						{
-							dbg::Tracer tracer{app_pid};
 							DoPatch_BigCollection(app_pid, text_base, (0x102 << 2));
-							target_running_pid = app_pid;
-							g_foundApp = true;
 							printf_notification("%s (%s): Debug Menu Patched!", app_id, process_name_c_str);
-							tracer.run(false);
 						}
 						// big3
 						else if (startsWith(process_name_c_str, "big3-ps4_Shipping.elf"))
 						{
-							dbg::Tracer tracer{app_pid};
 							DoPatch_BigCollection(app_pid, text_base, (0x102 << 3));
-							target_running_pid = app_pid;
-							g_foundApp = true;
 							printf_notification("%s (%s): Debug Menu Patched!", app_id, process_name_c_str);
-							tracer.run(false);
 						}
 					}
 				}
@@ -870,41 +750,26 @@ void *GamePatch_Thread(void *unused)
 				{
 					if (startsWith(process_name_c_str, "eboot.bin"))
 					{
-						dbg::Tracer tracer{app_pid};
 						DoPatch_ACEZioCollection_102(app_pid, text_base, 0);
-						target_running_pid = app_pid;
-						g_foundApp = true;
 						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
-						tracer.run(false);
 					}
 					else if (startsWith(process_name_c_str, "ScimitarAC2.elf"))
 					{
-						dbg::Tracer tracer{app_pid};
 						DoPatch_ACEZioCollection_102(app_pid, text_base, 1);
-						target_running_pid = app_pid;
-						g_foundApp = true;
 						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
-						tracer.run(false);
 					}
 					else if (startsWith(process_name_c_str, "ScimitarACB.elf"))
 					{
-						dbg::Tracer tracer{app_pid};
 						DoPatch_ACEZioCollection_102(app_pid, text_base, 2);
-						target_running_pid = app_pid;
-						g_foundApp = true;
 						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
-						tracer.run(false);
 					}
 					else if (startsWith(process_name_c_str, "ScimitarACR.elf"))
 					{
-						dbg::Tracer tracer{app_pid};
 						DoPatch_ACEZioCollection_102(app_pid, text_base, 3);
-						target_running_pid = app_pid;
-						g_foundApp = true;
 						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
-						tracer.run(false);
 					}
 				}
+				app_tracer.run(false);
 			}
 			else if (text_base && !g_foundApp && (startsWith(app_id, "PPSA")))
 			{
@@ -923,6 +788,7 @@ void *GamePatch_Thread(void *unused)
 					g_foundApp = true;
 					target_running_pid = app_pid;
 				}
+				dbg::Tracer app_tracer{app_pid};
 				// eboot.bin games
 				if (startsWith(process_name_c_str, "eboot.bin"))
 				{
@@ -930,12 +796,8 @@ void *GamePatch_Thread(void *unused)
 						 startsWith(app_id, "PPSA01342")) &&
 						(startsWith(app_ver, "01.000.000")))
 					{
-						dbg::Tracer tracer{app_pid};
 						DoPatch_DemonSouls(app_pid, text_base, 0x100);
-						target_running_pid = app_pid;
-						g_foundApp = true;
 						printf_notification("%s (%s): 60 FPS Cinematic Mode Patched!", app_id, app_ver);
-						tracer.run(false);
 					}
 				}
 				if ((startsWith(app_id, "PPSA05684") ||
@@ -946,35 +808,23 @@ void *GamePatch_Thread(void *unused)
 				{
 					if (startsWith(process_name_c_str, "eboot.bin"))
 					{
-						dbg::Tracer tracer{app_pid};
 						DoPatch_Big4R_100(app_pid, text_base, 1);
-						target_running_pid = app_pid;
-						g_foundApp = true;
 						printf_notification("%s (%s): Debug Menu Patched!", app_id, app_ver);
-						tracer.run(false);
 					}
 					// tll big4r
 					else if (startsWith(process_name_c_str, "tllr-boot.bin"))
 					{
-						dbg::Tracer tracer{app_pid};
 						DoPatch_Big4R_100(app_pid, text_base, 2);
-						target_running_pid = app_pid;
-						g_foundApp = true;
 						printf_notification("%s (%s): Debug Menu Patched!", app_id, process_name_c_str);
-						tracer.run(false);
 					}
 				}
+				app_tracer.run(false);
 			}
 		}
-		if (!isAlive(target_running_pid))
+		if (target_running_pid > 0 && !isAlive(target_running_pid))
 		{
-			target_running_pid = 0;
+			target_running_pid = -1;
 			g_foundApp = false;
-			// printf_notification("pid: %d is no longer alive", target_running_pid);
-		}
-		else
-		{
-			g_foundApp = true;
 		}
 	}
 
