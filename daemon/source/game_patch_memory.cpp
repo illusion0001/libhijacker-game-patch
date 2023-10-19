@@ -264,7 +264,6 @@ uint8_t *PatternScan(const uint64_t module_base, const uint64_t module_size, con
 
 char backupShellCoreBytes[5] = {0};
 uint64_t shellcore_offset_patch = 0;
-pid_t shellCore_pid = 0;
 
 bool patchShellCore(const pid_t app_pid, const uint64_t shellcore_base, const uint64_t shellcore_size)
 {
@@ -294,7 +293,6 @@ bool patchShellCore(const pid_t app_pid, const uint64_t shellcore_base, const ui
 			_printf("offset_to_patch: 0x%lx\n", offset_to_patch);
 			dbg::read(app_pid, shellcore_offset_patch, backupShellCoreBytes, sizeof(backupShellCoreBytes));
 			write_bytes(app_pid, shellcore_offset_patch, "b840100000");
-			shellCore_pid = app_pid;
 			status = true;
 		}
 		else
@@ -310,9 +308,9 @@ bool patchShellCore(const pid_t app_pid, const uint64_t shellcore_base, const ui
 	return status;
 }
 
-bool UnPatchShellCore(void)
+bool UnPatchShellCore(const pid_t app_pid)
 {
-	if (dbg::write(shellCore_pid, shellcore_offset_patch, backupShellCoreBytes, sizeof(backupShellCoreBytes)))
+	if (dbg::write(app_pid, shellcore_offset_patch, backupShellCoreBytes, sizeof(backupShellCoreBytes)))
 	{
 		return true;
 	}

@@ -301,13 +301,13 @@ void *GamePatch_Thread(void *unused)
 
 	pid_t target_running_pid = -1;
 	g_game_patch_thread_running = true;
+	pid_t shellcore_pid = 0;
 
 	int32_t doPatchGames = true;
 	{
 		const UniquePtr<Hijacker> executable = Hijacker::getHijacker("SceShellCore"_sv);
 		uintptr_t text_base = 0;
 		uint64_t text_size = 0;
-		pid_t shellcore_pid = 0;
 		if (executable)
 		{
 			text_base = executable->getEboot()->getTextSection()->start();
@@ -828,9 +828,9 @@ void *GamePatch_Thread(void *unused)
 		}
 	}
 
-	if (shellCore_pid)
+	if (shellcore_pid)
 	{
-		if (UnPatchShellCore())
+		if (UnPatchShellCore(shellcore_pid))
 		{
 			printf_notification("Patches for ShellCore has been uninstalled.");
 		}

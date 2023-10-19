@@ -28,10 +28,8 @@ void write_string(pid_t pid, uint64_t addr, const char *string);
 void write_wstring(pid_t pid, uint64_t addr, const wchar_t *string);
 uint8_t *PatternScan(const uint64_t module_base, const uint64_t module_size, const char *signature);
 
-extern pid_t shellCore_pid;
-
 bool patchShellCore(const pid_t app_pid, const uint64_t shellcore_base, const uint64_t shellcore_size);
-bool UnPatchShellCore(void);
+bool UnPatchShellCore(const pid_t app_pid);
 
 #define NO_ASLR_BASE 0x00400000
 #define NO_ASLR(addr) (text_base + (addr - NO_ASLR_BASE))
