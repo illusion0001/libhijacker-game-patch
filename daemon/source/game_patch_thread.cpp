@@ -775,6 +775,19 @@ void *GamePatch_Thread(void *unused)
 						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
 						tracer.run(false);
 					}
+					else if ((startsWith(app_id, "CUSA18471") ||
+							  startsWith(app_id, "CUSA18742") ||
+							  startsWith(app_id, "CUSA18774") ||
+							  startsWith(app_id, "CUSA19072")) &&
+							 (startsWith(app_ver, "01.03")))
+					{
+						dbg::Tracer tracer{app_pid};
+						DoPatchNier103(app_pid, text_base);
+						target_running_pid = app_pid;
+						g_foundApp = true;
+						printf_notification("%s (%s): 120 FPS Patched!", app_id, app_ver);
+						tracer.run(false);
+					}
 				}
 
 				// multiple selfs
