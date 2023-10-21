@@ -181,13 +181,19 @@ const bool isAlive(const pid_t pid)
 	return false;
 }
 
-const bool checkPatchButton(const OrbisPadData *pData)
+const int32_t checkPatchButton(const OrbisPadData *pData)
 {
 	return (pData->buttons & ORBIS_PAD_BUTTON_SQUARE) &&
 		   (pData->buttons & ORBIS_PAD_BUTTON_TRIANGLE);
 }
 
-const bool checkKillButton(const OrbisPadData *pData)
+const int32_t checkFlipRateButton(const OrbisPadData *pData)
+{
+	return (pData->buttons & ORBIS_PAD_BUTTON_SQUARE) &&
+		   (pData->buttons & ORBIS_PAD_BUTTON_CIRCLE);
+}
+
+const int32_t checkKillButton(const OrbisPadData *pData)
 {
 	return (pData->buttons & ORBIS_PAD_BUTTON_L3) &&
 		   (pData->buttons & ORBIS_PAD_BUTTON_R3) &&
@@ -196,13 +202,14 @@ const bool checkKillButton(const OrbisPadData *pData)
 		   (pData->buttons & ORBIS_PAD_BUTTON_SQUARE);
 }
 
-const bool check120HzButton(const OrbisPadData *pData)
+const int32_t check120HzButton(const OrbisPadData *pData)
 {
 	return (pData->buttons & ORBIS_PAD_BUTTON_CROSS) || (pData->buttons & ORBIS_PAD_BUTTON_CIRCLE);
 }
 
 int32_t g_foundApp = false;
 int32_t g_doPatchGames = false;
+int32_t g_UniversalFlipRatePatch = false;
 
 void *GamePatch_InputThread(void *unused)
 {
@@ -211,7 +218,6 @@ void *GamePatch_InputThread(void *unused)
 	int32_t user_id = 0;
 	int32_t pad_handle = 0;
 	int32_t priority = 256;
-	int32_t prevTogglePressed = false;
 	print_ret(sceUserServiceInitialize(&priority));
 	print_ret(sceUserServiceGetForegroundUser(&user_id));
 	_printf("priority: 0x%08x\n", priority);
@@ -228,6 +234,8 @@ void *GamePatch_InputThread(void *unused)
 		printf_notification("Failed to obtain current user id! Pad functions will not work.");
 		user_id = 0;
 	}
+	int32_t prevTogglePressed = false;
+	int32_t prevTogglePressed2 = false;
 	while (g_game_patch_thread_running)
 	{
 		OrbisPadData pData{};
@@ -236,14 +244,22 @@ void *GamePatch_InputThread(void *unused)
 			int32_t ret = scePadReadState(pad_handle, &pData);
 			if (ret == 0 && pad_handle > 0 && pData.connected)
 			{
-				bool currentTogglePressed = checkPatchButton(&pData);
+				int32_t currentTogglePressed{};
+				int32_t currentTogglePressed2{};
+				currentTogglePressed = checkPatchButton(&pData);
 				if (currentTogglePressed && !prevTogglePressed)
 				{
 					g_doPatchGames = !g_doPatchGames;
 					printf_notification("User requested to patch games: %s", g_doPatchGames ? "true" : "false");
-					// _printf("doPatchGames: 0x%02x\n", g_doPatchGames);
 				}
 				prevTogglePressed = currentTogglePressed;
+				currentTogglePressed2 = checkFlipRateButton(&pData);
+				if (currentTogglePressed2 && !prevTogglePressed2)
+				{
+					g_UniversalFlipRatePatch = !g_UniversalFlipRatePatch;
+					printf_notification("User requested to always patch fliprate to 0: %s", g_UniversalFlipRatePatch ? "true" : "false");
+				}
+				prevTogglePressed2 = currentTogglePressed2;
 				if (checkKillButton(&pData))
 				{
 					g_game_patch_thread_running = false;
@@ -265,6 +281,52 @@ void *GamePatch_InputThread(void *unused)
 	printf_notification("Game Patch Input thread has requested to stop");
 	pthread_exit(nullptr);
 	return nullptr;
+}
+
+static void SuspendApp(pid_t pid)
+{
+	sceKernelPrepareToSuspendProcess(pid);
+	sceKernelSuspendProcess(pid);
+}
+
+static void ResumeApp(pid_t pid)
+{
+	// we need to sleep the thread after suspension
+	// because this will cause a kernel panic when user quits the process after sometime
+	// the kernel will not be very happy with us.
+	usleep(1000);
+	sceKernelPrepareToResumeProcess(pid);
+	sceKernelResumeProcess(pid);
+}
+
+int32_t patch_SetFlipRate(const Hijacker &hijacker, const pid_t pid)
+{
+	static constexpr Nid sceVideoOutSetFlipRate_Nid{"CBiu4mCE1DA"};
+	UniquePtr<SharedLib> lib = hijacker.getLib("libSceVideoOut.sprx"_sv);
+	while (lib == nullptr)
+	{
+		lib = hijacker.getLib("libSceVideoOut.sprx"_sv);
+		// usleep(100);
+	}
+	SuspendApp(pid);
+	if (lib)
+	{
+		uint8_t is_mov_r14d_esi[3]{};
+		const auto sceVideoOutSetFlipRate_ = hijacker.getFunctionAddress(lib.get(), sceVideoOutSetFlipRate_Nid);
+		dbg::read(pid, sceVideoOutSetFlipRate_ + 0xa, &is_mov_r14d_esi, sizeof(is_mov_r14d_esi));
+		if (is_mov_r14d_esi[0] == 0x41 && is_mov_r14d_esi[1] == 0x89 && is_mov_r14d_esi[2] == 0xf6)
+		{
+			uint8_t xor_esi_esi_nop[3] = {0x31, 0xf6, 0x90};
+			dbg::write(pid, sceVideoOutSetFlipRate_ + 0xa, xor_esi_esi_nop, sizeof(xor_esi_esi_nop));
+			printf_notification("sceVideoOutSetFlipRate Patched");
+		}
+		else
+		{
+			printf_notification("Cannot find sceVideoOutSetFlipRate location");
+		}
+	}
+	ResumeApp(pid);
+	return 0;
 }
 
 void *GamePatch_Thread(void *unused)
@@ -392,7 +454,7 @@ void *GamePatch_Thread(void *unused)
 					g_foundApp = true;
 					target_running_pid = app_pid;
 				}
-				dbg::Tracer app_tracer{app_pid};
+				SuspendApp(app_pid);
 				if (startsWith(process_name_c_str, "eboot.bin"))
 				{
 					if ((startsWith(app_id, "CUSA00547") ||
@@ -402,7 +464,6 @@ void *GamePatch_Thread(void *unused)
 						(startsWith(app_ver, "01.11")))
 					{
 						DoPatch_GravityDaze2_111(app_pid, text_base);
-						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
 					}
 					else if ((startsWith(app_id, "PCAS00035") ||
 							  startsWith(app_id, "PCJS50004") ||
@@ -769,7 +830,11 @@ void *GamePatch_Thread(void *unused)
 						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
 					}
 				}
-				app_tracer.run(false);
+				ResumeApp(app_pid);
+				if (g_UniversalFlipRatePatch)
+				{
+					patch_SetFlipRate(*executable, app_pid);
+				}
 			}
 			else if (text_base && !g_foundApp && (startsWith(app_id, "PPSA")))
 			{
@@ -788,7 +853,7 @@ void *GamePatch_Thread(void *unused)
 					g_foundApp = true;
 					target_running_pid = app_pid;
 				}
-				dbg::Tracer app_tracer{app_pid};
+				SuspendApp(app_pid);
 				// eboot.bin games
 				if (startsWith(process_name_c_str, "eboot.bin"))
 				{
@@ -818,7 +883,11 @@ void *GamePatch_Thread(void *unused)
 						printf_notification("%s (%s): Debug Menu Patched!", app_id, process_name_c_str);
 					}
 				}
-				app_tracer.run(false);
+				ResumeApp(app_pid);
+				if (g_UniversalFlipRatePatch)
+				{
+					patch_SetFlipRate(*executable, app_pid);
+				}
 			}
 		}
 		if (target_running_pid > 0 && !isAlive(target_running_pid))

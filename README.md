@@ -31,11 +31,19 @@ pip install aiofiles
 - On ELF loader stage, run send_elf.py with your PS5 IP as first argument. Example: `python ./send_elf.py 10.0.6.9`
    - To kill the daemon process for easier development, you can use `kill_daemon.py` to kill the process and re run `send_elf.py` to send the new build of the daemon executable. (this can be done outside the web browser or bdj window)
    - You can also find useful commands within `launch.py` and it's arguments.
-- You can press Square and Triangle while at home screen to toggle patch apply state.
+
+# Button Combos
+
+### Home Screen
+
+- Press Square and Triangle to toggle patch apply state.
+- Press Square and Circle to toggle fliprate apply state.
+  - **Note: Games that have custom frame rate limiter will not work with this patch.**
+  - Share results with working games in this [ticket](https://github.com/illusion0001/libhijacker/issues/14)
 
 # Supported Titles
 
-## PS4
+### PS4
 
 - Batman: Arkham Knight v1.15: 60 FPS
 - Bloodborne v1.09: 60 FPS by Lance McDonald
@@ -61,7 +69,7 @@ pip install aiofiles
 - Red Dead Redemption 2 v1.29: 60FPS
 - Mafia Definitive Edition v1.04: 60 FPS + Skip logo movies
 
-## PS5
+### PS5
 
 - Demon Souls v1.00: 60 FPS Unlock in Cinematic Mode
 - Uncharted: Legacy of Thieves Collection v1.00: Debug Menu
