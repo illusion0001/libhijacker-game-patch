@@ -322,7 +322,10 @@ int32_t patch_SetFlipRate(const Hijacker &hijacker, const pid_t pid)
 		}
 		else
 		{
-			printf_notification("Cannot find sceVideoOutSetFlipRate location");
+			// in case user loaded modified prx, lets make it do nothing
+			printf_notification("Cannot find sceVideoOutSetFlipRate location\nPatching it to return 0.");
+			uint8_t xor_eax_eax_ret[3] = {0x31, 0xc0, 0xc3};
+			dbg::write(pid, sceVideoOutSetFlipRate_, xor_eax_eax_ret, sizeof(xor_eax_eax_ret));
 		}
 	}
 	ResumeApp(pid);
