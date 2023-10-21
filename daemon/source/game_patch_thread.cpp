@@ -316,8 +316,8 @@ int32_t patch_SetFlipRate(const Hijacker &hijacker, const pid_t pid)
 		dbg::read(pid, sceVideoOutSetFlipRate_ + 0xa, &is_mov_r14d_esi, sizeof(is_mov_r14d_esi));
 		if (is_mov_r14d_esi[0] == 0x41 && is_mov_r14d_esi[1] == 0x89 && is_mov_r14d_esi[2] == 0xf6)
 		{
-			uint8_t xor_esi_esi_nop[3] = {0x31, 0xf6, 0x90};
-			dbg::write(pid, sceVideoOutSetFlipRate_ + 0xa, xor_esi_esi_nop, sizeof(xor_esi_esi_nop));
+			uint8_t xor_r14d_r14d[3] = {0x45, 0x31, 0xf6};
+			dbg::write(pid, sceVideoOutSetFlipRate_ + 0xa, xor_r14d_r14d, sizeof(xor_r14d_r14d));
 			printf_notification("sceVideoOutSetFlipRate Patched");
 		}
 		else
