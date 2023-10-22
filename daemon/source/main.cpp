@@ -308,7 +308,21 @@ class UnixSocket : public FileDescriptor {
 
 void dummy(int) {}
 
+#define RESTMODE
+
+#ifdef RESTMODE
+#define BUILD_MSG "Rest Mode Build"
+#else
+#define BUILD_MSG "Non Rest Mode Build"
+#endif
+
+#ifdef RESTMODE
+#pragma message("Build with Rest Mode, Host features are not available.")
+void *hookThread(void *args) noexcept {
+#else
+#pragma message("Build without Rest Mode, Host features are available.")
 static void *hookThread(void *args) noexcept {
+#endif	
 	signal(SIGUSR1, dummy);
 
 	UnixSocket *serverSock = reinterpret_cast<UnixSocket *>(args);
@@ -334,8 +348,8 @@ static void *hookThread(void *args) noexcept {
 
 int main() {
 	puts("daemon entered");
-	printf_notification("libhijacker daemon started successfully.\n"
-						"Original project: https://github.com/astrelsky/libhijacker");
+	printf_notification("libhijacker daemon started successfully.\nBuild mode: (" BUILD_MSG ")\n"
+						"Original project:\nhttps://github.com/astrelsky/libhijacker");
 	printf_notification("libhijacker - astrelsky\n"
 						"Fork with Game Patch Support - illusion\n"
 						"Check Readme for supported titles and it's versions.");
@@ -346,6 +360,12 @@ int main() {
 	pthread_create(&game_patch_input_thread_id, nullptr, GamePatch_InputThread, nullptr);
 
 	g_game_patch_thread_running = true;
+#ifdef RESTMODE
+	while (g_game_patch_thread_running)
+	{
+		sleep(1);
+	}
+#else
 
 	AbortServer abortServer{};
 	KlogServer klogServer{};
@@ -361,8 +381,11 @@ int main() {
 	// finishes on connect
 	abortServer.join();
 	puts("abort thread finished");
+#endif
 	g_game_patch_thread_running = false;
 	puts("g_game_patch_thread_running = false");
+#ifdef RESTMODE
+#else
 	commandServer.stop();
 	puts("command server done");
 	puts("stopping elf handler");
@@ -373,6 +396,7 @@ int main() {
 	puts("stopping klog server");
 	klogServer.stop();
 	puts("klog server done");
+#endif
 	pthread_join(game_patch_thread_id, nullptr);
 	puts("game patch thread finished");
 	pthread_join(game_patch_input_thread_id, nullptr);
