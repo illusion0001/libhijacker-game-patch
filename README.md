@@ -51,6 +51,7 @@ pip install aiofiles
   - Also includes:
     - No Motion Blur
     - No Chromatic Aberration
+- Crash Bandicoot N. Sane Trilogy v1.07: 60 FPS + Increase resolution from 2560x1440 to 3200x1800
 - Crash Team Racing v1.21: 60 FPS
 - Dragon Age: Inquisition v1.12: 60 FPS
 - Driveclub v1.28: 60 FPS
