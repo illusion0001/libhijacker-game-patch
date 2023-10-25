@@ -18,19 +18,20 @@ Proper credits will be attributed later.
 - 4.50
 - 4.51
 
+# Features Not Available in Scriptless and Rest Mode Build
+
+- Reloadable daemon
+- FTP
+
 # Quick Setup
 
 - Download the latest zip from the [release](https://github.com/illusion0001/libhijacker/releases/latest) page.
 - Extract the zip with all files to a folder on your computer.
 - Load your preferred method of exploiting your PS5. (BDJB or webkit).
-- Install [Python 3](https://python.org/).
-- Install `aiofiles` using `pip`
-```sh
-pip install aiofiles
+- On ELF loader stage, send payload using netcat.
+```bash
+nc -q0 (ps5 ip) 9020 bin/spawner.elf
 ```
-- On ELF loader stage, run send_elf.py with your PS5 IP as first argument. Example: `python ./send_elf.py 10.0.6.9`
-   - To kill the daemon process for easier development, you can use `kill_daemon.py` to kill the process and re run `send_elf.py` to send the new build of the daemon executable. (this can be done outside the web browser or bdj window)
-   - You can also find useful commands within `launch.py` and it's arguments.
 
 # Button Combos
 

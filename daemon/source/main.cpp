@@ -18,6 +18,7 @@
 #include "servers.hpp"
 #include "util.hpp"
 #include "notify.hpp"
+#include "build.h"
 
 #include <pthread.h>
 #include "game_patch_thread.hpp"
@@ -307,8 +308,6 @@ class UnixSocket : public FileDescriptor {
 };
 
 void dummy(int) {}
-
-#define RESTMODE
 
 #ifdef RESTMODE
 #define BUILD_MSG "Rest Mode Build"

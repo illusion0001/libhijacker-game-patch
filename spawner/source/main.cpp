@@ -18,6 +18,7 @@
 #include <unistd.h>
 #include <pthread.h>
 
+#include "build.h"
 
 extern "C" {
 	#include <stdarg.h>
@@ -741,10 +742,12 @@ static void *hookThread(void *args) noexcept {
 
 
 extern "C" int main() {
+#ifndef STANDALONE
 	Stdout dummy{};
+#endif
 	//ptrace(PT_ATTACH, pid, 0, 0);
 	///clearFramePointer();
-	printf_notification("libhijacker spawner %s entered", __FUNCTION__);
+	printf_notification("libhijacker spawner entered");
 	if (hasUnprocessedRelocations()) {
 		puts("fixing unprocessed relocations for spawner.elf");
 		processRelocations();
