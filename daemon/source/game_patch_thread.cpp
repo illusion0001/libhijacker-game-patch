@@ -467,6 +467,7 @@ void *GamePatch_Thread(void *unused)
 						(startsWith(app_ver, "01.11")))
 					{
 						DoPatch_GravityDaze2_111(app_pid, text_base);
+						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
 					}
 					else if ((startsWith(app_id, "PCAS00035") ||
 							  startsWith(app_id, "PCJS50004") ||
@@ -480,7 +481,7 @@ void *GamePatch_Thread(void *unused)
 							 (startsWith(app_ver, "01.00")))
 					{
 						DoPatchGravityDaze_101(app_pid, text_base);
-						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
+						printf_notification("%s (%s): 120 FPS Patched!", app_id, app_ver);
 					}
 					else if ((startsWith(app_id, "CUSA00900") ||
 							  startsWith(app_id, "CUSA00207") ||
@@ -490,32 +491,6 @@ void *GamePatch_Thread(void *unused)
 							 (startsWith(app_ver, "01.09")))
 					{
 						DoPatch_Bloodborne109(app_pid, text_base);
-						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
-					}
-					else if ((startsWith(app_id, "CUSA03041") ||
-							  startsWith(app_id, "CUSA08519") ||
-							  startsWith(app_id, "CUSA08568")))
-					{
-						if (startsWith(app_ver, "01.00"))
-						{
-							write_bytes(app_pid, NO_ASLR(0x04a8ee1d), "be00000000");
-							printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
-						}
-						else if (startsWith(app_ver, "01.29"))
-						{
-							write_bytes(app_pid, NO_ASLR(0x0578ab57), "be00000000");
-							printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
-						}
-					}
-					else if ((startsWith(app_id, "CUSA00035") ||
-							  startsWith(app_id, "CUSA00070") ||
-							  startsWith(app_id, "CUSA00076") ||
-							  startsWith(app_id, "CUSA00100") ||
-							  startsWith(app_id, "CUSA00670") ||
-							  startsWith(app_id, "CUSA00670")) &&
-							 (startsWith(app_ver, "01.02")))
-					{
-						DoPatch_TheOrder1886_102(app_pid, text_base);
 						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
 					}
 					else if ((startsWith(app_id, "CUSA00003") ||
@@ -534,19 +509,7 @@ void *GamePatch_Thread(void *unused)
 							 (startsWith(app_ver, "01.03")))
 					{
 						DoPatch_TheLastGuardian_103(app_pid, text_base);
-						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
-					}
-					else if ((startsWith(app_id, "CUSA13795")) &&
-							 (startsWith(app_ver, "01.21")))
-					{
-						DoPatch_CTR_121(app_pid, text_base, 1);
-						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
-					}
-					else if ((startsWith(app_id, "CUSA14876")) &&
-							 (startsWith(app_ver, "01.21")))
-					{
-						DoPatch_CTR_121(app_pid, text_base, 2);
-						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
+						printf_notification("%s (%s): 60 FPS Fixes Patched!", app_id, app_ver);
 					}
 					else if ((startsWith(app_id, "CUSA08034") ||
 							  startsWith(app_id, "CUSA08804")) &&
@@ -582,15 +545,6 @@ void *GamePatch_Thread(void *unused)
 					{
 						DoPatch_t1ps4_111(app_pid, text_base);
 						printf_notification("%s (%s): 60 FPS + Debug Menu Patched!", app_id, app_ver);
-					}
-					else if ((startsWith(app_id, "CUSA01127") ||
-							  startsWith(app_id, "CUSA01114") ||
-							  startsWith(app_id, "CUSA01098")) &&
-							 (startsWith(app_ver, "01.00")))
-					{
-						// 60 FPS
-						write_bytes(app_pid, NO_ASLR(0x00d8a713), "be00000000");
-						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
 					}
 					else if ((startsWith(app_id, "CUSA09254") ||
 							  startsWith(app_id, "CUSA09264") ||
@@ -636,19 +590,6 @@ void *GamePatch_Thread(void *unused)
 						write_bytes(app_pid, NO_ASLR(0x009fa57e), "be00000000");
 						write_bytes(app_pid, NO_ASLR(0x009fa596), "b800000000");   // vsync
 						write_bytes(app_pid, NO_ASLR(0x009fb9e1), "48e9a9000000"); // no GUseFixedTimeStep
-						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
-					}
-					else if ((startsWith(app_id, "CUSA07399") ||
-							  startsWith(app_id, "CUSA07402")) &&
-							 (startsWith(app_ver, "01.07")))
-					{
-						// 60 FPS
-						write_bytes(app_pid, NO_ASLR(0x00f52de0), "be00000000909090909090909090");
-						// Resolution Patch
-						// 2560x1440 -> 3200x1800
-						// Doesn't seem to be a difference in term of drops when new area loads
-						write_bytes32(app_pid, NO_ASLR(0x00529cdb), 0x3fd55555); // 1.667f
-						write_bytes32(app_pid, NO_ASLR(0x01c75680), 0x3fd55555); // 1.667f
 						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
 					}
 					else if ((startsWith(app_id, "CUSA18097") ||
@@ -703,8 +644,6 @@ void *GamePatch_Thread(void *unused)
 							  startsWith(app_id, "CUSA00476")) &&
 							 (startsWith(app_ver, "01.05")))
 					{
-						// 60 FPS
-						write_bytes(app_pid, NO_ASLR(0x042f034e), "be00000000");
 						// Startup logo skip
 						write_bytes(app_pid, NO_ASLR(0x03ffaadb), "0f85");
 						printf_notification("%s (%s): 60 FPS Patched!", app->titleId().c_str(), app_ver);
@@ -788,7 +727,6 @@ void *GamePatch_Thread(void *unused)
 					}
 					else if (startsWith(app_ver, "01.02"))
 					{
-
 						if (startsWith(process_name_c_str, "eboot.bin"))
 						{
 							DoPatch_BigCollection(app_pid, text_base, (0x102 << 1));
@@ -807,36 +745,69 @@ void *GamePatch_Thread(void *unused)
 						}
 					}
 				}
-				if ((startsWith(app_id, "CUSA04893") ||
-					 startsWith(app_id, "CUSA05008") ||
-					 startsWith(app_id, "CUSA05943")) &&
-					(startsWith(app_ver, "01.02")))
+				const char *title_id_universal_fliprate[] = {
+					// GTA V
+					"CUSA00411",
+					"CUSA00419",
+					"CUSA00880",
+					"CUSA29862",
+					// RDR2
+					"CUSA03041",
+					"CUSA08519",
+					"CUSA08568",
+					"CUSA15698",
+					// The Order 1886
+					"CUSA00035",
+					"CUSA00070",
+					"CUSA00076",
+					"CUSA00100",
+					"CUSA00670",
+					"CUSA00670",
+					// CTR
+					"CUSA13795",
+					"CUSA14876",
+					"CUSA15979",
+					// Crash N Sane
+					"CUSA07399",
+					"CUSA07402",
+					"CUSA08120",
+					// t2ps4
+					"CUSA07820",
+					"CUSA10249",
+					"CUSA13986",
+					"CUSA14006",
+					// PT
+					"CUSA01127",
+					"CUSA01114",
+					"CUSA01098",
+					// AC Unity
+					"CUSA00663",
+					"CUSA00605",
+					"CUSA00476",
+					// AC Ezio
+					"CUSA04893",
+					"CUSA05008",
+					"CUSA05943",
+				};
+				int32_t fliprate_game_found = false;
+				for (size_t idx = 0; idx < (sizeof(title_id_universal_fliprate) / sizeof(const char *)); idx++)
 				{
-					if (startsWith(process_name_c_str, "eboot.bin"))
+					if (strncmp(app_id, title_id_universal_fliprate[idx], __builtin_strlen("CUSAxxxxx")) == 0)
 					{
-						DoPatch_ACEZioCollection_102(app_pid, text_base, 0);
-						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
-					}
-					else if (startsWith(process_name_c_str, "ScimitarAC2.elf"))
-					{
-						DoPatch_ACEZioCollection_102(app_pid, text_base, 1);
-						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
-					}
-					else if (startsWith(process_name_c_str, "ScimitarACB.elf"))
-					{
-						DoPatch_ACEZioCollection_102(app_pid, text_base, 2);
-						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
-					}
-					else if (startsWith(process_name_c_str, "ScimitarACR.elf"))
-					{
-						DoPatch_ACEZioCollection_102(app_pid, text_base, 3);
-						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
+						printf_notification("Title ID found in universal fliprate list:\n%s", app_id);
+						ResumeApp(app_pid);
+						patch_SetFlipRate(*executable, app_pid);
+						fliprate_game_found = true;
+						break;
 					}
 				}
-				ResumeApp(app_pid);
-				if (g_UniversalFlipRatePatch)
+				if (!fliprate_game_found)
 				{
-					patch_SetFlipRate(*executable, app_pid);
+					ResumeApp(app_pid);
+					if (g_UniversalFlipRatePatch)
+					{
+						patch_SetFlipRate(*executable, app_pid);
+					}
 				}
 			}
 			else if (text_base && !g_foundApp && (startsWith(app_id, "PPSA")))

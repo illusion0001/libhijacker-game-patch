@@ -3333,6 +3333,7 @@ void DoPatchKillzone_181(pid_t app_pid, uint64_t text_base)
 		write_bytes(app_pid, NO_ASLR(0x01605320), "4531c0");
 		write_bytes(app_pid, NO_ASLR(0x01605323), "ffd0");
 		write_bytes(app_pid, NO_ASLR(0x01605325), "e9eb6f0fff");
+		printf_notification("Applied 120Hz Patch");
 	}
 }
 
