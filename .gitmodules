@@ -4,3 +4,6 @@
 [submodule "extern/tiny-json"]
 	path = extern/tiny-json
 	url = https://github.com/rafagafe/tiny-json.git
+[submodule "extern/mxml"]
+	path = extern/mxml
+	url = https://github.com/illusion0001/mxml.git

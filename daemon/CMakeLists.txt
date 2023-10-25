@@ -56,7 +56,7 @@ message("========== build: ${PROJECT_NAME} ==========")
 
 set(D_SRC ${D_CWD}/source)
 
-file(GLOB SrcFiles ${D_SRC}/*.c ${D_SRC}/*.cpp ${D_SRC}/*.h ${D_SRC}/*.hpp ${D_SRC}/*.s ${D_SRC}/../../ftp/*.c ${D_SRC}/../../ftp/*.h ${D_SRC}/../../extern/pfd_sfo_tools/sfopatcher/src/*.c ${D_SRC}/../../extern/pfd_sfo_tools/sfopatcher/src/*.h ${D_SRC}/../../extern/tiny-json/*.c ${D_SRC}/../../extern/tiny-json/*.h)
+file(GLOB SrcFiles ${D_SRC}/*.c ${D_SRC}/*.cpp ${D_SRC}/*.h ${D_SRC}/*.hpp ${D_SRC}/*.s ${D_SRC}/../../ftp/*.c ${D_SRC}/../../ftp/*.h ${D_SRC}/../../extern/pfd_sfo_tools/sfopatcher/src/*.c ${D_SRC}/../../extern/pfd_sfo_tools/sfopatcher/src/*.h ${D_SRC}/../../extern/tiny-json/*.c ${D_SRC}/../../extern/tiny-json/*.h ${D_SRC}/../../extern/mxml/*.c ${D_SRC}/../../extern/mxml/*.h)
 
 set(CMAKE_C_FLAGS "--target=x86_64-freebsd-pc-elf -DPPR -DPS5 -DPS5_FW_VERSION=${V_FW} ")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_POSIX_SOURCE -D_POSIX_C_SOURCE=200112 -D__BSD_VISIBLE=1 -D__XSI_VISIBLE=500")
