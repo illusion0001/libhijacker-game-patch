@@ -30,13 +30,13 @@ jobs:
       run: clang -v
 
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@main
       with:
         submodules: recursive
         fetch-depth: 0
 
     - name: Checkout PS5SDK
-      uses: actions/checkout@v3
+      uses: actions/checkout@main
       with:
         repository: illusion0001/PS5SDK
         ref: nand-clang-16
@@ -66,13 +66,11 @@ jobs:
       run: bash ./build.sh
 
     - name: Upload artifacts
-      if: true
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@main
       with:
         name: libhijacker_${{ env.commit_ver }}-${{ env.commit_hash }}
         path: |
-          bin/*.elf
-          ${{ github.workspace }}/*.py
+          bin/spawner.elf
           README.md
 
     - name: Create Release
@@ -80,5 +78,5 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        zip libhijacker_${{ env.commit_ver }}-${{ env.commit_hash }}.zip bin/*.elf ./*.py README.md
+        zip libhijacker_${{ env.commit_ver }}-${{ env.commit_hash }}.zip bin/spawner.elf README.md
         gh release create ${{ env.commit_ver }} libhijacker_${{ env.commit_ver }}-${{ env.commit_hash }}.zip --target ${{ GITHUB.SHA }} -t "${{ env.commit_ver }}" -F README.md
