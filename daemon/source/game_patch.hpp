@@ -22,3 +22,4 @@ void DoPatchKillzone_181(pid_t app_pid, uint64_t text_base);
 void DoPatchGravityDaze_101(pid_t app_pid, uint64_t text_base);
 void DoPatchMEC_102(pid_t app_pid, uint64_t text_base);
 void DoPatchNier103(pid_t app_pid, uint64_t text_base);
+void DoPatchDoom_112(pid_t app_pid, uint64_t text_base);

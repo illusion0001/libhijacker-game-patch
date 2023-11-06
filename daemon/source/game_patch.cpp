@@ -3910,3 +3910,35 @@ void DoPatchNier103(pid_t app_pid, uint64_t text_base)
 	write_bytes(app_pid, NO_ASLR(0x0106c5e9), "c3");
 	*/
 }
+
+void DoPatchDoom_112(pid_t app_pid, uint64_t text_base)
+{
+	write_bytes(app_pid, NO_ASLR(0x013f8c20), "e9f292b802");
+	write_bytes(app_pid, NO_ASLR(0x03f81f17), "e874f505ff");
+	write_bytes(app_pid, NO_ASLR(0x03f81f1c), "488d057d353800");
+	write_bytes(app_pid, NO_ASLR(0x03f81f23), "488b00");
+	write_bytes(app_pid, NO_ASLR(0x03f81f26), "48050df0a70c", isOffsetVideoModeSupported);
+	write_bytes(app_pid, NO_ASLR(0x03f81f2c), "418b3c24");
+	write_bytes(app_pid, NO_ASLR(0x03f81f30), "be0f000000");
+	write_bytes(app_pid, NO_ASLR(0x03f81f35), "31d2");
+	write_bytes(app_pid, NO_ASLR(0x03f81f37), "31c9");
+	write_bytes(app_pid, NO_ASLR(0x03f81f39), "4531c0");
+	write_bytes(app_pid, NO_ASLR(0x03f81f3c), "ffd0");
+	write_bytes(app_pid, NO_ASLR(0x03f81f3e), "83f801");
+	write_bytes(app_pid, NO_ASLR(0x03f81f41), "7522");
+	write_bytes(app_pid, NO_ASLR(0x03f81f43), "488d0556353800");
+	write_bytes(app_pid, NO_ASLR(0x03f81f4a), "488b00");
+	write_bytes(app_pid, NO_ASLR(0x03f81f4d), "48050df0ed5e", isOffsetConfigureOutput);
+	write_bytes(app_pid, NO_ASLR(0x03f81f53), "418b3c24");
+	write_bytes(app_pid, NO_ASLR(0x03f81f57), "be0f000000");
+	write_bytes(app_pid, NO_ASLR(0x03f81f5c), "31d2");
+	write_bytes(app_pid, NO_ASLR(0x03f81f5e), "31c9");
+	write_bytes(app_pid, NO_ASLR(0x03f81f60), "4531c0");
+	write_bytes(app_pid, NO_ASLR(0x03f81f63), "ffd0");
+	write_bytes(app_pid, NO_ASLR(0x03f81f65), "e9bb6c47fd");
+	// write_string(app_pid, NO_ASLR(0x034306d1), "1000"); // offcut for second string "0" but you'd never see the description anyways
+	write_bytes(app_pid, NO_ASLR(0x024a3ad4), "488d150effb500");
+	// no logo videos + legal screen
+	write_bytes(app_pid, NO_ASLR(0x024d87dd), "48e9b2010000");
+	write_bytes(app_pid, NO_ASLR(0x0246f1c1), "eb07");
+}

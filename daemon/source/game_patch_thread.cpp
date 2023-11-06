@@ -695,6 +695,14 @@ void *GamePatch_Thread(void *unused)
 						DoPatchNier103(app_pid, text_base);
 						printf_notification("%s (%s): 120 FPS Patched!", app_id, app_ver);
 					}
+					else if (((startsWith(app_id, "CUSA02085") ||
+							  startsWith(app_id, "CUSA02092")) &&
+							 (startsWith(app_ver, "01.12"))) ||
+							 (startsWith(app_id, "CUSA04701") && startsWith(app_ver, "01.11")))
+					{
+						DoPatchDoom_112(app_pid, text_base);
+						printf_notification("%s (%s): 120 FPS Patched!", app_id, app_ver);
+					}
 				}
 
 				// multiple selfs
