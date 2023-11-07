@@ -60,7 +60,13 @@ jobs:
         cd build
         cmake -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ ..
         ninja
-        cp -rv ${{ github.workspace }}/stubber/PS5_Root/build/system/common/lib/ ${{ github.workspace }}
+        cp -rv ${{ github.workspace }}/stubber/PS5_Root/build/system/common/lib/*.o ${{ github.workspace }}
+
+    - name: Upload lib
+      uses: actions/upload-artifact@main
+      with:
+        name: lib
+        path: lib
 
     - name: Build elf
       run: bash ./build.sh
