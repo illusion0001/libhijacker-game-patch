@@ -51,6 +51,18 @@ jobs:
       working-directory: ${{ env.PS5SDK }}
       run: bash ./build.sh
 
+    - name: Build stubs
+      if: false
+      working-directory: stubber
+      run: |
+        curl -sL https://github.com/illusion0001/libhijacker/releases/download/stubber-lib/lib1.tar.gz | tar xz -C ./
+        cd PS5_Root
+        mkdir build
+        cd build
+        cmake -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ ..
+        ninja
+        cp -rv ${{ github.workspace }}/stubber/PS5_Root/build/system/common/lib/ ${{ github.workspace }}
+
     - name: Install stubs
       run: curl -sL https://github.com/illusion0001/libhijacker/releases/download/stubber-lib/lib2.tar.gz | tar xz -C ./
 
