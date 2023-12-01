@@ -485,7 +485,9 @@ void *GamePatch_Thread(void *unused)
 					}
 					else if ((startsWith(app_id, "CUSA00900") ||
 							  startsWith(app_id, "CUSA00207") ||
+							  startsWith(app_id, "CUSA01363") ||
 							  startsWith(app_id, "CUSA03173") ||
+							  startsWith(app_id, "CUSA03023") ||
 							  startsWith(app_id, "CUSA00208") ||
 							  startsWith(app_id, "CUSA01363")) &&
 							 (startsWith(app_ver, "01.09")))
@@ -512,7 +514,8 @@ void *GamePatch_Thread(void *unused)
 						printf_notification("%s (%s): 60 FPS Fixes Patched!", app_id, app_ver);
 					}
 					else if ((startsWith(app_id, "CUSA08034") ||
-							  startsWith(app_id, "CUSA08804")) &&
+							  startsWith(app_id, "CUSA08804") ||
+							  startsWith(app_id, "CUSA08809")) &&
 							 (startsWith(app_ver, "01.00") ||
 							  startsWith(app_ver, "01.01")))
 					{
