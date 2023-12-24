@@ -593,6 +593,7 @@ void *GamePatch_Thread(void *unused)
 						write_bytes(app_pid, NO_ASLR(0x009fa57e), "be00000000");
 						write_bytes(app_pid, NO_ASLR(0x009fa596), "b800000000");   // vsync
 						write_bytes(app_pid, NO_ASLR(0x009fb9e1), "48e9a9000000"); // no GUseFixedTimeStep
+						write_bytes(app_pid, NO_ASLR(0x017b2a62), "c5f857c09090"); // No MaxSmoothedFPS, fixes 58 fps
 						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
 					}
 					else if ((startsWith(app_id, "CUSA18097") ||
