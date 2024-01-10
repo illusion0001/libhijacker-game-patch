@@ -144,7 +144,7 @@ void DoPatch_Bloodborne109(pid_t app_pid, uint64_t text_base)
 	write_wstring(app_pid, NO_ASLR(0x04cb39ea), L"This 60fps patch was");
 	write_wstring(app_pid, NO_ASLR(0x04cb39a4), L"Made with love, by Lance McDonald");
 	// Patch DLC Save Requirement
-	write_bytes(app_pid, NO_ASLR(0x023b6d20), "b801000000");
+	write_bytes(app_pid, NO_ASLR(0x023b55a6), "c6059f3317030190");
 	// yoink `assert()`
 	write_bytes(app_pid, NO_ASLR(0x02fbf178), "4831c0c3");
 	// no motion blur
