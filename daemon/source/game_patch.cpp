@@ -148,9 +148,9 @@ void DoPatch_Bloodborne109(pid_t app_pid, uint64_t text_base)
 	// yoink `assert()`
 	write_bytes(app_pid, NO_ASLR(0x02fbf178), "4831c0c3");
 	// no motion blur
-	write_bytes(app_pid, NO_ASLR(0x026a057b), "eb16");
+	// write_bytes(app_pid, NO_ASLR(0x026a057b), "eb16");
 	// no Chromatic Aberration
-	write_bytes(app_pid, NO_ASLR(0x0269faa8), "c783ac000000000000009090");
+	// write_bytes(app_pid, NO_ASLR(0x0269faa8), "c783ac000000000000009090");
 	// Debug Camera
 	/*
 	write_bytes(app_pid, NO_ASLR(0x01972998), "7416");
