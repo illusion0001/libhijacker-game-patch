@@ -3,7 +3,7 @@
 #include "print.hpp"
 #include "notify.hpp"
 
-int32_t g_isPatch120Hz;
+int32_t g_isPatch120Hz = 0;
 
 void DoPatch_Bloodborne109(pid_t app_pid, uint64_t text_base)
 {
@@ -2960,7 +2960,7 @@ void DoPatch_t2ps4(pid_t app_pid, uint64_t text_base, uint32_t idx)
 	{
 		// Debug Menu
 		write_bytes(app_pid, NO_ASLR(0x00a141dd), "b000");
-		write_float32(app_pid, NO_ASLR(0x00ba0ecf), 1.0f);
+		// write_float32(app_pid, NO_ASLR(0x00ba0ecf), 1.0f);
 		// 60 FPS
 		write_bytes(app_pid, NO_ASLR(0x02bbb5f0), "31f6");
 		write_bytes(app_pid, NO_ASLR(0x02bbb5f2), "ff25e0e17e00");
@@ -2977,6 +2977,7 @@ void DoPatch_t2ps4(pid_t app_pid, uint64_t text_base, uint32_t idx)
 		write_bytes(app_pid, NO_ASLR(0x02bd766d), "440fb6448201");
 		write_bytes(app_pid, NO_ASLR(0x02bd7673), "c3");
 		// Give Player Weapon Names Fix (Partial)
+		/*
 		write_bytes(app_pid, NO_ASLR(0x0174ef88), "48e823c02b01");
 		write_bytes(app_pid, NO_ASLR(0x02a0afb1), "8b4f60");
 		write_bytes(app_pid, NO_ASLR(0x02a0afb4), "48891d75509f00");
@@ -3347,6 +3348,7 @@ void DoPatch_t2ps4(pid_t app_pid, uint64_t text_base, uint32_t idx)
 		write_bytes(app_pid, NO_ASLR(0x02c074ec), "c3");
 		write_bytes(app_pid, NO_ASLR(0x02c074ed), "c3");
 		write_string(app_pid, NO_ASLR(0x02bfb702), "Current Charge Time: %.2f\nMax Charge Time: %.2f\nCurrent Sway Multiplier: %.2f\nCooldown Timer: %.2f\nUsing Bow?: %i\n");
+		*/
 		// Draw Color Boarder
 		/*
 		<!--
