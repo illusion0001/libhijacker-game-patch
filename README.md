@@ -29,6 +29,7 @@ Proper credits will be attributed later.
 - Extract the zip with all files to a folder on your computer.
 - Load your preferred method of exploiting your PS5. (BDJB or webkit).
 - On ELF loader stage, send payload using netcat.
+
 ```bash
 nc -q0 (ps5 ip) 9020 bin/spawner.elf
 ```
@@ -49,9 +50,11 @@ nc -q0 (ps5 ip) 9020 bin/spawner.elf
 - Batman: Arkham Knight v1.15: 60 FPS
 - Bloodborne v1.09: 60 FPS by Lance McDonald
   - Notes: You may encounter softlock during Laurence (optional DLC boss) cinematic. Disable patch to progress.
+<!--
   - Also includes:
     - No Motion Blur
     - No Chromatic Aberration
+-->
 - Crash Team Racing v1.21: 60 FPS
 - Dragon Age: Inquisition v1.12: 60 FPS
 - Driveclub v1.28: 60 FPS
