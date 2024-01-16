@@ -495,7 +495,7 @@ void *GamePatch_Thread(void *unused)
 							 (startsWith(app_ver, "01.09")))
 					{
 						DoPatch_Bloodborne109(app_pid, text_base);
-						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
+						//printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
 					}
 					else if ((startsWith(app_id, "CUSA00003") ||
 							  startsWith(app_id, "CUSA00064") ||
