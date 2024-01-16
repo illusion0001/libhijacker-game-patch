@@ -50,11 +50,12 @@ nc -q0 (ps5 ip) 9020 bin/spawner.elf
 - Batman: Arkham Knight v1.15: 60 FPS
 - Bloodborne v1.09: 60 FPS by Lance McDonald
   - Notes: You may encounter softlock during Laurence (optional DLC boss) cinematic. Disable patch to progress.
-<!--
   - Also includes:
     - No Motion Blur
     - No Chromatic Aberration
--->
+- Burnout Paradise Remastered v1.03
+  - Skip Logo Videos
+  - Skip First Time Introduction Video
 - Crash Team Racing v1.21: 60 FPS
 - Dragon Age: Inquisition v1.12: 60 FPS
 - Driveclub v1.28: 60 FPS
@@ -75,8 +76,11 @@ nc -q0 (ps5 ip) 9020 bin/spawner.elf
 
 ### PS5
 
-- Demon Souls v1.00: 60 FPS Unlock in Cinematic Mode
-- Uncharted: Legacy of Thieves Collection v1.00: Debug Menu
+- Demon Souls v1.00
+  - 60 FPS Unlock in Cinematic Mode
+  - Debug Menu
+- Uncharted: Legacy of Thieves Collection v1.00
+  - Debug Menu
 
 # Supported Titles (120Hz)
 
@@ -84,6 +88,7 @@ nc -q0 (ps5 ip) 9020 bin/spawner.elf
 |----------------------------------------------------|-----------------------------------------|----------------------------------------------------------------------------------------------------------------------------------|
 | Battlefield 4 v1.24                                | Yes                                     | -                                                                                                                                |
 | Bloodborne v1.09                                   | No (Hold Cross Button during Launch)    | Does not reach stable 120FPS.                                                                                                    |
+| Burnout Paradise Remastered v1.03                  | No (Hold Cross Button during Launch)    | Has game breaking vehicle steering issues.                                                                                       |
 | Gravity Rush Remastered v1.00                      | Yes                                     | -                                                                                                                                |
 | Gravity Rush 2 v1.11                               | No (Hold Cross Button during Launch)    | Does not reach stable 120FPS<br>Fast cameras, broken in-game cinematics.                                                         |
 | Demon Souls v1.00                                  | No (Hold Cross Button during Launch)    | Does not reach stable 120FPS<br>Half speed in Cinematic Mode.<br>Use performance mode in Graphics Options for proper game speed. |
@@ -96,6 +101,63 @@ nc -q0 (ps5 ip) 9020 bin/spawner.elf
 | Shadow of the Colossus v1.00/v1.01                 | Yes (Use Performance Mode in Game Menu) | -                                                                                                                                |
 | Uncharted: The Nathan Drake Collection v1.00/v1.02 | Yes                                     | -                                                                                                                                |
 | Killzone: Shadow Fall v1.81                        | No (Hold Cross Button during Launch)    | Does not reach stable 120FPS.                                                                                                    |
+
+# XML Config
+
+Version 1.152 now supports XML loading. Files are located in `/data/` after first load of payload.
+
+### `game_patch_cfg.xml`
+
+Contains keys to toggle hardcoded patches.
+
+```xml
+<cfg>
+    <!-- Supported key value: `true`, `false`, `1`, `0` -->
+    <GravityRush1_English>0</GravityRush1_English>
+    <GravityRush2_60FPS>0</GravityRush2_60FPS>
+    <Bloodborne_60FPS>1</Bloodborne_60FPS>
+    <Bloodborne_MotionBlur>0</Bloodborne_MotionBlur>
+    <Bloodborne_ChromaticAberration>0</Bloodborne_ChromaticAberration>
+    <Bloodborne_DebugCamera>0</Bloodborne_DebugCamera>
+    <Bloodborne_ColorBorderDiag>0</Bloodborne_ColorBorderDiag>
+    <Bloodborne_Vsync>0</Bloodborne_Vsync>
+    <Bloodborne_1280x720>0</Bloodborne_1280x720>
+    <SOTC_DebugMenu>0</SOTC_DebugMenu>
+    <TheOrder1886_60FPS>1</TheOrder1886_60FPS>
+    <TheOrder1886_16_9>0</TheOrder1886_16_9>
+    <Uncharted_4_Remaster_DebugMenu>0</Uncharted_4_Remaster_DebugMenu>
+    <Uncharted_TheLostLegacy_Remaster_DebugMenu>0</Uncharted_TheLostLegacy_Remaster_DebugMenu>
+    <DemonSouls_UnlockFPS>0</DemonSouls_UnlockFPS>
+    <DemonSouls_DebugMenu>0</DemonSouls_DebugMenu>
+    <Driveclub_60FPS>1</Driveclub_60FPS>
+    <Driveclub_UnlockAllCarsBikes>1</Driveclub_UnlockAllCarsBikes>
+    <TheLastGurdian_60FPS>0</TheLastGurdian_60FPS>
+    <TheLastOfUs2_109_Force1080p_in_120Hz>0</TheLastOfUs2_109_Force1080p_in_120Hz>
+    <BurnoutParadise_103_120hz>0</BurnoutParadise_103_120hz>
+    <BurnoutParadise_103_1920x1080>1</BurnoutParadise_103_1920x1080>
+    <BurnoutParadise_103_SkipLogos>1</BurnoutParadise_103_SkipLogos>
+    <BurnoutParadise_103_SkipIntroVideo>0</BurnoutParadise_103_SkipIntroVideo>
+</cfg>
+```
+
+### `game_patch_fliprate_list.xml`
+
+This [file](data/game_patch_fliprate_list.xml) contains list of Title IDs that is known to work with Universal Fliprate Unlock.
+
+Example:
+
+```xml
+<FliprateList>
+    <TitleID>
+        <!-- Unlock FPS for `CUSA00001`+`CUSA00002` (PS4 Titles) -->
+        <ID>CUSA00001</ID>
+        <ID>CUSA00002</ID>
+        <!-- Unlock FPS for `PPSA00001`+`PPSA00002` (PS5 Titles) -->
+        <ID>PPSA00001</ID>
+        <ID>PPSA00002</ID>
+    </TitleID>
+</FliprateList>
+```
 
 # Known Issues (specific to this fork)
 

@@ -1,0 +1,105 @@
+<FliprateList>
+    <TitleID>
+        <!--  GTA V -->
+        <ID>CUSA00411</ID>
+        <ID>CUSA00419</ID>
+        <ID>CUSA00880</ID>
+        <ID>CUSA29862</ID>
+        <!--  RDR2 -->
+        <ID>CUSA03041</ID>
+        <ID>CUSA08519</ID>
+        <ID>CUSA08568</ID>
+        <ID>CUSA15698</ID>
+        <!--  The Order 1886 -->
+        <ID>CUSA00035</ID>
+        <ID>CUSA00070</ID>
+        <ID>CUSA00076</ID>
+        <ID>CUSA00100</ID>
+        <ID>CUSA00670</ID>
+        <ID>CUSA00670</ID>
+        <!--  CTR -->
+        <ID>CUSA13795</ID>
+        <ID>CUSA14876</ID>
+        <ID>CUSA15979</ID>
+        <!--  Crash N Sane -->
+        <ID>CUSA07399</ID>
+        <ID>CUSA07402</ID>
+        <ID>CUSA08120</ID>
+        <!-- t2ps4 -->
+        <ID>CUSA07820</ID>
+        <ID>CUSA10249</ID>
+        <ID>CUSA13986</ID>
+        <ID>CUSA14006</ID>
+        <!--  PT -->
+        <ID>CUSA01127</ID>
+        <ID>CUSA01114</ID>
+        <ID>CUSA01098</ID>
+        <!--  AC Unity -->
+        <ID>CUSA00663</ID>
+        <ID>CUSA00605</ID>
+        <ID>CUSA00476</ID>
+        <!-- AC Ezio -->
+        <ID>CUSA04893</ID>
+        <ID>CUSA05008</ID>
+        <ID>CUSA05943</ID>
+        <!-- Far Cry 3 -->
+        <ID>CUSA10326</ID>
+        <ID>CUSA10357</ID>
+        <ID>CUSA11724</ID>
+        <ID>CUSA10327</ID>
+        <!-- Far Cry 4 -->
+        <ID>CUSA00496</ID>
+        <ID>CUSA00462</ID>
+        <ID>CUSA00477</ID>
+        <!-- Far Cry 5 Old Versions -->
+        <ID>CUSA05847</ID>
+        <ID>CUSA05904</ID>
+        <ID>CUSA05848</ID>
+        <ID>CUSA05849</ID>
+        <ID>CUSA05863</ID>
+        <!-- Watch Dogs -->
+        <ID>CUSA00016</ID>
+        <ID>CUSA00021</ID>
+        <ID>CUSA00022</ID>
+        <ID>CUSA00812</ID>
+        <!-- Watch Dogs 2 -->
+        <ID>CUSA04294</ID>
+        <ID>CUSA04295</ID>
+        <ID>CUSA04459</ID>
+        <ID>CUSA04782</ID>
+        <ID>CUSA06328</ID>
+        <!-- LEGO Star Wars: The Force Awakens -->
+        <ID>CUSA03372</ID>
+        <ID>CUSA03397</ID>
+        <ID>CUSA04122</ID>
+        <!-- Mad Max (TODO: add 120Hz for this) -->
+        <ID>CUSA00054</ID>
+        <ID>CUSA00103</ID>
+        <ID>CUSA02151</ID>
+        <ID>CUSA02703</ID>
+        <!-- Deus Ex: Mankind Divided -->
+        <ID>CUSA01836</ID>
+        <ID>CUSA01799</ID>
+        <ID>CUSA07218</ID>
+        <!-- Assassin's Creed IV: Black Flag -->
+        <ID>CUSA00009</ID>
+        <ID>CUSA00010</ID>
+        <ID>CUSA00206</ID>
+        <!-- Ghost of Tsushima -->
+        <ID>CUSA32708</ID>
+        <ID>CUSA32709</ID>
+        <ID>CUSA32710</ID>
+        <ID>CUSA32711</ID>
+        <ID>CUSA11456</ID>
+        <ID>CUSA13323</ID>
+        <ID>CUSA16972</ID>
+        <ID>CUSA16981</ID>
+        <!-- Alan Wake Remastered -->
+        <ID>CUSA24652</ID>
+        <ID>CUSA24653</ID>
+        <!-- The Surge -->
+        <ID>CUSA09493</ID>
+        <ID>CUSA04733</ID>
+        <ID>CUSA04849</ID>
+    </TitleID>
+</FliprateList>
