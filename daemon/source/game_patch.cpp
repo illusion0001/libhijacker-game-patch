@@ -2227,14 +2227,14 @@ void DoPatch_TheOrder1886_102(pid_t app_pid, uint64_t text_base)
 {
 	// 60 FPS
 	write_bytes(app_pid, NO_ASLR(0x008507c4), "01");
-	/*
+	
 	// 900p + 16:9
 	write_bytes(app_pid, NO_ASLR(0x0084cef5), "75");
 	write_bytes32(app_pid, NO_ASLR(0x0084cefd), 1600);
 	write_bytes32(app_pid, NO_ASLR(0x0084cf07), 900);
 	// 16:9 AR
 	write_bytes32(app_pid, NO_ASLR(0x0084ce8c), 0x3fe38e39);
-	*/
+	
 }
 
 void DoPatch_Big4R_100(pid_t app_pid, uint64_t text_base, uint32_t idx)
