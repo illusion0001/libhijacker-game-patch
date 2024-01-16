@@ -13,7 +13,7 @@ __asm__(
 
 extern "C" char DefaultXml_FliprateList[];
 
-int makeDefaultXml_List(void)
+int makeDefaultXml_List()
 {
 	FILE *f = fopen(XML_PATH_LIST, "rb");
 	if (!f)
@@ -120,45 +120,45 @@ int simple_get_bool(const char *val)
 
 #undef startsWith
 
-int makeDefaultXml_Cfg(void)
+// This is so bad but we want to generate a default config with the same key
+// that is used for comparisons
+#define SET_XML_KEY(key, value) "    <" key ">" #value "</" key ">\n"
+const char DefaultCfgData[] = ""
+				 "<cfg>\n"
+				 "    <!-- Supported key value: `true`, `false`, `1`, `0` -->\n"
+					SET_XML_KEY(GR1_EN, 0)
+					SET_XML_KEY(GR2_60HzKey, 0)
+					SET_XML_KEY(BB_60FPSKey, 1)
+					SET_XML_KEY(BB_MBKey, 0)
+					SET_XML_KEY(BB_CAKey, 0)
+					SET_XML_KEY(BB_DebugCameraKey, 0)
+					SET_XML_KEY(BB_ColorBorder, 0)
+					SET_XML_KEY(BB_Vsync, 0)
+					SET_XML_KEY(BB_1280_720, 0)
+					SET_XML_KEY(SOTC_DebugMenu, 0)
+					SET_XML_KEY(TO1886_60FPS, 1)
+					SET_XML_KEY(TO1886_16_9, 0)
+					SET_XML_KEY(Big4R_MainDebugMenu, 0)
+					SET_XML_KEY(Big4R_TLLDebugMenu, 0)
+					SET_XML_KEY(DemonSouls_UnlockFPS, 0)
+					SET_XML_KEY(Driveclub_60FPS, 1)
+					SET_XML_KEY(Driveclub_DLC_Unlock, 1)
+					SET_XML_KEY(TLG_60FPS, 0)
+					SET_XML_KEY(t2ps4_109_1080p_in120Hz, 0)
+					"</cfg>\n";
+#undef SET_XML_KEY
+
+int makeDefaultXml_Cfg()
 {
 	FILE *f = fopen(XML_PATH, "rb");
 	if (!f)
 	{
 		FILE *new_f = fopen(XML_PATH, "w");
-		// This is so bad but we want to generate a default config with the same key
-		// that is used for comparisons
-#define SET_XML_KEY(key, state) "    <" key ">" #state "</" key ">\n"
-#define XML_DATA "" \
-				 "<cfg>\n" \
-				 "    <!-- Supported key value: `true`, `false`, `1`, `0` -->\n" \
-					SET_XML_KEY(GR1_EN, 0) \
-					SET_XML_KEY(GR2_60HzKey, 0) \
-					SET_XML_KEY(BB_60FPSKey, 1) \
-					SET_XML_KEY(BB_MBKey, 0) \
-					SET_XML_KEY(BB_CAKey, 0) \
-					SET_XML_KEY(BB_DebugCameraKey, 0) \
-					SET_XML_KEY(BB_ColorBorder, 0) \
-					SET_XML_KEY(BB_Vsync, 0) \
-					SET_XML_KEY(BB_1280_720, 0) \
-					SET_XML_KEY(SOTC_DebugMenu, 0) \
-					SET_XML_KEY(TO1886_60FPS, 1) \
-					SET_XML_KEY(TO1886_16_9, 0) \
-					SET_XML_KEY(Big4R_MainDebugMenu, 0) \
-					SET_XML_KEY(Big4R_TLLDebugMenu, 0) \
-					SET_XML_KEY(DemonSouls_UnlockFPS, 0) \
-					SET_XML_KEY(Driveclub_60FPS, 1) \
-					SET_XML_KEY(Driveclub_DLC_Unlock, 1) \
-					SET_XML_KEY(TLG_60FPS, 0) \
-					SET_XML_KEY(t2ps4_109_1080p_in120Hz, 0) \
-					"</cfg>\n"
 		// Print the default data to TTY
-		printf("%s\n", XML_DATA);
-		fputs(XML_DATA, new_f);
+		printf("%s\n", DefaultCfgData);
+		fputs(DefaultCfgData, new_f);
 		fflush(new_f);
 		fclose(new_f);
-#undef XML_DATA
-#undef SET_XML_KEY
 	}
 	return 0;
 }

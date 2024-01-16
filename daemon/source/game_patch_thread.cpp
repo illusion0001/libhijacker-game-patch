@@ -338,6 +338,8 @@ void *GamePatch_Thread(void *unused)
 {
 	(void)unused;
 	printf_notification("Game Patch thread running.\nBuilt: " __DATE__ " @ " __TIME__);
+	makeDefaultXml_Cfg();
+	makeDefaultXml_List();
 	int32_t is120HzUsable = false;
 	FlipRate_ConfigureOutput_Ptr = 0;
 	FlipRate_isVideoModeSupported_Ptr = 0;
@@ -469,7 +471,6 @@ void *GamePatch_Thread(void *unused)
 						(startsWith(app_ver, "01.11")))
 					{
 						DoPatch_GravityDaze2_111(app_pid, text_base);
-						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
 					}
 					else if ((startsWith(app_id, "PCAS00035") ||
 							  startsWith(app_id, "PCJS50004") ||
@@ -483,7 +484,6 @@ void *GamePatch_Thread(void *unused)
 							 (startsWith(app_ver, "01.00")))
 					{
 						DoPatchGravityDaze_101(app_pid, text_base);
-						printf_notification("%s (%s): 120 FPS Patched!", app_id, app_ver);
 					}
 					else if ((startsWith(app_id, "CUSA00900") ||
 							  startsWith(app_id, "CUSA00207") ||
@@ -495,7 +495,6 @@ void *GamePatch_Thread(void *unused)
 							 (startsWith(app_ver, "01.09")))
 					{
 						DoPatch_Bloodborne109(app_pid, text_base);
-						//printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
 					}
 					else if ((startsWith(app_id, "CUSA00003") ||
 							  startsWith(app_id, "CUSA00064") ||
@@ -505,7 +504,6 @@ void *GamePatch_Thread(void *unused)
 							 (startsWith(app_ver, "01.28")))
 					{
 						DoPatch_DriveClub_128(app_pid, text_base);
-						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
 					}
 					else if ((startsWith(app_id, "CUSA03627") ||
 							  startsWith(app_id, "CUSA03745") ||
@@ -513,7 +511,6 @@ void *GamePatch_Thread(void *unused)
 							 (startsWith(app_ver, "01.03")))
 					{
 						DoPatch_TheLastGuardian_103(app_pid, text_base);
-						printf_notification("%s (%s): 60 FPS Fixes Patched!", app_id, app_ver);
 					}
 					else if ((startsWith(app_id, "CUSA08034") ||
 							  startsWith(app_id, "CUSA08804") ||
@@ -522,7 +519,6 @@ void *GamePatch_Thread(void *unused)
 							  startsWith(app_ver, "01.01")))
 					{
 						DoPatch_SOTC_100(app_pid, text_base);
-						printf_notification("%s (%s): Debug Menu Patched!", app_id, app_ver);
 					}
 					else if ((startsWith(app_id, "CUSA07820") ||
 							  startsWith(app_id, "CUSA10249") ||
@@ -531,7 +527,6 @@ void *GamePatch_Thread(void *unused)
 							 (startsWith(app_ver, "01.00")))
 					{
 						DoPatch_t2ps4(app_pid, text_base, 0x100);
-						printf_notification("%s (%s): 60 FPS + Debug Menu Patched!", app_id, app_ver);
 					}
 					else if ((startsWith(app_id, "CUSA07820") ||
 							  startsWith(app_id, "CUSA10249") ||
@@ -540,7 +535,6 @@ void *GamePatch_Thread(void *unused)
 							 (startsWith(app_ver, "01.09")))
 					{
 						DoPatch_t2ps4(app_pid, text_base, 0x109);
-						printf_notification("%s (%s): 60 FPS + Debug Menu Patched!", app_id, app_ver);
 					}
 					else if ((startsWith(app_id, "CUSA00552") ||
 							  startsWith(app_id, "CUSA00556") ||
@@ -549,7 +543,6 @@ void *GamePatch_Thread(void *unused)
 							 (startsWith(app_ver, "01.11")))
 					{
 						DoPatch_t1ps4_111(app_pid, text_base);
-						printf_notification("%s (%s): 60 FPS + Debug Menu Patched!", app_id, app_ver);
 					}
 					else if ((startsWith(app_id, "CUSA09254") ||
 							  startsWith(app_id, "CUSA09264") ||
@@ -660,7 +653,6 @@ void *GamePatch_Thread(void *unused)
 							 (startsWith(app_ver, "01.24")))
 					{
 						DoPatchBF4_124(app_pid, text_base);
-						printf_notification("%s (%s): 120 FPS Patched!", app_id, app_ver);
 					}
 					else if ((startsWith(app_id, "CUSA00002") ||
 							  startsWith(app_id, "CUSA00008") ||
@@ -669,7 +661,6 @@ void *GamePatch_Thread(void *unused)
 							 (startsWith(app_ver, "01.81")))
 					{
 						DoPatchKillzone_181(app_pid, text_base);
-						printf_notification("%s (%s): Patched!", app_id, app_ver);
 					}
 					else if ((startsWith(app_id, "CUSA01499") ||
 							  startsWith(app_id, "CUSA01542") ||
@@ -677,7 +668,6 @@ void *GamePatch_Thread(void *unused)
 							 (startsWith(app_ver, "01.02")))
 					{
 						DoPatchMEC_102(app_pid, text_base);
-						printf_notification("%s (%s): 120 FPS Patched!", app_id, app_ver);
 					}
 					else if ((startsWith(app_id, "CUSA00220") ||
 							  startsWith(app_id, "CUSA00503") ||
@@ -699,7 +689,6 @@ void *GamePatch_Thread(void *unused)
 							 (startsWith(app_ver, "01.03")))
 					{
 						DoPatchNier103(app_pid, text_base);
-						printf_notification("%s (%s): 120 FPS Patched!", app_id, app_ver);
 					}
 					else if (((startsWith(app_id, "CUSA02085") ||
 							  startsWith(app_id, "CUSA02092")) &&
@@ -707,7 +696,6 @@ void *GamePatch_Thread(void *unused)
 							 (startsWith(app_id, "CUSA04701") && startsWith(app_ver, "01.11")))
 					{
 						DoPatchDoom_112(app_pid, text_base);
-						printf_notification("%s (%s): 120 FPS Patched!", app_id, app_ver);
 					}
 				}
 
@@ -725,18 +713,15 @@ void *GamePatch_Thread(void *unused)
 						if (startsWith(process_name_c_str, "eboot.bin"))
 						{
 							DoPatch_BigCollection(app_pid, text_base, (0x100 << 1));
-							printf_notification("%s (%s): Debug Menu Patched!", app_id, app_ver);
 						}
 						else if (startsWith(process_name_c_str, "big2-ps4_Shipping.elf"))
 						{
 							DoPatch_BigCollection(app_pid, text_base, (0x100 << 2));
-							printf_notification("%s (%s): Debug Menu Patched!", app_id, process_name_c_str);
 						}
 						// big3
 						else if (startsWith(process_name_c_str, "big3-ps4_Shipping.elf"))
 						{
 							DoPatch_BigCollection(app_pid, text_base, (0x100 << 3));
-							printf_notification("%s (%s): Debug Menu Patched!", app_id, process_name_c_str);
 						}
 					}
 					else if (startsWith(app_ver, "01.02"))
@@ -744,18 +729,15 @@ void *GamePatch_Thread(void *unused)
 						if (startsWith(process_name_c_str, "eboot.bin"))
 						{
 							DoPatch_BigCollection(app_pid, text_base, (0x102 << 1));
-							printf_notification("%s (%s): Debug Menu Patched!", app_id, app_ver);
 						}
 						else if (startsWith(process_name_c_str, "big2-ps4_Shipping.elf"))
 						{
 							DoPatch_BigCollection(app_pid, text_base, (0x102 << 2));
-							printf_notification("%s (%s): Debug Menu Patched!", app_id, process_name_c_str);
 						}
 						// big3
 						else if (startsWith(process_name_c_str, "big3-ps4_Shipping.elf"))
 						{
 							DoPatch_BigCollection(app_pid, text_base, (0x102 << 3));
-							printf_notification("%s (%s): Debug Menu Patched!", app_id, process_name_c_str);
 						}
 					}
 				}
