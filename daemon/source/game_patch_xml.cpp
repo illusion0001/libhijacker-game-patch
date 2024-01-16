@@ -1,5 +1,5 @@
 #include "../extern/mxml/mxml.h"
-#include "xml_cfg.hpp"
+#include "game_patch_xml_cfg.hpp"
 #include <stdint.h>
 
 #include "game_patch_memory.hpp"
@@ -126,6 +126,8 @@ int makeDefaultXml_Cfg(void)
 	if (!f)
 	{
 		FILE *new_f = fopen(XML_PATH, "w");
+		// This is so bad but we want to generate a default config with the same key
+		// that is used for comparisons
 #define SET_XML_KEY(key, state) "    <" key ">" #state "</" key ">\n"
 #define XML_DATA ""                                                                                       \
 				 "<cfg>\n    "                                                                            \

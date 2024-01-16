@@ -14,6 +14,8 @@
 #include "pad.hpp"
 #include "titleid_map.hpp"
 
+#include "game_patch_xml.hpp"
+
 extern "C"
 {
 #include "../extern/pfd_sfo_tools/sfopatcher/src/sfo.h"
@@ -757,61 +759,14 @@ void *GamePatch_Thread(void *unused)
 						}
 					}
 				}
-				const char *title_id_universal_fliprate[] = {
-					// GTA V
-					"CUSA00411",
-					"CUSA00419",
-					"CUSA00880",
-					"CUSA29862",
-					// RDR2
-					"CUSA03041",
-					"CUSA08519",
-					"CUSA08568",
-					"CUSA15698",
-					// The Order 1886
-					"CUSA00035",
-					"CUSA00070",
-					"CUSA00076",
-					"CUSA00100",
-					"CUSA00670",
-					"CUSA00670",
-					// CTR
-					"CUSA13795",
-					"CUSA14876",
-					"CUSA15979",
-					// Crash N Sane
-					"CUSA07399",
-					"CUSA07402",
-					"CUSA08120",
-					// t2ps4
-					"CUSA07820",
-					"CUSA10249",
-					"CUSA13986",
-					"CUSA14006",
-					// PT
-					"CUSA01127",
-					"CUSA01114",
-					"CUSA01098",
-					// AC Unity
-					"CUSA00663",
-					"CUSA00605",
-					"CUSA00476",
-					// AC Ezio
-					"CUSA04893",
-					"CUSA05008",
-					"CUSA05943",
-				};
 				int32_t fliprate_game_found = false;
-				for (size_t idx = 0; idx < (sizeof(title_id_universal_fliprate) / sizeof(const char *)); idx++)
+				if (Xml_parseTitleID(app_id))
 				{
-					if (strncmp(app_id, title_id_universal_fliprate[idx], __builtin_strlen("CUSAxxxxx")) == 0)
-					{
-						printf_notification("Title ID found in universal fliprate list:\n%s", app_id);
-						ResumeApp(app_pid);
-						patch_SetFlipRate(*executable, app_pid);
-						fliprate_game_found = true;
-						break;
-					}
+					printf_notification("Title ID found in universal fliprate list:\n%s", app_id);
+					ResumeApp(app_pid);
+					patch_SetFlipRate(*executable, app_pid);
+					fliprate_game_found = true;
+					break;
 				}
 				if (!fliprate_game_found)
 				{

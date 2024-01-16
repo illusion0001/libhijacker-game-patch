@@ -1,5 +1,7 @@
 #include "game_patch_memory.hpp"
 #include "game_patch.hpp"
+#include "game_patch_xml.hpp"
+#include "game_patch_xml_cfg.hpp"
 #include "print.hpp"
 #include "notify.hpp"
 
@@ -12,1006 +14,1023 @@ void DoPatch_Bloodborne109(pid_t app_pid, uint64_t text_base)
 	write_bytes32(app_pid, NO_ASLR(0x04d99154), 0);
 	write_bytes32(app_pid, NO_ASLR(0x04d9916e), 0);
 	// 60 FPS by Lance
-	write_bytes(app_pid, NO_ASLR(0x00fbc40f), "eb1d");
-	write_bytes(app_pid, NO_ASLR(0x013d2e16), "eb19");
-	write_bytes(app_pid, NO_ASLR(0x013d2e18), "4156");
-	write_bytes(app_pid, NO_ASLR(0x013d2e1a), "41c746080000003f");
-	write_bytes(app_pid, NO_ASLR(0x013d2e22), "c4c17a5e4608");
-	write_bytes(app_pid, NO_ASLR(0x013d2e28), "415e");
-	write_bytes(app_pid, NO_ASLR(0x013d2e2a), "e933070000");
-	write_bytes(app_pid, NO_ASLR(0x013d2e2f), "90");
-	write_bytes(app_pid, NO_ASLR(0x013d2e30), "90");
-	write_bytes(app_pid, NO_ASLR(0x013d3557), "c4c17a104608");
-	write_bytes(app_pid, NO_ASLR(0x013d355d), "e9b6f8ffff");
-	// bad in fixed timetep
-	write_bytes(app_pid, NO_ASLR(0x01bf9b71), "e933010000");
-	write_bytes(app_pid, NO_ASLR(0x01bf9b76), "90");
-	write_bytes(app_pid, NO_ASLR(0x01bf9b77), "90");
-	// end
-	write_bytes(app_pid, NO_ASLR(0x01bf9ca9), "488d054868d403");
-	write_bytes(app_pid, NO_ASLR(0x01bf9cb0), "488b00");
-	write_bytes(app_pid, NO_ASLR(0x01bf9cb3), "8b8064020000");
-	write_bytes(app_pid, NO_ASLR(0x01bf9cb9), "8945b8");
-	write_bytes(app_pid, NO_ASLR(0x01bf9cbc), "90");
-	write_bytes(app_pid, NO_ASLR(0x01bf9cbd), "90");
-	write_bytes(app_pid, NO_ASLR(0x01bf9cbe), "90");
-	write_bytes(app_pid, NO_ASLR(0x01bf9cbf), "90");
-	write_bytes(app_pid, NO_ASLR(0x01bf9cc0), "90");
-	write_bytes(app_pid, NO_ASLR(0x01bf9cc1), "90");
-	write_bytes(app_pid, NO_ASLR(0x01bf9cc2), "90");
-	write_bytes(app_pid, NO_ASLR(0x01bf9cc3), "90");
-	write_bytes(app_pid, NO_ASLR(0x01bf9cc4), "90");
-	write_bytes(app_pid, NO_ASLR(0x01bf9cc5), "90");
-	write_bytes(app_pid, NO_ASLR(0x01bf9cc6), "90");
-	write_bytes(app_pid, NO_ASLR(0x01bf9cc7), "90");
-	write_bytes(app_pid, NO_ASLR(0x01bf9cc8), "90");
-	write_bytes(app_pid, NO_ASLR(0x01bf9cc9), "90");
-	write_bytes(app_pid, NO_ASLR(0x01bf9cca), "90");
-	write_bytes(app_pid, NO_ASLR(0x01bf9ccb), "90");
-	write_bytes(app_pid, NO_ASLR(0x01bf9ccc), "90");
-	write_bytes(app_pid, NO_ASLR(0x01bf9ccd), "90");
-	write_bytes(app_pid, NO_ASLR(0x01bf9cce), "90");
-	write_bytes(app_pid, NO_ASLR(0x01bf9ccf), "90");
-	write_bytes(app_pid, NO_ASLR(0x01bf9cd0), "90");
-	write_bytes(app_pid, NO_ASLR(0x01bf9cd1), "90");
-	write_bytes(app_pid, NO_ASLR(0x01bf9cd2), "e9a1feffff");
-	write_bytes(app_pid, NO_ASLR(0x021bc181), "488d3d70437803");
-	write_bytes(app_pid, NO_ASLR(0x021bc188), "488b3f");
-	write_bytes(app_pid, NO_ASLR(0x021bc18b), "c5fa598764020000");
-	write_bytes(app_pid, NO_ASLR(0x021bc193), "90");
-	write_bytes(app_pid, NO_ASLR(0x021bc194), "90");
-	write_bytes(app_pid, NO_ASLR(0x021bc195), "90");
-	write_bytes(app_pid, NO_ASLR(0x021bc196), "90");
-	write_bytes(app_pid, NO_ASLR(0x021bc197), "90");
-	write_bytes(app_pid, NO_ASLR(0x021bc198), "90");
-	write_bytes(app_pid, NO_ASLR(0x021bc199), "90");
-	write_bytes(app_pid, NO_ASLR(0x021bc19a), "90");
-	write_bytes(app_pid, NO_ASLR(0x021bc19b), "90");
-	write_bytes(app_pid, NO_ASLR(0x021bc19c), "90");
-	write_bytes(app_pid, NO_ASLR(0x021bc19d), "e96e010000");
-	write_bytes(app_pid, NO_ASLR(0x021bc308), "e974feffff");
-	write_bytes(app_pid, NO_ASLR(0x021bc30d), "90");
-	write_bytes(app_pid, NO_ASLR(0x021bc30e), "90");
-	write_bytes(app_pid, NO_ASLR(0x021bc30f), "90");
-	write_bytes(app_pid, NO_ASLR(0x02377cea), "eb24");
-	write_bytes(app_pid, NO_ASLR(0x02377cec), "488d1d05885c03");
-	write_bytes(app_pid, NO_ASLR(0x02377cf3), "488b1b");
-	write_bytes(app_pid, NO_ASLR(0x02377cf6), "c5fa108364020000");
-	write_bytes(app_pid, NO_ASLR(0x02377cfe), "90");
-	write_bytes(app_pid, NO_ASLR(0x02377cff), "90");
-	write_bytes(app_pid, NO_ASLR(0x02377d00), "90");
-	write_bytes(app_pid, NO_ASLR(0x02377d01), "90");
-	write_bytes(app_pid, NO_ASLR(0x02377d02), "90");
-	write_bytes(app_pid, NO_ASLR(0x02377d03), "90");
-	write_bytes(app_pid, NO_ASLR(0x02377d04), "90");
-	write_bytes(app_pid, NO_ASLR(0x02377d05), "90");
-	write_bytes(app_pid, NO_ASLR(0x02377d06), "90");
-	write_bytes(app_pid, NO_ASLR(0x02377d07), "90");
-	write_bytes(app_pid, NO_ASLR(0x02377d08), "90");
-	write_bytes(app_pid, NO_ASLR(0x02377d09), "90");
-	write_bytes(app_pid, NO_ASLR(0x02377d0a), "90");
-	write_bytes(app_pid, NO_ASLR(0x02377d0b), "90");
-	write_bytes(app_pid, NO_ASLR(0x02377d0c), "90");
-	write_bytes(app_pid, NO_ASLR(0x02377d0d), "90");
-	write_bytes(app_pid, NO_ASLR(0x02377d0e), "eb42");
-	write_bytes(app_pid, NO_ASLR(0x02377d48), "eba2");
-	write_bytes(app_pid, NO_ASLR(0x02418e3d), "8b8364020000");
-	write_bytes(app_pid, NO_ASLR(0x02418e43), "8945c8");
-	write_bytes(app_pid, NO_ASLR(0x02418e46), "90");
-	write_bytes(app_pid, NO_ASLR(0x02418e47), "90");
-	write_bytes(app_pid, NO_ASLR(0x02418e48), "90");
-	write_bytes(app_pid, NO_ASLR(0x02418e49), "90");
-	write_bytes(app_pid, NO_ASLR(0x02418e4a), "90");
-	write_bytes(app_pid, NO_ASLR(0x02418e4b), "90");
-	write_bytes(app_pid, NO_ASLR(0x02418e4c), "90");
-	write_bytes(app_pid, NO_ASLR(0x02418e4d), "90");
-	write_bytes(app_pid, NO_ASLR(0x02418e4e), "90");
-	write_bytes(app_pid, NO_ASLR(0x02418e4f), "90");
-	write_bytes(app_pid, NO_ASLR(0x02418e50), "90");
-	write_bytes(app_pid, NO_ASLR(0x02418e51), "90");
-	write_bytes(app_pid, NO_ASLR(0x02418e52), "90");
-	write_bytes(app_pid, NO_ASLR(0x02418e53), "90");
-	write_bytes(app_pid, NO_ASLR(0x02418e54), "90");
-	write_bytes(app_pid, NO_ASLR(0x02418e55), "90");
-	write_bytes(app_pid, NO_ASLR(0x02418e56), "90");
-	write_bytes(app_pid, NO_ASLR(0x02418e57), "90");
-	write_bytes(app_pid, NO_ASLR(0x02418e58), "90");
-	write_bytes(app_pid, NO_ASLR(0x02418e59), "90");
-	write_bytes(app_pid, NO_ASLR(0x02418e5a), "90");
-	write_bytes(app_pid, NO_ASLR(0x02418e5b), "90");
-	write_bytes(app_pid, NO_ASLR(0x02418e5c), "90");
-	write_bytes(app_pid, NO_ASLR(0x02418e5d), "90");
-	write_bytes(app_pid, NO_ASLR(0x02418e5e), "90");
-	write_bytes(app_pid, NO_ASLR(0x02418e5f), "90");
-	write_bytes(app_pid, NO_ASLR(0x02418e60), "90");
-	write_bytes(app_pid, NO_ASLR(0x02418e61), "90");
-	write_bytes(app_pid, NO_ASLR(0x02418e62), "90");
-	write_bytes(app_pid, NO_ASLR(0x02418e63), "90");
-	write_bytes(app_pid, NO_ASLR(0x02418e64), "488d05a5765203");
-	write_bytes(app_pid, NO_ASLR(0x0243487e), "41c74424188988883c");
-	write_bytes(app_pid, NO_ASLR(0x02434887), "48b90000000001000000");
-	write_bytes(app_pid, NO_ASLR(0x02483ec1), "c3");
-	write_bytes(app_pid, NO_ASLR(0x02483ec2), "90");
-	write_bytes(app_pid, NO_ASLR(0x02483ec3), "90");
-	write_bytes(app_pid, NO_ASLR(0x02483ec4), "90");
-	write_bytes(app_pid, NO_ASLR(0x02483ec5), "90");
-	write_bytes(app_pid, NO_ASLR(0x02715d71), "e881090000");
-	write_bytes(app_pid, NO_ASLR(0x02715d76), "90");
-	write_bytes(app_pid, NO_ASLR(0x02715d77), "90");
-	write_bytes(app_pid, NO_ASLR(0x02715d78), "90");
-	write_bytes(app_pid, NO_ASLR(0x020367c7), "488d351cd2c702");
-	write_bytes(app_pid, NO_ASLR(0x020369e8), "488d35b5cfc702");
-	write_wstring(app_pid, NO_ASLR(0x04cb39ea), L"This 60fps patch was");
-	write_wstring(app_pid, NO_ASLR(0x04cb39a4), L"Made with love, by Lance McDonald");
+	if (parseXML(BB_60FPSKey))
+	{
+		write_bytes(app_pid, NO_ASLR(0x00fbc40f), "eb1d");
+		write_bytes(app_pid, NO_ASLR(0x013d2e16), "eb19");
+		write_bytes(app_pid, NO_ASLR(0x013d2e18), "4156");
+		write_bytes(app_pid, NO_ASLR(0x013d2e1a), "41c746080000003f");
+		write_bytes(app_pid, NO_ASLR(0x013d2e22), "c4c17a5e4608");
+		write_bytes(app_pid, NO_ASLR(0x013d2e28), "415e");
+		write_bytes(app_pid, NO_ASLR(0x013d2e2a), "e933070000");
+		write_bytes(app_pid, NO_ASLR(0x013d2e2f), "90");
+		write_bytes(app_pid, NO_ASLR(0x013d2e30), "90");
+		write_bytes(app_pid, NO_ASLR(0x013d3557), "c4c17a104608");
+		write_bytes(app_pid, NO_ASLR(0x013d355d), "e9b6f8ffff");
+		// bad in fixed timetep
+		write_bytes(app_pid, NO_ASLR(0x01bf9b71), "e933010000");
+		write_bytes(app_pid, NO_ASLR(0x01bf9b76), "90");
+		write_bytes(app_pid, NO_ASLR(0x01bf9b77), "90");
+		// end
+		write_bytes(app_pid, NO_ASLR(0x01bf9ca9), "488d054868d403");
+		write_bytes(app_pid, NO_ASLR(0x01bf9cb0), "488b00");
+		write_bytes(app_pid, NO_ASLR(0x01bf9cb3), "8b8064020000");
+		write_bytes(app_pid, NO_ASLR(0x01bf9cb9), "8945b8");
+		write_bytes(app_pid, NO_ASLR(0x01bf9cbc), "90");
+		write_bytes(app_pid, NO_ASLR(0x01bf9cbd), "90");
+		write_bytes(app_pid, NO_ASLR(0x01bf9cbe), "90");
+		write_bytes(app_pid, NO_ASLR(0x01bf9cbf), "90");
+		write_bytes(app_pid, NO_ASLR(0x01bf9cc0), "90");
+		write_bytes(app_pid, NO_ASLR(0x01bf9cc1), "90");
+		write_bytes(app_pid, NO_ASLR(0x01bf9cc2), "90");
+		write_bytes(app_pid, NO_ASLR(0x01bf9cc3), "90");
+		write_bytes(app_pid, NO_ASLR(0x01bf9cc4), "90");
+		write_bytes(app_pid, NO_ASLR(0x01bf9cc5), "90");
+		write_bytes(app_pid, NO_ASLR(0x01bf9cc6), "90");
+		write_bytes(app_pid, NO_ASLR(0x01bf9cc7), "90");
+		write_bytes(app_pid, NO_ASLR(0x01bf9cc8), "90");
+		write_bytes(app_pid, NO_ASLR(0x01bf9cc9), "90");
+		write_bytes(app_pid, NO_ASLR(0x01bf9cca), "90");
+		write_bytes(app_pid, NO_ASLR(0x01bf9ccb), "90");
+		write_bytes(app_pid, NO_ASLR(0x01bf9ccc), "90");
+		write_bytes(app_pid, NO_ASLR(0x01bf9ccd), "90");
+		write_bytes(app_pid, NO_ASLR(0x01bf9cce), "90");
+		write_bytes(app_pid, NO_ASLR(0x01bf9ccf), "90");
+		write_bytes(app_pid, NO_ASLR(0x01bf9cd0), "90");
+		write_bytes(app_pid, NO_ASLR(0x01bf9cd1), "90");
+		write_bytes(app_pid, NO_ASLR(0x01bf9cd2), "e9a1feffff");
+		write_bytes(app_pid, NO_ASLR(0x021bc181), "488d3d70437803");
+		write_bytes(app_pid, NO_ASLR(0x021bc188), "488b3f");
+		write_bytes(app_pid, NO_ASLR(0x021bc18b), "c5fa598764020000");
+		write_bytes(app_pid, NO_ASLR(0x021bc193), "90");
+		write_bytes(app_pid, NO_ASLR(0x021bc194), "90");
+		write_bytes(app_pid, NO_ASLR(0x021bc195), "90");
+		write_bytes(app_pid, NO_ASLR(0x021bc196), "90");
+		write_bytes(app_pid, NO_ASLR(0x021bc197), "90");
+		write_bytes(app_pid, NO_ASLR(0x021bc198), "90");
+		write_bytes(app_pid, NO_ASLR(0x021bc199), "90");
+		write_bytes(app_pid, NO_ASLR(0x021bc19a), "90");
+		write_bytes(app_pid, NO_ASLR(0x021bc19b), "90");
+		write_bytes(app_pid, NO_ASLR(0x021bc19c), "90");
+		write_bytes(app_pid, NO_ASLR(0x021bc19d), "e96e010000");
+		write_bytes(app_pid, NO_ASLR(0x021bc308), "e974feffff");
+		write_bytes(app_pid, NO_ASLR(0x021bc30d), "90");
+		write_bytes(app_pid, NO_ASLR(0x021bc30e), "90");
+		write_bytes(app_pid, NO_ASLR(0x021bc30f), "90");
+		write_bytes(app_pid, NO_ASLR(0x02377cea), "eb24");
+		write_bytes(app_pid, NO_ASLR(0x02377cec), "488d1d05885c03");
+		write_bytes(app_pid, NO_ASLR(0x02377cf3), "488b1b");
+		write_bytes(app_pid, NO_ASLR(0x02377cf6), "c5fa108364020000");
+		write_bytes(app_pid, NO_ASLR(0x02377cfe), "90");
+		write_bytes(app_pid, NO_ASLR(0x02377cff), "90");
+		write_bytes(app_pid, NO_ASLR(0x02377d00), "90");
+		write_bytes(app_pid, NO_ASLR(0x02377d01), "90");
+		write_bytes(app_pid, NO_ASLR(0x02377d02), "90");
+		write_bytes(app_pid, NO_ASLR(0x02377d03), "90");
+		write_bytes(app_pid, NO_ASLR(0x02377d04), "90");
+		write_bytes(app_pid, NO_ASLR(0x02377d05), "90");
+		write_bytes(app_pid, NO_ASLR(0x02377d06), "90");
+		write_bytes(app_pid, NO_ASLR(0x02377d07), "90");
+		write_bytes(app_pid, NO_ASLR(0x02377d08), "90");
+		write_bytes(app_pid, NO_ASLR(0x02377d09), "90");
+		write_bytes(app_pid, NO_ASLR(0x02377d0a), "90");
+		write_bytes(app_pid, NO_ASLR(0x02377d0b), "90");
+		write_bytes(app_pid, NO_ASLR(0x02377d0c), "90");
+		write_bytes(app_pid, NO_ASLR(0x02377d0d), "90");
+		write_bytes(app_pid, NO_ASLR(0x02377d0e), "eb42");
+		write_bytes(app_pid, NO_ASLR(0x02377d48), "eba2");
+		write_bytes(app_pid, NO_ASLR(0x02418e3d), "8b8364020000");
+		write_bytes(app_pid, NO_ASLR(0x02418e43), "8945c8");
+		write_bytes(app_pid, NO_ASLR(0x02418e46), "90");
+		write_bytes(app_pid, NO_ASLR(0x02418e47), "90");
+		write_bytes(app_pid, NO_ASLR(0x02418e48), "90");
+		write_bytes(app_pid, NO_ASLR(0x02418e49), "90");
+		write_bytes(app_pid, NO_ASLR(0x02418e4a), "90");
+		write_bytes(app_pid, NO_ASLR(0x02418e4b), "90");
+		write_bytes(app_pid, NO_ASLR(0x02418e4c), "90");
+		write_bytes(app_pid, NO_ASLR(0x02418e4d), "90");
+		write_bytes(app_pid, NO_ASLR(0x02418e4e), "90");
+		write_bytes(app_pid, NO_ASLR(0x02418e4f), "90");
+		write_bytes(app_pid, NO_ASLR(0x02418e50), "90");
+		write_bytes(app_pid, NO_ASLR(0x02418e51), "90");
+		write_bytes(app_pid, NO_ASLR(0x02418e52), "90");
+		write_bytes(app_pid, NO_ASLR(0x02418e53), "90");
+		write_bytes(app_pid, NO_ASLR(0x02418e54), "90");
+		write_bytes(app_pid, NO_ASLR(0x02418e55), "90");
+		write_bytes(app_pid, NO_ASLR(0x02418e56), "90");
+		write_bytes(app_pid, NO_ASLR(0x02418e57), "90");
+		write_bytes(app_pid, NO_ASLR(0x02418e58), "90");
+		write_bytes(app_pid, NO_ASLR(0x02418e59), "90");
+		write_bytes(app_pid, NO_ASLR(0x02418e5a), "90");
+		write_bytes(app_pid, NO_ASLR(0x02418e5b), "90");
+		write_bytes(app_pid, NO_ASLR(0x02418e5c), "90");
+		write_bytes(app_pid, NO_ASLR(0x02418e5d), "90");
+		write_bytes(app_pid, NO_ASLR(0x02418e5e), "90");
+		write_bytes(app_pid, NO_ASLR(0x02418e5f), "90");
+		write_bytes(app_pid, NO_ASLR(0x02418e60), "90");
+		write_bytes(app_pid, NO_ASLR(0x02418e61), "90");
+		write_bytes(app_pid, NO_ASLR(0x02418e62), "90");
+		write_bytes(app_pid, NO_ASLR(0x02418e63), "90");
+		write_bytes(app_pid, NO_ASLR(0x02418e64), "488d05a5765203");
+		write_bytes(app_pid, NO_ASLR(0x0243487e), "41c74424188988883c");
+		write_bytes(app_pid, NO_ASLR(0x02434887), "48b90000000001000000");
+		write_bytes(app_pid, NO_ASLR(0x02483ec1), "c3");
+		write_bytes(app_pid, NO_ASLR(0x02483ec2), "90");
+		write_bytes(app_pid, NO_ASLR(0x02483ec3), "90");
+		write_bytes(app_pid, NO_ASLR(0x02483ec4), "90");
+		write_bytes(app_pid, NO_ASLR(0x02483ec5), "90");
+		write_bytes(app_pid, NO_ASLR(0x02715d71), "e881090000");
+		write_bytes(app_pid, NO_ASLR(0x02715d76), "90");
+		write_bytes(app_pid, NO_ASLR(0x02715d77), "90");
+		write_bytes(app_pid, NO_ASLR(0x02715d78), "90");
+		write_bytes(app_pid, NO_ASLR(0x020367c7), "488d351cd2c702");
+		write_bytes(app_pid, NO_ASLR(0x020369e8), "488d35b5cfc702");
+		write_wstring(app_pid, NO_ASLR(0x04cb39ea), L"This 60fps patch was");
+		write_wstring(app_pid, NO_ASLR(0x04cb39a4), L"Made with love, by Lance McDonald");
+		// remove call to `assert()`
+		write_bytes(app_pid, NO_ASLR(0x02fbf178), "4831c0c3");
+	}
 	// Patch DLC Save Requirement
 	write_bytes(app_pid, NO_ASLR(0x023b67b3), "49c7460801010101"); // <!-- with `SPDLCMESSENGER00` [0] +`SPDLCMESSENGER01` [1] +`SPEXPANSIONDLC03` [3] but [2] is 0 but lets unlock it anyways -->
-	// yoink `assert()`
-	write_bytes(app_pid, NO_ASLR(0x02fbf178), "4831c0c3");
 	// no motion blur
-	// write_bytes(app_pid, NO_ASLR(0x026a057b), "eb16");
+	if (parseXML(BB_MBKey))
+	{
+		write_bytes(app_pid, NO_ASLR(0x026a057b), "eb16");
+	}
 	// no Chromatic Aberration
-	// write_bytes(app_pid, NO_ASLR(0x0269faa8), "c783ac000000000000009090");
+	if (parseXML(BB_CAKey))
+	{
+		write_bytes(app_pid, NO_ASLR(0x0269faa8), "c783ac000000000000009090");
+	}
 	// Debug Camera
-	/*
-	write_bytes(app_pid, NO_ASLR(0x01972998), "7416");
-	write_bytes(app_pid, NO_ASLR(0x0197299a), "48394a20");
-	write_bytes(app_pid, NO_ASLR(0x0197299e), "4889c1");
-	write_bytes(app_pid, NO_ASLR(0x019729a1), "7f03");
-	write_bytes(app_pid, NO_ASLR(0x019729a3), "4889d1");
-	write_bytes(app_pid, NO_ASLR(0x019729a6), "4839c1");
-	write_bytes(app_pid, NO_ASLR(0x019729a9), "7405");
-	write_bytes(app_pid, NO_ASLR(0x019729ab), "e979094700");
-	write_bytes(app_pid, NO_ASLR(0x019729b0), "90");
-	write_bytes(app_pid, NO_ASLR(0x019729b1), "90");
-	write_bytes(app_pid, NO_ASLR(0x019729b2), "90");
-	write_bytes(app_pid, NO_ASLR(0x019729b3), "31f6");
-	write_bytes(app_pid, NO_ASLR(0x019729b5), "e8f63ad9ff");
-	write_bytes(app_pid, NO_ASLR(0x019729ba), "e972094700");
-	write_bytes(app_pid, NO_ASLR(0x01de3328), "c3");
-	write_bytes(app_pid, NO_ASLR(0x01de3329), "c6413001");
-	write_bytes(app_pid, NO_ASLR(0x01de332d), "488b4128");
-	write_bytes(app_pid, NO_ASLR(0x01de3331), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3332), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3333), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3334), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3335), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3336), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3337), "50");
-	write_bytes(app_pid, NO_ASLR(0x01de3338), "be08000000");
-	write_bytes(app_pid, NO_ASLR(0x01de333d), "4889c7");
-	write_bytes(app_pid, NO_ASLR(0x01de3340), "e81be95aff");
-	write_bytes(app_pid, NO_ASLR(0x01de3345), "84c0");
-	write_bytes(app_pid, NO_ASLR(0x01de3347), "0f84ff000000");
-	write_bytes(app_pid, NO_ASLR(0x01de334d), "4180bc24c400000001");
-	write_bytes(app_pid, NO_ASLR(0x01de3356), "7416");
-	write_bytes(app_pid, NO_ASLR(0x01de3358), "41c68424c400000001");
-	write_bytes(app_pid, NO_ASLR(0x01de3361), "41c6855001000001");
-	write_bytes(app_pid, NO_ASLR(0x01de3369), "e929000000");
-	write_bytes(app_pid, NO_ASLR(0x01de336e), "4180bd5001000000");
-	write_bytes(app_pid, NO_ASLR(0x01de3376), "7413");
-	write_bytes(app_pid, NO_ASLR(0x01de3378), "41c6855001000000");
-	write_bytes(app_pid, NO_ASLR(0x01de3380), "41c68424c800000001");
-	write_bytes(app_pid, NO_ASLR(0x01de3389), "eb0c");
-	write_bytes(app_pid, NO_ASLR(0x01de338b), "49c78424c400000000000000");
-	write_bytes(app_pid, NO_ASLR(0x01de3397), "498b8c24d0000000");
-	write_bytes(app_pid, NO_ASLR(0x01de339f), "41807c244800");
-	write_bytes(app_pid, NO_ASLR(0x01de33a5), "0f844c000000");
-	write_bytes(app_pid, NO_ASLR(0x01de33ab), "c4c17828442450");
-	write_bytes(app_pid, NO_ASLR(0x01de33b2), "c5f8294110");
-	write_bytes(app_pid, NO_ASLR(0x01de33b7), "c4c17828442460");
-	write_bytes(app_pid, NO_ASLR(0x01de33be), "c5f8294120");
-	write_bytes(app_pid, NO_ASLR(0x01de33c3), "c4c17828442470");
-	write_bytes(app_pid, NO_ASLR(0x01de33ca), "c5f8294130");
-	write_bytes(app_pid, NO_ASLR(0x01de33cf), "c4c17828842480000000");
-	write_bytes(app_pid, NO_ASLR(0x01de33d9), "c5f8294140");
-	write_bytes(app_pid, NO_ASLR(0x01de33de), "498b8c24d0000000");
-	write_bytes(app_pid, NO_ASLR(0x01de33e6), "c4c17a1044244c");
-	write_bytes(app_pid, NO_ASLR(0x01de33ed), "c5fa114150");
-	write_bytes(app_pid, NO_ASLR(0x01de33f2), "e955000000");
-	write_bytes(app_pid, NO_ASLR(0x01de33f7), "498b542410");
-	write_bytes(app_pid, NO_ASLR(0x01de33fc), "c5fa104250");
-	write_bytes(app_pid, NO_ASLR(0x01de3401), "c5fa114150");
-	write_bytes(app_pid, NO_ASLR(0x01de3406), "c5fa104254");
-	write_bytes(app_pid, NO_ASLR(0x01de340b), "c5fa114154");
-	write_bytes(app_pid, NO_ASLR(0x01de3410), "c5fa104258");
-	write_bytes(app_pid, NO_ASLR(0x01de3415), "c5fa114158");
-	write_bytes(app_pid, NO_ASLR(0x01de341a), "c5fa10425c");
-	write_bytes(app_pid, NO_ASLR(0x01de341f), "c5fa11415c");
-	write_bytes(app_pid, NO_ASLR(0x01de3424), "c5f8284210");
-	write_bytes(app_pid, NO_ASLR(0x01de3429), "c5f8284a20");
-	write_bytes(app_pid, NO_ASLR(0x01de342e), "c5f8285230");
-	write_bytes(app_pid, NO_ASLR(0x01de3433), "c5f8285a40");
-	write_bytes(app_pid, NO_ASLR(0x01de3438), "c5f8294110");
-	write_bytes(app_pid, NO_ASLR(0x01de343d), "c5f8294920");
-	write_bytes(app_pid, NO_ASLR(0x01de3442), "c5f8295130");
-	write_bytes(app_pid, NO_ASLR(0x01de3447), "c5f8295940");
-	write_bytes(app_pid, NO_ASLR(0x01de344c), "4180bc24c400000001");
-	write_bytes(app_pid, NO_ASLR(0x01de3455), "7513");
-	write_bytes(app_pid, NO_ASLR(0x01de3457), "4180bc24c800000000");
-	write_bytes(app_pid, NO_ASLR(0x01de3460), "7508");
-	write_bytes(app_pid, NO_ASLR(0x01de3462), "41c6855001000001");
-	write_bytes(app_pid, NO_ASLR(0x01de346a), "58");
-	write_bytes(app_pid, NO_ASLR(0x01de346b), "be41000000");
-	write_bytes(app_pid, NO_ASLR(0x01de3470), "4889c7");
-	write_bytes(app_pid, NO_ASLR(0x01de3473), "e8e8e75aff");
-	write_bytes(app_pid, NO_ASLR(0x01de3478), "84c0");
-	write_bytes(app_pid, NO_ASLR(0x01de347a), "7408");
-	write_bytes(app_pid, NO_ASLR(0x01de347c), "41c6855001000000");
-	write_bytes(app_pid, NO_ASLR(0x01de3484), "4180bd5001000000");
-	write_bytes(app_pid, NO_ASLR(0x01de348c), "740a");
-	write_bytes(app_pid, NO_ASLR(0x01de348e), "41c6855101000001");
-	write_bytes(app_pid, NO_ASLR(0x01de3496), "eb08");
-	write_bytes(app_pid, NO_ASLR(0x01de3498), "41c6855101000000");
-	write_bytes(app_pid, NO_ASLR(0x01de34a0), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34a1), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34a2), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34a3), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34a4), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34a5), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34a6), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34a7), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34a8), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34a9), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34aa), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34ab), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34ac), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34ad), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34ae), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34af), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34b0), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34b1), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34b2), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34b3), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34b4), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34b5), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34b6), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34b7), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34b8), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34b9), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34ba), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34bb), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34bc), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34bd), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34be), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34bf), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34c0), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34c1), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34c2), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34c3), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34c4), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34c5), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34c6), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34c7), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34c8), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34c9), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34ca), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34cb), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34cc), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34cd), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34ce), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34cf), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34d0), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34d1), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34d2), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34d3), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34d4), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34d5), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34d6), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34d7), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34d8), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34d9), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34da), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34db), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34dc), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34dd), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34de), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34df), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34e0), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34e1), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34e2), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34e3), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34e4), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34e5), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34e6), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34e7), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34e8), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34e9), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34ea), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34eb), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34ec), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34ed), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34ee), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34ef), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34f0), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34f1), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34f2), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34f3), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34f4), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34f5), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34f6), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34f7), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34f8), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34f9), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34fa), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34fb), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34fc), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34fd), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34fe), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de34ff), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3500), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3501), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3502), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3503), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3504), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3505), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3506), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3507), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3508), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3509), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de350a), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de350b), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de350c), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de350d), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de350e), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de350f), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3510), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3511), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3512), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3513), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3514), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3515), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3516), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3517), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3518), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3519), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de351a), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de351b), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de351c), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de351d), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de351e), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de351f), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3520), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3521), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3522), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3523), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3524), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3525), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3526), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3527), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3528), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3529), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de352a), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de352b), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de352c), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de352d), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de352e), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de352f), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3530), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3531), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3532), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3533), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3534), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3535), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3536), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3537), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3538), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3539), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de353a), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de353b), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de353c), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de353d), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de353e), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de353f), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3540), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3541), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3542), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3543), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3544), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3545), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3546), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3547), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3548), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3549), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de354a), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de354b), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de354c), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de354d), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de354e), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de354f), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3550), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3551), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3552), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3553), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3554), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3555), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3556), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3557), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3558), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3559), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de355a), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de355b), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de355c), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de355d), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de355e), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de355f), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3560), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3561), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3562), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3563), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3564), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3565), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3566), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3567), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3568), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3569), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de356a), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de356b), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de356c), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de356d), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de356e), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de356f), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3570), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3571), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3572), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3573), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3574), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3575), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3576), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3577), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3578), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3579), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de357a), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de357b), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de357c), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de357d), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de357e), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de357f), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3580), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3581), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3582), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3583), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3584), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3585), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3586), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3587), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3588), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3589), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de358a), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de358b), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de358c), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de358d), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de358e), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de358f), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3590), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3591), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3592), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3593), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3594), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3595), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3596), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3597), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3598), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3599), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de359a), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de359b), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de359c), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de359d), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de359e), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de359f), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35a0), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35a1), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35a2), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35a3), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35a4), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35a5), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35a6), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35a7), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35a8), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35a9), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35aa), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35ab), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35ac), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35ad), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35ae), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35af), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35b0), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35b1), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35b2), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35b3), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35b4), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35b5), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35b6), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35b7), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35b8), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35b9), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35ba), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35bb), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35bc), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35bd), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35be), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35bf), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35c0), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35c1), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35c2), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35c3), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35c4), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35c5), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35c6), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35c7), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35c8), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35c9), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35ca), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35cb), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35cc), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35cd), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35ce), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35cf), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35d0), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35d1), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35d2), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35d3), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35d4), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35d5), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35d6), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35d7), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35d8), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35d9), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35da), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35db), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35dc), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35dd), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35de), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35df), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35e0), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35e1), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35e2), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35e3), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35e4), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35e5), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35e6), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35e7), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35e8), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35e9), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35ea), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35eb), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35ec), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35ed), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35ee), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35ef), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35f0), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35f1), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35f2), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35f3), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35f4), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35f5), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35f6), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35f7), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35f8), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35f9), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35fa), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35fb), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35fc), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35fd), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35fe), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de35ff), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3600), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3601), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3602), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3603), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3604), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3605), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3606), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3607), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3608), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3609), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de360a), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de360b), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de360c), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de360d), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de360e), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de360f), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3610), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3611), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3612), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3613), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3614), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3615), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3616), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3617), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3618), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3619), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de361a), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de361b), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de361c), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de361d), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de361e), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de361f), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3620), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3621), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3622), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3623), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3624), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3625), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3626), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3627), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3628), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3629), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de362a), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de362b), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de362c), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de362d), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de362e), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de362f), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3630), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3631), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3632), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3633), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3634), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3635), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3636), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3637), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3638), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3639), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de363a), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de363b), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de363c), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de363d), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de363e), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de363f), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3640), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3641), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3642), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3643), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3644), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3645), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3646), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3647), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3648), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3649), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de364a), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de364b), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de364c), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de364d), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de364e), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de364f), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3650), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3651), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3652), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3653), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3654), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3655), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3656), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3657), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3658), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3659), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de365a), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de365b), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de365c), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de365d), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de365e), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de365f), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3660), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3661), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3662), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3663), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3664), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3665), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3666), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3667), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3668), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3669), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de366a), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de366b), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de366c), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de366d), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de366e), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de366f), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3670), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3671), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3672), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3673), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3674), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3675), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3676), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3677), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3678), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de3679), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de367a), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de367b), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de367c), "90");
-	write_bytes(app_pid, NO_ASLR(0x01de367d), "4183bc24c400000001");
-	write_bytes(app_pid, NO_ASLR(0x01de3686), "e934f3b8ff");
-	write_bytes(app_pid, NO_ASLR(0x01de368b), "c3");
-	*/
-#if 0
+	if (parseXML(BB_DebugCameraKey))
+	{
+		write_bytes(app_pid, NO_ASLR(0x01972998), "7416");
+		write_bytes(app_pid, NO_ASLR(0x0197299a), "48394a20");
+		write_bytes(app_pid, NO_ASLR(0x0197299e), "4889c1");
+		write_bytes(app_pid, NO_ASLR(0x019729a1), "7f03");
+		write_bytes(app_pid, NO_ASLR(0x019729a3), "4889d1");
+		write_bytes(app_pid, NO_ASLR(0x019729a6), "4839c1");
+		write_bytes(app_pid, NO_ASLR(0x019729a9), "7405");
+		write_bytes(app_pid, NO_ASLR(0x019729ab), "e979094700");
+		write_bytes(app_pid, NO_ASLR(0x019729b0), "90");
+		write_bytes(app_pid, NO_ASLR(0x019729b1), "90");
+		write_bytes(app_pid, NO_ASLR(0x019729b2), "90");
+		write_bytes(app_pid, NO_ASLR(0x019729b3), "31f6");
+		write_bytes(app_pid, NO_ASLR(0x019729b5), "e8f63ad9ff");
+		write_bytes(app_pid, NO_ASLR(0x019729ba), "e972094700");
+		write_bytes(app_pid, NO_ASLR(0x01de3328), "c3");
+		write_bytes(app_pid, NO_ASLR(0x01de3329), "c6413001");
+		write_bytes(app_pid, NO_ASLR(0x01de332d), "488b4128");
+		write_bytes(app_pid, NO_ASLR(0x01de3331), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3332), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3333), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3334), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3335), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3336), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3337), "50");
+		write_bytes(app_pid, NO_ASLR(0x01de3338), "be08000000");
+		write_bytes(app_pid, NO_ASLR(0x01de333d), "4889c7");
+		write_bytes(app_pid, NO_ASLR(0x01de3340), "e81be95aff");
+		write_bytes(app_pid, NO_ASLR(0x01de3345), "84c0");
+		write_bytes(app_pid, NO_ASLR(0x01de3347), "0f84ff000000");
+		write_bytes(app_pid, NO_ASLR(0x01de334d), "4180bc24c400000001");
+		write_bytes(app_pid, NO_ASLR(0x01de3356), "7416");
+		write_bytes(app_pid, NO_ASLR(0x01de3358), "41c68424c400000001");
+		write_bytes(app_pid, NO_ASLR(0x01de3361), "41c6855001000001");
+		write_bytes(app_pid, NO_ASLR(0x01de3369), "e929000000");
+		write_bytes(app_pid, NO_ASLR(0x01de336e), "4180bd5001000000");
+		write_bytes(app_pid, NO_ASLR(0x01de3376), "7413");
+		write_bytes(app_pid, NO_ASLR(0x01de3378), "41c6855001000000");
+		write_bytes(app_pid, NO_ASLR(0x01de3380), "41c68424c800000001");
+		write_bytes(app_pid, NO_ASLR(0x01de3389), "eb0c");
+		write_bytes(app_pid, NO_ASLR(0x01de338b), "49c78424c400000000000000");
+		write_bytes(app_pid, NO_ASLR(0x01de3397), "498b8c24d0000000");
+		write_bytes(app_pid, NO_ASLR(0x01de339f), "41807c244800");
+		write_bytes(app_pid, NO_ASLR(0x01de33a5), "0f844c000000");
+		write_bytes(app_pid, NO_ASLR(0x01de33ab), "c4c17828442450");
+		write_bytes(app_pid, NO_ASLR(0x01de33b2), "c5f8294110");
+		write_bytes(app_pid, NO_ASLR(0x01de33b7), "c4c17828442460");
+		write_bytes(app_pid, NO_ASLR(0x01de33be), "c5f8294120");
+		write_bytes(app_pid, NO_ASLR(0x01de33c3), "c4c17828442470");
+		write_bytes(app_pid, NO_ASLR(0x01de33ca), "c5f8294130");
+		write_bytes(app_pid, NO_ASLR(0x01de33cf), "c4c17828842480000000");
+		write_bytes(app_pid, NO_ASLR(0x01de33d9), "c5f8294140");
+		write_bytes(app_pid, NO_ASLR(0x01de33de), "498b8c24d0000000");
+		write_bytes(app_pid, NO_ASLR(0x01de33e6), "c4c17a1044244c");
+		write_bytes(app_pid, NO_ASLR(0x01de33ed), "c5fa114150");
+		write_bytes(app_pid, NO_ASLR(0x01de33f2), "e955000000");
+		write_bytes(app_pid, NO_ASLR(0x01de33f7), "498b542410");
+		write_bytes(app_pid, NO_ASLR(0x01de33fc), "c5fa104250");
+		write_bytes(app_pid, NO_ASLR(0x01de3401), "c5fa114150");
+		write_bytes(app_pid, NO_ASLR(0x01de3406), "c5fa104254");
+		write_bytes(app_pid, NO_ASLR(0x01de340b), "c5fa114154");
+		write_bytes(app_pid, NO_ASLR(0x01de3410), "c5fa104258");
+		write_bytes(app_pid, NO_ASLR(0x01de3415), "c5fa114158");
+		write_bytes(app_pid, NO_ASLR(0x01de341a), "c5fa10425c");
+		write_bytes(app_pid, NO_ASLR(0x01de341f), "c5fa11415c");
+		write_bytes(app_pid, NO_ASLR(0x01de3424), "c5f8284210");
+		write_bytes(app_pid, NO_ASLR(0x01de3429), "c5f8284a20");
+		write_bytes(app_pid, NO_ASLR(0x01de342e), "c5f8285230");
+		write_bytes(app_pid, NO_ASLR(0x01de3433), "c5f8285a40");
+		write_bytes(app_pid, NO_ASLR(0x01de3438), "c5f8294110");
+		write_bytes(app_pid, NO_ASLR(0x01de343d), "c5f8294920");
+		write_bytes(app_pid, NO_ASLR(0x01de3442), "c5f8295130");
+		write_bytes(app_pid, NO_ASLR(0x01de3447), "c5f8295940");
+		write_bytes(app_pid, NO_ASLR(0x01de344c), "4180bc24c400000001");
+		write_bytes(app_pid, NO_ASLR(0x01de3455), "7513");
+		write_bytes(app_pid, NO_ASLR(0x01de3457), "4180bc24c800000000");
+		write_bytes(app_pid, NO_ASLR(0x01de3460), "7508");
+		write_bytes(app_pid, NO_ASLR(0x01de3462), "41c6855001000001");
+		write_bytes(app_pid, NO_ASLR(0x01de346a), "58");
+		write_bytes(app_pid, NO_ASLR(0x01de346b), "be41000000");
+		write_bytes(app_pid, NO_ASLR(0x01de3470), "4889c7");
+		write_bytes(app_pid, NO_ASLR(0x01de3473), "e8e8e75aff");
+		write_bytes(app_pid, NO_ASLR(0x01de3478), "84c0");
+		write_bytes(app_pid, NO_ASLR(0x01de347a), "7408");
+		write_bytes(app_pid, NO_ASLR(0x01de347c), "41c6855001000000");
+		write_bytes(app_pid, NO_ASLR(0x01de3484), "4180bd5001000000");
+		write_bytes(app_pid, NO_ASLR(0x01de348c), "740a");
+		write_bytes(app_pid, NO_ASLR(0x01de348e), "41c6855101000001");
+		write_bytes(app_pid, NO_ASLR(0x01de3496), "eb08");
+		write_bytes(app_pid, NO_ASLR(0x01de3498), "41c6855101000000");
+		write_bytes(app_pid, NO_ASLR(0x01de34a0), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34a1), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34a2), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34a3), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34a4), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34a5), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34a6), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34a7), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34a8), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34a9), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34aa), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34ab), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34ac), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34ad), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34ae), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34af), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34b0), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34b1), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34b2), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34b3), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34b4), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34b5), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34b6), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34b7), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34b8), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34b9), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34ba), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34bb), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34bc), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34bd), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34be), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34bf), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34c0), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34c1), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34c2), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34c3), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34c4), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34c5), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34c6), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34c7), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34c8), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34c9), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34ca), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34cb), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34cc), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34cd), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34ce), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34cf), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34d0), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34d1), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34d2), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34d3), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34d4), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34d5), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34d6), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34d7), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34d8), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34d9), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34da), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34db), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34dc), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34dd), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34de), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34df), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34e0), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34e1), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34e2), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34e3), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34e4), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34e5), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34e6), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34e7), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34e8), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34e9), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34ea), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34eb), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34ec), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34ed), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34ee), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34ef), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34f0), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34f1), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34f2), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34f3), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34f4), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34f5), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34f6), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34f7), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34f8), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34f9), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34fa), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34fb), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34fc), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34fd), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34fe), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de34ff), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3500), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3501), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3502), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3503), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3504), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3505), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3506), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3507), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3508), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3509), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de350a), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de350b), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de350c), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de350d), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de350e), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de350f), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3510), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3511), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3512), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3513), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3514), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3515), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3516), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3517), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3518), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3519), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de351a), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de351b), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de351c), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de351d), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de351e), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de351f), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3520), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3521), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3522), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3523), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3524), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3525), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3526), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3527), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3528), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3529), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de352a), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de352b), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de352c), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de352d), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de352e), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de352f), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3530), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3531), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3532), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3533), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3534), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3535), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3536), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3537), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3538), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3539), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de353a), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de353b), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de353c), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de353d), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de353e), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de353f), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3540), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3541), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3542), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3543), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3544), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3545), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3546), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3547), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3548), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3549), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de354a), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de354b), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de354c), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de354d), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de354e), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de354f), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3550), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3551), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3552), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3553), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3554), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3555), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3556), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3557), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3558), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3559), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de355a), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de355b), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de355c), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de355d), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de355e), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de355f), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3560), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3561), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3562), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3563), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3564), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3565), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3566), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3567), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3568), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3569), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de356a), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de356b), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de356c), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de356d), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de356e), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de356f), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3570), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3571), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3572), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3573), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3574), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3575), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3576), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3577), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3578), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3579), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de357a), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de357b), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de357c), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de357d), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de357e), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de357f), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3580), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3581), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3582), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3583), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3584), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3585), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3586), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3587), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3588), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3589), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de358a), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de358b), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de358c), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de358d), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de358e), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de358f), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3590), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3591), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3592), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3593), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3594), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3595), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3596), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3597), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3598), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3599), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de359a), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de359b), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de359c), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de359d), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de359e), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de359f), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35a0), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35a1), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35a2), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35a3), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35a4), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35a5), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35a6), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35a7), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35a8), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35a9), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35aa), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35ab), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35ac), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35ad), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35ae), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35af), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35b0), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35b1), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35b2), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35b3), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35b4), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35b5), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35b6), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35b7), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35b8), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35b9), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35ba), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35bb), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35bc), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35bd), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35be), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35bf), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35c0), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35c1), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35c2), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35c3), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35c4), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35c5), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35c6), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35c7), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35c8), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35c9), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35ca), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35cb), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35cc), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35cd), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35ce), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35cf), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35d0), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35d1), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35d2), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35d3), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35d4), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35d5), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35d6), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35d7), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35d8), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35d9), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35da), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35db), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35dc), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35dd), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35de), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35df), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35e0), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35e1), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35e2), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35e3), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35e4), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35e5), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35e6), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35e7), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35e8), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35e9), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35ea), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35eb), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35ec), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35ed), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35ee), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35ef), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35f0), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35f1), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35f2), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35f3), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35f4), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35f5), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35f6), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35f7), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35f8), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35f9), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35fa), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35fb), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35fc), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35fd), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35fe), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de35ff), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3600), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3601), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3602), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3603), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3604), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3605), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3606), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3607), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3608), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3609), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de360a), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de360b), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de360c), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de360d), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de360e), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de360f), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3610), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3611), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3612), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3613), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3614), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3615), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3616), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3617), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3618), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3619), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de361a), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de361b), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de361c), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de361d), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de361e), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de361f), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3620), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3621), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3622), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3623), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3624), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3625), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3626), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3627), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3628), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3629), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de362a), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de362b), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de362c), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de362d), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de362e), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de362f), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3630), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3631), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3632), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3633), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3634), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3635), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3636), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3637), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3638), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3639), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de363a), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de363b), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de363c), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de363d), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de363e), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de363f), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3640), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3641), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3642), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3643), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3644), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3645), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3646), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3647), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3648), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3649), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de364a), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de364b), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de364c), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de364d), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de364e), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de364f), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3650), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3651), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3652), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3653), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3654), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3655), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3656), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3657), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3658), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3659), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de365a), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de365b), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de365c), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de365d), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de365e), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de365f), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3660), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3661), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3662), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3663), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3664), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3665), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3666), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3667), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3668), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3669), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de366a), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de366b), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de366c), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de366d), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de366e), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de366f), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3670), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3671), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3672), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3673), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3674), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3675), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3676), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3677), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3678), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de3679), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de367a), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de367b), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de367c), "90");
+		write_bytes(app_pid, NO_ASLR(0x01de367d), "4183bc24c400000001");
+		write_bytes(app_pid, NO_ASLR(0x01de3686), "e934f3b8ff");
+		write_bytes(app_pid, NO_ASLR(0x01de368b), "c3");
+	}
 	// No Vsync
-	// write_bytes32(app_pid, NO_ASLR(0x055289f8), 1280);
-	// write_bytes32(app_pid, NO_ASLR(0x055289fc), 720);
-	write_bytes(app_pid, NO_ASLR(0x025b3271), "4831f6");
-	write_bytes(app_pid, NO_ASLR(0x0243487e), "41c74424186f12833a");
+	if (parseXML(BB_1280_720))
+	{
+		write_bytes32(app_pid, NO_ASLR(0x055289f8), 1280);
+		write_bytes32(app_pid, NO_ASLR(0x055289fc), 720);
+	}
+	if (parseXML(BB_Vsync))
+	{
+		write_bytes(app_pid, NO_ASLR(0x025b3271), "4831f6");
+		write_bytes(app_pid, NO_ASLR(0x0243487e), "41c74424186f12833a");
+	}
 	// FCAT boarder
-	// <!-- Menu not focused -->
-	write_bytes(app_pid, NO_ASLR(0x01401136), "eb");
-	// <!-- No font drawing -->
-	write_bytes(app_pid, NO_ASLR(0x01401168), "909090");
-	write_bytes(app_pid, NO_ASLR(0x01402a90), "c3");
-	write_bytes(app_pid, NO_ASLR(0x0140be00), "e98c6cffff");
-	// <!-- Source -->
-	/* <!--
-					push rax
-					push rsi
-					mov qword ptr [rdi+0x28], 0 # (0,0)
-					mov dword ptr [rdi+0x30], 0x42000000 (32,xxxx)
-					lea rsi, [0x055289f8]
-					mov eax, [rsi+0x4]         # vertical res
-					vcvtsi2ss xmm0, xmm0, eax
-					vmovss dword ptr [rdi+0x34], xmm0
-					lea rax, [0x54dc040]
-					MOV dword ptr [RDI+0x50], 0x3f800000
-					MOV dword ptr [RDI+0x54], 0x3f800000
-					MOV dword ptr [RDI+0x58], 0x3f800000
-					MOV dword ptr [RDI+0x5c], 0x3f800000
-					CMP dword ptr [RAX], 0xf   # above 16 index, reset
-					JA color_default
-					CMP dword ptr [RAX], 0x0   # check color index
-					JZ color_0
-					CMP dword ptr [RAX], 0x1
-					JZ color_1
-					CMP dword ptr [RAX], 0x2
-					JZ color_2
-					CMP dword ptr [RAX], 0x3
-					JZ color_3
-					CMP dword ptr [RAX], 0x4
-					JZ color_4
-					CMP dword ptr [RAX], 0x5
-					JZ color_5
-					CMP dword ptr [RAX], 0x6
-					JZ color_6
-					CMP dword ptr [RAX], 0x7
-					JZ color_7
-					CMP dword ptr [RAX], 0x8
-					JZ color_8
-					CMP dword ptr [RAX], 0x9
-					JZ color_9
-					CMP dword ptr [RAX], 0xa
-					JZ color_10
-					CMP dword ptr [RAX], 0xb
-					JZ color_11
-					CMP dword ptr [RAX], 0xc
-					JZ color_12
-					CMP dword ptr [RAX], 0xd
-					JZ color_13
-					CMP dword ptr [RAX], 0xe
-					JZ color_14
-					CMP dword ptr [RAX], 0xf
-					JZ color_15
-					color_default:
-					# 255,255,255,255
-					MOV dword ptr [RAX], 1                 # next frame, use second index
-					JMP draw_bar_only_no_add
-				color_0:
-					# 255,255,255
-					MOV dword ptr [RDI+0x50], 0x3f800000   # Red
-					MOV dword ptr [RDI+0x54], 0x3f800000   # Green
-					MOV dword ptr [RDI+0x58], 0x3f800000   # Blue
-					JMP draw_bar
-				color_1:
-					# 0, 255, 0
-					MOV dword ptr [RDI+0x50], 0x00000000   # Red
-					MOV dword ptr [RDI+0x54], 0x3f800000   # Green
-					MOV dword ptr [RDI+0x58], 0x00000000   # Blue
-					JMP draw_bar
-				color_2:
-					# 0, 0, 255
-					MOV dword ptr [RDI+0x50], 0x00000000   # Red
-					MOV dword ptr [RDI+0x54], 0x00000000   # Green
-					MOV dword ptr [RDI+0x58], 0x3f800000   # Blue
-					JMP draw_bar
-				color_3:
-					# 255, 0, 0
-					MOV dword ptr [RDI+0x50], 0x3f800000   # Red
-					MOV dword ptr [RDI+0x54], 0x00000000   # Green
-					MOV dword ptr [RDI+0x58], 0x00000000   # Blue
-					JMP draw_bar
-				color_4:
-					# 0, 128, 128
-					MOV dword ptr [RDI+0x50], 0x00000000   # Red
-					MOV dword ptr [RDI+0x54], 0x3f000000   # Green
-					MOV dword ptr [RDI+0x58], 0x3f000000   # Blue
-					JMP draw_bar
-				color_5:
-					# 0, 0, 128
-					MOV dword ptr [RDI+0x50], 0x00000000   # Red
-					MOV dword ptr [RDI+0x54], 0x00000000   # Green
-					MOV dword ptr [RDI+0x58], 0x3f000000   # Blue
-					JMP draw_bar
-				color_6:
-					# 0, 128, 0
-					MOV dword ptr [RDI+0x50], 0x00000000   # Red
-					MOV dword ptr [RDI+0x54], 0x3f000000   # Green
-					MOV dword ptr [RDI+0x58], 0x00000000   # Blue
-					JMP draw_bar
-				color_7:
-					# 0, 255, 255
-					MOV dword ptr [RDI+0x50], 0x00000000   # Red
-					MOV dword ptr [RDI+0x54], 0x3f800000   # Green
-					MOV dword ptr [RDI+0x58], 0x3f800000   # Blue
-					JMP draw_bar
-				color_8:
-					# 128, 0, 0
-					MOV dword ptr [RDI+0x50], 0x3f000000   # Red
-					MOV dword ptr [RDI+0x54], 0x00000000   # Green
-					MOV dword ptr [RDI+0x58], 0x00000000   # Blue
-					JMP draw_bar
-				color_9:
-					# 192, 192, 192
-					MOV dword ptr [RDI+0x50], 0x3f400000   # Red
-					MOV dword ptr [RDI+0x54], 0x3f400000   # Green
-					MOV dword ptr [RDI+0x58], 0x3f400000   # Blue
-					JMP draw_bar
-				color_10:
-					# 128, 0, 128
-					MOV dword ptr [RDI+0x50], 0x3f000000   # Red
-					MOV dword ptr [RDI+0x54], 0x00000000   # Green
-					MOV dword ptr [RDI+0x58], 0x3f000000   # Blue
-					JMP draw_bar
-				color_11:
-					# 128, 128, 0
-					MOV dword ptr [RDI+0x50], 0x3f000000   # Red
-					MOV dword ptr [RDI+0x54], 0x3f000000   # Green
-					MOV dword ptr [RDI+0x58], 0x00000000   # Blue
-					JMP draw_bar
-				color_12:
-					# 128, 128, 128
-					MOV dword ptr [RDI+0x50], 0x3f000000   # Red
-					MOV dword ptr [RDI+0x54], 0x3f000000   # Green
-					MOV dword ptr [RDI+0x58], 0x3f000000   # Blue
-					JMP draw_bar
-				color_13:
-					# 255, 0, 255
-					MOV dword ptr [RDI+0x50], 0x3f800000   # Red
-					MOV dword ptr [RDI+0x54], 0x00000000   # Green
-					MOV dword ptr [RDI+0x58], 0x3f800000   # Blue
-					JMP draw_bar
-				color_14:
-					# 255, 255, 0
-					MOV dword ptr [RDI+0x50], 0x3f800000   # Red
-					MOV dword ptr [RDI+0x54], 0x3f800000   # Green
-					MOV dword ptr [RDI+0x58], 0x00000000   # Blue
-					JMP draw_bar
-				color_15:
-					# 255, 128, 0
-					MOV dword ptr [RDI+0x50], 0x3f800000   # Red
-					MOV dword ptr [RDI+0x54], 0x3f000000   # Green
-					MOV dword ptr [RDI+0x58], 0x00000000   # Blue
-					# JMP draw_bar
-				draw_bar:
-					add dword ptr [rax], 1
-				draw_bar_only_no_add:
-					pop rsi
-					pop rax
-					VMOVAPS XMM0,xmmword ptr [RDI + 0x50]
-					jmp 0x0140be05
-	*/
-	// <!-- Draw bar -->
-	write_bytes(app_pid, NO_ASLR(0x01402a91), "50");
-	write_bytes(app_pid, NO_ASLR(0x01402a92), "56");
-	write_bytes(app_pid, NO_ASLR(0x01402a93), "48c7472800000000");
-	write_bytes(app_pid, NO_ASLR(0x01402a9b), "c7473000000042");
-	write_bytes(app_pid, NO_ASLR(0x01402aa2), "488d354f5f1204");
-	write_bytes(app_pid, NO_ASLR(0x01402aa9), "8b4604");
-	write_bytes(app_pid, NO_ASLR(0x01402aac), "c5fa2ac0");
-	write_bytes(app_pid, NO_ASLR(0x01402ab0), "c5fa114734");
-	write_bytes(app_pid, NO_ASLR(0x01402ab5), "488d0584950d04");
-	write_bytes(app_pid, NO_ASLR(0x01402abc), "c747500000803f");
-	write_bytes(app_pid, NO_ASLR(0x01402ac3), "c747540000803f");
-	write_bytes(app_pid, NO_ASLR(0x01402aca), "c747580000803f");
-	write_bytes(app_pid, NO_ASLR(0x01402ad1), "c7475c0000803f");
-	write_bytes(app_pid, NO_ASLR(0x01402ad8), "83380f");
-	write_bytes(app_pid, NO_ASLR(0x01402adb), "0f8790000000");
-	write_bytes(app_pid, NO_ASLR(0x01402ae1), "833800");
-	write_bytes(app_pid, NO_ASLR(0x01402ae4), "0f8492000000");
-	write_bytes(app_pid, NO_ASLR(0x01402aea), "833801");
-	write_bytes(app_pid, NO_ASLR(0x01402aed), "0f84a3000000");
-	write_bytes(app_pid, NO_ASLR(0x01402af3), "833802");
-	write_bytes(app_pid, NO_ASLR(0x01402af6), "0f84b4000000");
-	write_bytes(app_pid, NO_ASLR(0x01402afc), "833803");
-	write_bytes(app_pid, NO_ASLR(0x01402aff), "0f84c5000000");
-	write_bytes(app_pid, NO_ASLR(0x01402b05), "833804");
-	write_bytes(app_pid, NO_ASLR(0x01402b08), "0f84d6000000");
-	write_bytes(app_pid, NO_ASLR(0x01402b0e), "833805");
-	write_bytes(app_pid, NO_ASLR(0x01402b11), "0f84e7000000");
-	write_bytes(app_pid, NO_ASLR(0x01402b17), "833806");
-	write_bytes(app_pid, NO_ASLR(0x01402b1a), "0f84f8000000");
-	write_bytes(app_pid, NO_ASLR(0x01402b20), "833807");
-	write_bytes(app_pid, NO_ASLR(0x01402b23), "0f8409010000");
-	write_bytes(app_pid, NO_ASLR(0x01402b29), "833808");
-	write_bytes(app_pid, NO_ASLR(0x01402b2c), "0f841a010000");
-	write_bytes(app_pid, NO_ASLR(0x01402b32), "833809");
-	write_bytes(app_pid, NO_ASLR(0x01402b35), "0f842b010000");
-	write_bytes(app_pid, NO_ASLR(0x01402b3b), "83380a");
-	write_bytes(app_pid, NO_ASLR(0x01402b3e), "0f843c010000");
-	write_bytes(app_pid, NO_ASLR(0x01402b44), "83380b");
-	write_bytes(app_pid, NO_ASLR(0x01402b47), "0f844a010000");
-	write_bytes(app_pid, NO_ASLR(0x01402b4d), "83380c");
-	write_bytes(app_pid, NO_ASLR(0x01402b50), "0f8458010000");
-	write_bytes(app_pid, NO_ASLR(0x01402b56), "83380d");
-	write_bytes(app_pid, NO_ASLR(0x01402b59), "0f8466010000");
-	write_bytes(app_pid, NO_ASLR(0x01402b5f), "83380e");
-	write_bytes(app_pid, NO_ASLR(0x01402b62), "0f8474010000");
-	write_bytes(app_pid, NO_ASLR(0x01402b68), "83380f");
-	write_bytes(app_pid, NO_ASLR(0x01402b6b), "0f8482010000");
-	write_bytes(app_pid, NO_ASLR(0x01402b71), "c70001000000");
-	write_bytes(app_pid, NO_ASLR(0x01402b77), "e98f010000");
-	write_bytes(app_pid, NO_ASLR(0x01402b7c), "c747500000803f");
-	write_bytes(app_pid, NO_ASLR(0x01402b83), "c747540000803f");
-	write_bytes(app_pid, NO_ASLR(0x01402b8a), "c747580000803f");
-	write_bytes(app_pid, NO_ASLR(0x01402b91), "e972010000");
-	write_bytes(app_pid, NO_ASLR(0x01402b96), "c7475000000000");
-	write_bytes(app_pid, NO_ASLR(0x01402b9d), "c747540000803f");
-	write_bytes(app_pid, NO_ASLR(0x01402ba4), "c7475800000000");
-	write_bytes(app_pid, NO_ASLR(0x01402bab), "e958010000");
-	write_bytes(app_pid, NO_ASLR(0x01402bb0), "c7475000000000");
-	write_bytes(app_pid, NO_ASLR(0x01402bb7), "c7475400000000");
-	write_bytes(app_pid, NO_ASLR(0x01402bbe), "c747580000803f");
-	write_bytes(app_pid, NO_ASLR(0x01402bc5), "e93e010000");
-	write_bytes(app_pid, NO_ASLR(0x01402bca), "c747500000803f");
-	write_bytes(app_pid, NO_ASLR(0x01402bd1), "c7475400000000");
-	write_bytes(app_pid, NO_ASLR(0x01402bd8), "c7475800000000");
-	write_bytes(app_pid, NO_ASLR(0x01402bdf), "e924010000");
-	write_bytes(app_pid, NO_ASLR(0x01402be4), "c7475000000000");
-	write_bytes(app_pid, NO_ASLR(0x01402beb), "c747540000003f");
-	write_bytes(app_pid, NO_ASLR(0x01402bf2), "c747580000003f");
-	write_bytes(app_pid, NO_ASLR(0x01402bf9), "e90a010000");
-	write_bytes(app_pid, NO_ASLR(0x01402bfe), "c7475000000000");
-	write_bytes(app_pid, NO_ASLR(0x01402c05), "c7475400000000");
-	write_bytes(app_pid, NO_ASLR(0x01402c0c), "c747580000003f");
-	write_bytes(app_pid, NO_ASLR(0x01402c13), "e9f0000000");
-	write_bytes(app_pid, NO_ASLR(0x01402c18), "c7475000000000");
-	write_bytes(app_pid, NO_ASLR(0x01402c1f), "c747540000003f");
-	write_bytes(app_pid, NO_ASLR(0x01402c26), "c7475800000000");
-	write_bytes(app_pid, NO_ASLR(0x01402c2d), "e9d6000000");
-	write_bytes(app_pid, NO_ASLR(0x01402c32), "c7475000000000");
-	write_bytes(app_pid, NO_ASLR(0x01402c39), "c747540000803f");
-	write_bytes(app_pid, NO_ASLR(0x01402c40), "c747580000803f");
-	write_bytes(app_pid, NO_ASLR(0x01402c47), "e9bc000000");
-	write_bytes(app_pid, NO_ASLR(0x01402c4c), "c747500000003f");
-	write_bytes(app_pid, NO_ASLR(0x01402c53), "c7475400000000");
-	write_bytes(app_pid, NO_ASLR(0x01402c5a), "c7475800000000");
-	write_bytes(app_pid, NO_ASLR(0x01402c61), "e9a2000000");
-	write_bytes(app_pid, NO_ASLR(0x01402c66), "c747500000403f");
-	write_bytes(app_pid, NO_ASLR(0x01402c6d), "c747540000403f");
-	write_bytes(app_pid, NO_ASLR(0x01402c74), "c747580000403f");
-	write_bytes(app_pid, NO_ASLR(0x01402c7b), "e988000000");
-	write_bytes(app_pid, NO_ASLR(0x01402c80), "c747500000003f");
-	write_bytes(app_pid, NO_ASLR(0x01402c87), "c7475400000000");
-	write_bytes(app_pid, NO_ASLR(0x01402c8e), "c747580000003f");
-	write_bytes(app_pid, NO_ASLR(0x01402c95), "eb71");
-	write_bytes(app_pid, NO_ASLR(0x01402c97), "c747500000003f");
-	write_bytes(app_pid, NO_ASLR(0x01402c9e), "c747540000003f");
-	write_bytes(app_pid, NO_ASLR(0x01402ca5), "c7475800000000");
-	write_bytes(app_pid, NO_ASLR(0x01402cac), "eb5a");
-	write_bytes(app_pid, NO_ASLR(0x01402cae), "c747500000003f");
-	write_bytes(app_pid, NO_ASLR(0x01402cb5), "c747540000003f");
-	write_bytes(app_pid, NO_ASLR(0x01402cbc), "c747580000003f");
-	write_bytes(app_pid, NO_ASLR(0x01402cc3), "eb43");
-	write_bytes(app_pid, NO_ASLR(0x01402cc5), "c747500000803f");
-	write_bytes(app_pid, NO_ASLR(0x01402ccc), "c7475400000000");
-	write_bytes(app_pid, NO_ASLR(0x01402cd3), "c747580000803f");
-	write_bytes(app_pid, NO_ASLR(0x01402cda), "eb2c");
-	write_bytes(app_pid, NO_ASLR(0x01402cdc), "c747500000803f");
-	write_bytes(app_pid, NO_ASLR(0x01402ce3), "c747540000803f");
-	write_bytes(app_pid, NO_ASLR(0x01402cea), "c7475800000000");
-	write_bytes(app_pid, NO_ASLR(0x01402cf1), "eb15");
-	write_bytes(app_pid, NO_ASLR(0x01402cf3), "c747500000803f");
-	write_bytes(app_pid, NO_ASLR(0x01402cfa), "c747540000003f");
-	write_bytes(app_pid, NO_ASLR(0x01402d01), "c7475800000000");
-	write_bytes(app_pid, NO_ASLR(0x01402d08), "830001");
-	write_bytes(app_pid, NO_ASLR(0x01402d0b), "5e");
-	write_bytes(app_pid, NO_ASLR(0x01402d0c), "58");
-	write_bytes(app_pid, NO_ASLR(0x01402d0d), "c5f8284750");
-	write_bytes(app_pid, NO_ASLR(0x01402d12), "e9ee900000");
-#endif
+	if (parseXML(BB_ColorBorder))
+	{
+		// <!-- Menu not focused -->
+		write_bytes(app_pid, NO_ASLR(0x01401136), "eb");
+		// <!-- No font drawing -->
+		write_bytes(app_pid, NO_ASLR(0x01401168), "909090");
+		write_bytes(app_pid, NO_ASLR(0x01402a90), "c3");
+		write_bytes(app_pid, NO_ASLR(0x0140be00), "e98c6cffff");
+		// <!-- Source -->
+		/* <!--
+						push rax
+						push rsi
+						mov qword ptr [rdi+0x28], 0 # (0,0)
+						mov dword ptr [rdi+0x30], 0x42000000 (32,xxxx)
+						lea rsi, [0x055289f8]
+						mov eax, [rsi+0x4]         # vertical res
+						vcvtsi2ss xmm0, xmm0, eax
+						vmovss dword ptr [rdi+0x34], xmm0
+						lea rax, [0x54dc040]
+						MOV dword ptr [RDI+0x50], 0x3f800000
+						MOV dword ptr [RDI+0x54], 0x3f800000
+						MOV dword ptr [RDI+0x58], 0x3f800000
+						MOV dword ptr [RDI+0x5c], 0x3f800000
+						CMP dword ptr [RAX], 0xf   # above 16 index, reset
+						JA color_default
+						CMP dword ptr [RAX], 0x0   # check color index
+						JZ color_0
+						CMP dword ptr [RAX], 0x1
+						JZ color_1
+						CMP dword ptr [RAX], 0x2
+						JZ color_2
+						CMP dword ptr [RAX], 0x3
+						JZ color_3
+						CMP dword ptr [RAX], 0x4
+						JZ color_4
+						CMP dword ptr [RAX], 0x5
+						JZ color_5
+						CMP dword ptr [RAX], 0x6
+						JZ color_6
+						CMP dword ptr [RAX], 0x7
+						JZ color_7
+						CMP dword ptr [RAX], 0x8
+						JZ color_8
+						CMP dword ptr [RAX], 0x9
+						JZ color_9
+						CMP dword ptr [RAX], 0xa
+						JZ color_10
+						CMP dword ptr [RAX], 0xb
+						JZ color_11
+						CMP dword ptr [RAX], 0xc
+						JZ color_12
+						CMP dword ptr [RAX], 0xd
+						JZ color_13
+						CMP dword ptr [RAX], 0xe
+						JZ color_14
+						CMP dword ptr [RAX], 0xf
+						JZ color_15
+						color_default:
+						# 255,255,255,255
+						MOV dword ptr [RAX], 1                 # next frame, use second index
+						JMP draw_bar_only_no_add
+					color_0:
+						# 255,255,255
+						MOV dword ptr [RDI+0x50], 0x3f800000   # Red
+						MOV dword ptr [RDI+0x54], 0x3f800000   # Green
+						MOV dword ptr [RDI+0x58], 0x3f800000   # Blue
+						JMP draw_bar
+					color_1:
+						# 0, 255, 0
+						MOV dword ptr [RDI+0x50], 0x00000000   # Red
+						MOV dword ptr [RDI+0x54], 0x3f800000   # Green
+						MOV dword ptr [RDI+0x58], 0x00000000   # Blue
+						JMP draw_bar
+					color_2:
+						# 0, 0, 255
+						MOV dword ptr [RDI+0x50], 0x00000000   # Red
+						MOV dword ptr [RDI+0x54], 0x00000000   # Green
+						MOV dword ptr [RDI+0x58], 0x3f800000   # Blue
+						JMP draw_bar
+					color_3:
+						# 255, 0, 0
+						MOV dword ptr [RDI+0x50], 0x3f800000   # Red
+						MOV dword ptr [RDI+0x54], 0x00000000   # Green
+						MOV dword ptr [RDI+0x58], 0x00000000   # Blue
+						JMP draw_bar
+					color_4:
+						# 0, 128, 128
+						MOV dword ptr [RDI+0x50], 0x00000000   # Red
+						MOV dword ptr [RDI+0x54], 0x3f000000   # Green
+						MOV dword ptr [RDI+0x58], 0x3f000000   # Blue
+						JMP draw_bar
+					color_5:
+						# 0, 0, 128
+						MOV dword ptr [RDI+0x50], 0x00000000   # Red
+						MOV dword ptr [RDI+0x54], 0x00000000   # Green
+						MOV dword ptr [RDI+0x58], 0x3f000000   # Blue
+						JMP draw_bar
+					color_6:
+						# 0, 128, 0
+						MOV dword ptr [RDI+0x50], 0x00000000   # Red
+						MOV dword ptr [RDI+0x54], 0x3f000000   # Green
+						MOV dword ptr [RDI+0x58], 0x00000000   # Blue
+						JMP draw_bar
+					color_7:
+						# 0, 255, 255
+						MOV dword ptr [RDI+0x50], 0x00000000   # Red
+						MOV dword ptr [RDI+0x54], 0x3f800000   # Green
+						MOV dword ptr [RDI+0x58], 0x3f800000   # Blue
+						JMP draw_bar
+					color_8:
+						# 128, 0, 0
+						MOV dword ptr [RDI+0x50], 0x3f000000   # Red
+						MOV dword ptr [RDI+0x54], 0x00000000   # Green
+						MOV dword ptr [RDI+0x58], 0x00000000   # Blue
+						JMP draw_bar
+					color_9:
+						# 192, 192, 192
+						MOV dword ptr [RDI+0x50], 0x3f400000   # Red
+						MOV dword ptr [RDI+0x54], 0x3f400000   # Green
+						MOV dword ptr [RDI+0x58], 0x3f400000   # Blue
+						JMP draw_bar
+					color_10:
+						# 128, 0, 128
+						MOV dword ptr [RDI+0x50], 0x3f000000   # Red
+						MOV dword ptr [RDI+0x54], 0x00000000   # Green
+						MOV dword ptr [RDI+0x58], 0x3f000000   # Blue
+						JMP draw_bar
+					color_11:
+						# 128, 128, 0
+						MOV dword ptr [RDI+0x50], 0x3f000000   # Red
+						MOV dword ptr [RDI+0x54], 0x3f000000   # Green
+						MOV dword ptr [RDI+0x58], 0x00000000   # Blue
+						JMP draw_bar
+					color_12:
+						# 128, 128, 128
+						MOV dword ptr [RDI+0x50], 0x3f000000   # Red
+						MOV dword ptr [RDI+0x54], 0x3f000000   # Green
+						MOV dword ptr [RDI+0x58], 0x3f000000   # Blue
+						JMP draw_bar
+					color_13:
+						# 255, 0, 255
+						MOV dword ptr [RDI+0x50], 0x3f800000   # Red
+						MOV dword ptr [RDI+0x54], 0x00000000   # Green
+						MOV dword ptr [RDI+0x58], 0x3f800000   # Blue
+						JMP draw_bar
+					color_14:
+						# 255, 255, 0
+						MOV dword ptr [RDI+0x50], 0x3f800000   # Red
+						MOV dword ptr [RDI+0x54], 0x3f800000   # Green
+						MOV dword ptr [RDI+0x58], 0x00000000   # Blue
+						JMP draw_bar
+					color_15:
+						# 255, 128, 0
+						MOV dword ptr [RDI+0x50], 0x3f800000   # Red
+						MOV dword ptr [RDI+0x54], 0x3f000000   # Green
+						MOV dword ptr [RDI+0x58], 0x00000000   # Blue
+						# JMP draw_bar
+					draw_bar:
+						add dword ptr [rax], 1
+					draw_bar_only_no_add:
+						pop rsi
+						pop rax
+						VMOVAPS XMM0,xmmword ptr [RDI + 0x50]
+						jmp 0x0140be05
+		*/
+		// <!-- Draw bar -->
+		write_bytes(app_pid, NO_ASLR(0x01402a91), "50");
+		write_bytes(app_pid, NO_ASLR(0x01402a92), "56");
+		write_bytes(app_pid, NO_ASLR(0x01402a93), "48c7472800000000");
+		write_bytes(app_pid, NO_ASLR(0x01402a9b), "c7473000000042");
+		write_bytes(app_pid, NO_ASLR(0x01402aa2), "488d354f5f1204");
+		write_bytes(app_pid, NO_ASLR(0x01402aa9), "8b4604");
+		write_bytes(app_pid, NO_ASLR(0x01402aac), "c5fa2ac0");
+		write_bytes(app_pid, NO_ASLR(0x01402ab0), "c5fa114734");
+		write_bytes(app_pid, NO_ASLR(0x01402ab5), "488d0584950d04");
+		write_bytes(app_pid, NO_ASLR(0x01402abc), "c747500000803f");
+		write_bytes(app_pid, NO_ASLR(0x01402ac3), "c747540000803f");
+		write_bytes(app_pid, NO_ASLR(0x01402aca), "c747580000803f");
+		write_bytes(app_pid, NO_ASLR(0x01402ad1), "c7475c0000803f");
+		write_bytes(app_pid, NO_ASLR(0x01402ad8), "83380f");
+		write_bytes(app_pid, NO_ASLR(0x01402adb), "0f8790000000");
+		write_bytes(app_pid, NO_ASLR(0x01402ae1), "833800");
+		write_bytes(app_pid, NO_ASLR(0x01402ae4), "0f8492000000");
+		write_bytes(app_pid, NO_ASLR(0x01402aea), "833801");
+		write_bytes(app_pid, NO_ASLR(0x01402aed), "0f84a3000000");
+		write_bytes(app_pid, NO_ASLR(0x01402af3), "833802");
+		write_bytes(app_pid, NO_ASLR(0x01402af6), "0f84b4000000");
+		write_bytes(app_pid, NO_ASLR(0x01402afc), "833803");
+		write_bytes(app_pid, NO_ASLR(0x01402aff), "0f84c5000000");
+		write_bytes(app_pid, NO_ASLR(0x01402b05), "833804");
+		write_bytes(app_pid, NO_ASLR(0x01402b08), "0f84d6000000");
+		write_bytes(app_pid, NO_ASLR(0x01402b0e), "833805");
+		write_bytes(app_pid, NO_ASLR(0x01402b11), "0f84e7000000");
+		write_bytes(app_pid, NO_ASLR(0x01402b17), "833806");
+		write_bytes(app_pid, NO_ASLR(0x01402b1a), "0f84f8000000");
+		write_bytes(app_pid, NO_ASLR(0x01402b20), "833807");
+		write_bytes(app_pid, NO_ASLR(0x01402b23), "0f8409010000");
+		write_bytes(app_pid, NO_ASLR(0x01402b29), "833808");
+		write_bytes(app_pid, NO_ASLR(0x01402b2c), "0f841a010000");
+		write_bytes(app_pid, NO_ASLR(0x01402b32), "833809");
+		write_bytes(app_pid, NO_ASLR(0x01402b35), "0f842b010000");
+		write_bytes(app_pid, NO_ASLR(0x01402b3b), "83380a");
+		write_bytes(app_pid, NO_ASLR(0x01402b3e), "0f843c010000");
+		write_bytes(app_pid, NO_ASLR(0x01402b44), "83380b");
+		write_bytes(app_pid, NO_ASLR(0x01402b47), "0f844a010000");
+		write_bytes(app_pid, NO_ASLR(0x01402b4d), "83380c");
+		write_bytes(app_pid, NO_ASLR(0x01402b50), "0f8458010000");
+		write_bytes(app_pid, NO_ASLR(0x01402b56), "83380d");
+		write_bytes(app_pid, NO_ASLR(0x01402b59), "0f8466010000");
+		write_bytes(app_pid, NO_ASLR(0x01402b5f), "83380e");
+		write_bytes(app_pid, NO_ASLR(0x01402b62), "0f8474010000");
+		write_bytes(app_pid, NO_ASLR(0x01402b68), "83380f");
+		write_bytes(app_pid, NO_ASLR(0x01402b6b), "0f8482010000");
+		write_bytes(app_pid, NO_ASLR(0x01402b71), "c70001000000");
+		write_bytes(app_pid, NO_ASLR(0x01402b77), "e98f010000");
+		write_bytes(app_pid, NO_ASLR(0x01402b7c), "c747500000803f");
+		write_bytes(app_pid, NO_ASLR(0x01402b83), "c747540000803f");
+		write_bytes(app_pid, NO_ASLR(0x01402b8a), "c747580000803f");
+		write_bytes(app_pid, NO_ASLR(0x01402b91), "e972010000");
+		write_bytes(app_pid, NO_ASLR(0x01402b96), "c7475000000000");
+		write_bytes(app_pid, NO_ASLR(0x01402b9d), "c747540000803f");
+		write_bytes(app_pid, NO_ASLR(0x01402ba4), "c7475800000000");
+		write_bytes(app_pid, NO_ASLR(0x01402bab), "e958010000");
+		write_bytes(app_pid, NO_ASLR(0x01402bb0), "c7475000000000");
+		write_bytes(app_pid, NO_ASLR(0x01402bb7), "c7475400000000");
+		write_bytes(app_pid, NO_ASLR(0x01402bbe), "c747580000803f");
+		write_bytes(app_pid, NO_ASLR(0x01402bc5), "e93e010000");
+		write_bytes(app_pid, NO_ASLR(0x01402bca), "c747500000803f");
+		write_bytes(app_pid, NO_ASLR(0x01402bd1), "c7475400000000");
+		write_bytes(app_pid, NO_ASLR(0x01402bd8), "c7475800000000");
+		write_bytes(app_pid, NO_ASLR(0x01402bdf), "e924010000");
+		write_bytes(app_pid, NO_ASLR(0x01402be4), "c7475000000000");
+		write_bytes(app_pid, NO_ASLR(0x01402beb), "c747540000003f");
+		write_bytes(app_pid, NO_ASLR(0x01402bf2), "c747580000003f");
+		write_bytes(app_pid, NO_ASLR(0x01402bf9), "e90a010000");
+		write_bytes(app_pid, NO_ASLR(0x01402bfe), "c7475000000000");
+		write_bytes(app_pid, NO_ASLR(0x01402c05), "c7475400000000");
+		write_bytes(app_pid, NO_ASLR(0x01402c0c), "c747580000003f");
+		write_bytes(app_pid, NO_ASLR(0x01402c13), "e9f0000000");
+		write_bytes(app_pid, NO_ASLR(0x01402c18), "c7475000000000");
+		write_bytes(app_pid, NO_ASLR(0x01402c1f), "c747540000003f");
+		write_bytes(app_pid, NO_ASLR(0x01402c26), "c7475800000000");
+		write_bytes(app_pid, NO_ASLR(0x01402c2d), "e9d6000000");
+		write_bytes(app_pid, NO_ASLR(0x01402c32), "c7475000000000");
+		write_bytes(app_pid, NO_ASLR(0x01402c39), "c747540000803f");
+		write_bytes(app_pid, NO_ASLR(0x01402c40), "c747580000803f");
+		write_bytes(app_pid, NO_ASLR(0x01402c47), "e9bc000000");
+		write_bytes(app_pid, NO_ASLR(0x01402c4c), "c747500000003f");
+		write_bytes(app_pid, NO_ASLR(0x01402c53), "c7475400000000");
+		write_bytes(app_pid, NO_ASLR(0x01402c5a), "c7475800000000");
+		write_bytes(app_pid, NO_ASLR(0x01402c61), "e9a2000000");
+		write_bytes(app_pid, NO_ASLR(0x01402c66), "c747500000403f");
+		write_bytes(app_pid, NO_ASLR(0x01402c6d), "c747540000403f");
+		write_bytes(app_pid, NO_ASLR(0x01402c74), "c747580000403f");
+		write_bytes(app_pid, NO_ASLR(0x01402c7b), "e988000000");
+		write_bytes(app_pid, NO_ASLR(0x01402c80), "c747500000003f");
+		write_bytes(app_pid, NO_ASLR(0x01402c87), "c7475400000000");
+		write_bytes(app_pid, NO_ASLR(0x01402c8e), "c747580000003f");
+		write_bytes(app_pid, NO_ASLR(0x01402c95), "eb71");
+		write_bytes(app_pid, NO_ASLR(0x01402c97), "c747500000003f");
+		write_bytes(app_pid, NO_ASLR(0x01402c9e), "c747540000003f");
+		write_bytes(app_pid, NO_ASLR(0x01402ca5), "c7475800000000");
+		write_bytes(app_pid, NO_ASLR(0x01402cac), "eb5a");
+		write_bytes(app_pid, NO_ASLR(0x01402cae), "c747500000003f");
+		write_bytes(app_pid, NO_ASLR(0x01402cb5), "c747540000003f");
+		write_bytes(app_pid, NO_ASLR(0x01402cbc), "c747580000003f");
+		write_bytes(app_pid, NO_ASLR(0x01402cc3), "eb43");
+		write_bytes(app_pid, NO_ASLR(0x01402cc5), "c747500000803f");
+		write_bytes(app_pid, NO_ASLR(0x01402ccc), "c7475400000000");
+		write_bytes(app_pid, NO_ASLR(0x01402cd3), "c747580000803f");
+		write_bytes(app_pid, NO_ASLR(0x01402cda), "eb2c");
+		write_bytes(app_pid, NO_ASLR(0x01402cdc), "c747500000803f");
+		write_bytes(app_pid, NO_ASLR(0x01402ce3), "c747540000803f");
+		write_bytes(app_pid, NO_ASLR(0x01402cea), "c7475800000000");
+		write_bytes(app_pid, NO_ASLR(0x01402cf1), "eb15");
+		write_bytes(app_pid, NO_ASLR(0x01402cf3), "c747500000803f");
+		write_bytes(app_pid, NO_ASLR(0x01402cfa), "c747540000003f");
+		write_bytes(app_pid, NO_ASLR(0x01402d01), "c7475800000000");
+		write_bytes(app_pid, NO_ASLR(0x01402d08), "830001");
+		write_bytes(app_pid, NO_ASLR(0x01402d0b), "5e");
+		write_bytes(app_pid, NO_ASLR(0x01402d0c), "58");
+		write_bytes(app_pid, NO_ASLR(0x01402d0d), "c5f8284750");
+		write_bytes(app_pid, NO_ASLR(0x01402d12), "e9ee900000");
+	}
 	// 120Hz
 	if (g_isPatch120Hz)
 	{
@@ -1194,7 +1213,7 @@ void DoPatch_GravityDaze2_111(pid_t app_pid, uint64_t text_base)
 	write_bytes(app_pid, NO_ASLR(0x00854b12), "c705f4656a018988883c");
 	write_bytes(app_pid, NO_ASLR(0x00854b1c), "c7050a666a018988883c");
 	write_bytes(app_pid, NO_ASLR(0x00854b26), "c70520666a0100007042");
- 	*/
+	*/
 	// <!-- half rate EnemyBrain:getPlayMotionFrame -->
 	// <!-- for 120hz, maybe keep this? -->
 	write_bytes32(app_pid, NO_ASLR(0x018c7374), 0x41f00000);
@@ -1554,31 +1573,35 @@ void DoPatch_GravityDaze2_111(pid_t app_pid, uint64_t text_base)
 void DoPatch_SOTC_100(pid_t app_pid, uint64_t text_base)
 {
 	write_bytes(app_pid, NO_ASLR(0x0042437f), "0f1f440000");
-	// write_bytes(app_pid, NO_ASLR(0x01390090), "31c0c3");
-	write_bytes(app_pid, NO_ASLR(0x013900a0), "31c0c3");
-	write_bytes(app_pid, NO_ASLR(0x004959a4), "e9d7de4f01");
-	write_bytes(app_pid, NO_ASLR(0x01993880), "e85bc79fff");
-	write_bytes(app_pid, NO_ASLR(0x01993885), "488d0594cd0600");
-	write_bytes(app_pid, NO_ASLR(0x0199388c), "488b00");
-	write_bytes(app_pid, NO_ASLR(0x0199388f), "48050df0a70c", isOffsetVideoModeSupported);
-	write_bytes(app_pid, NO_ASLR(0x01993895), "8b7b68");
-	write_bytes(app_pid, NO_ASLR(0x01993898), "be0f000000");
-	write_bytes(app_pid, NO_ASLR(0x0199389d), "31d2");
-	write_bytes(app_pid, NO_ASLR(0x0199389f), "31c9");
-	write_bytes(app_pid, NO_ASLR(0x019938a1), "4531c0");
-	write_bytes(app_pid, NO_ASLR(0x019938a4), "ffd0");
-	write_bytes(app_pid, NO_ASLR(0x019938a6), "83f801");
-	write_bytes(app_pid, NO_ASLR(0x019938a9), "7521");
-	write_bytes(app_pid, NO_ASLR(0x019938ab), "488d056ecd0600");
-	write_bytes(app_pid, NO_ASLR(0x019938b2), "488b00");
-	write_bytes(app_pid, NO_ASLR(0x019938b5), "48050df0ed5e", isOffsetConfigureOutput);
-	write_bytes(app_pid, NO_ASLR(0x019938bb), "8b7b68");
-	write_bytes(app_pid, NO_ASLR(0x019938be), "be0f000000");
-	write_bytes(app_pid, NO_ASLR(0x019938c3), "31d2");
-	write_bytes(app_pid, NO_ASLR(0x019938c5), "31c9");
-	write_bytes(app_pid, NO_ASLR(0x019938c7), "4531c0");
-	write_bytes(app_pid, NO_ASLR(0x019938ca), "ffd0");
-	write_bytes(app_pid, NO_ASLR(0x019938cc), "e9d820b0fe");
+	if (g_isPatch120Hz)
+	{
+		// write_bytes(app_pid, NO_ASLR(0x01390090), "31c0c3");
+		write_bytes(app_pid, NO_ASLR(0x013900a0), "31c0c3");
+		write_bytes(app_pid, NO_ASLR(0x004959a4), "e9d7de4f01");
+		write_bytes(app_pid, NO_ASLR(0x01993880), "e85bc79fff");
+		write_bytes(app_pid, NO_ASLR(0x01993885), "488d0594cd0600");
+		write_bytes(app_pid, NO_ASLR(0x0199388c), "488b00");
+		write_bytes(app_pid, NO_ASLR(0x0199388f), "48050df0a70c", isOffsetVideoModeSupported);
+		write_bytes(app_pid, NO_ASLR(0x01993895), "8b7b68");
+		write_bytes(app_pid, NO_ASLR(0x01993898), "be0f000000");
+		write_bytes(app_pid, NO_ASLR(0x0199389d), "31d2");
+		write_bytes(app_pid, NO_ASLR(0x0199389f), "31c9");
+		write_bytes(app_pid, NO_ASLR(0x019938a1), "4531c0");
+		write_bytes(app_pid, NO_ASLR(0x019938a4), "ffd0");
+		write_bytes(app_pid, NO_ASLR(0x019938a6), "83f801");
+		write_bytes(app_pid, NO_ASLR(0x019938a9), "7521");
+		write_bytes(app_pid, NO_ASLR(0x019938ab), "488d056ecd0600");
+		write_bytes(app_pid, NO_ASLR(0x019938b2), "488b00");
+		write_bytes(app_pid, NO_ASLR(0x019938b5), "48050df0ed5e", isOffsetConfigureOutput);
+		write_bytes(app_pid, NO_ASLR(0x019938bb), "8b7b68");
+		write_bytes(app_pid, NO_ASLR(0x019938be), "be0f000000");
+		write_bytes(app_pid, NO_ASLR(0x019938c3), "31d2");
+		write_bytes(app_pid, NO_ASLR(0x019938c5), "31c9");
+		write_bytes(app_pid, NO_ASLR(0x019938c7), "4531c0");
+		write_bytes(app_pid, NO_ASLR(0x019938ca), "ffd0");
+		write_bytes(app_pid, NO_ASLR(0x019938cc), "e9d820b0fe");
+		printf_notification("Applied 120Hz Patch");
+	}
 }
 
 void DoPatch_BigCollection(pid_t app_pid, uint64_t text_base, uint32_t idx)
@@ -2926,8 +2949,8 @@ void DoPatch_t1ps4_111(pid_t app_pid, uint64_t text_base)
 		write_bytes(app_pid, NO_ASLR(0x01873d92), "8b00");
 		write_bytes(app_pid, NO_ASLR(0x01873d94), "e9dd946cff");
 		// timestep fixes
-		write_float32(app_pid, NO_ASLR(0x0158f4b4), (1./120.));
-		write_float32(app_pid, NO_ASLR(0x0158f4b8), (1./120.));
+		write_float32(app_pid, NO_ASLR(0x0158f4b4), (1. / 120.));
+		write_float32(app_pid, NO_ASLR(0x0158f4b8), (1. / 120.));
 		write_float32(app_pid, NO_ASLR(0x0158f4bc), 120.);
 		printf_notification("Applied 120Hz Patch");
 	}

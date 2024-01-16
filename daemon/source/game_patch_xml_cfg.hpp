@@ -9,3 +9,7 @@
 #define BB_60FPSKey "Bloodborne_60FPS"
 #define BB_MBKey "Bloodborne_MotionBlur"
 #define BB_CAKey "Bloodborne_ChromaticAberration"
+#define BB_DebugCameraKey "Bloodborne_DebugCamera"
+#define BB_ColorBorder "Bloodborne_ColorBorderDiag"
+#define BB_Vsync "Bloodborne_Vsync"
+#define BB_1280_720 "Bloodborne_1280x720"
