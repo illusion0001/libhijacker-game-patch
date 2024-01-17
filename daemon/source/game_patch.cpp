@@ -1547,6 +1547,7 @@ void DoPatch_GravityDaze2_111(pid_t app_pid, uint64_t text_base)
 		exit:
 		JMP 0x00846813
 		*/
+		printf_notification("Applied 60 FPS");
 	}
 	// 120Hz
 	if (g_isPatch120Hz)
@@ -1584,6 +1585,7 @@ void DoPatch_SOTC_100(pid_t app_pid, uint64_t text_base)
 	if (parseXML(SOTC_DebugMenu))
 	{
 		write_bytes(app_pid, NO_ASLR(0x0042437f), "0f1f440000");
+		printf_notification("Applied Debug Menu");
 	}
 	if (g_isPatch120Hz)
 	{
@@ -1651,6 +1653,7 @@ void DoPatch_BigCollection(pid_t app_pid, uint64_t text_base, uint32_t idx)
 		write_bytes(app_pid, NO_ASLR(0x004fe7b4), "b801000000");
 		write_bytes(app_pid, NO_ASLR(0x00500b3e), "b801000000");
 		write_bytes(app_pid, NO_ASLR(0x006a3dff), "b801000000");
+		printf_notification("Applied Debug Menu");
 		// 120hz
 		/*
 		LEA RAX,[0xd874a0]
@@ -1805,6 +1808,7 @@ void DoPatch_BigCollection(pid_t app_pid, uint64_t text_base, uint32_t idx)
 		write_bytes(app_pid, NO_ASLR(0x00402d90), "31c0c3");
 		write_bytes(app_pid, NO_ASLR(0x0054c0a3), "b801000000");
 		write_bytes(app_pid, NO_ASLR(0x008f56d0), "b801000000");
+		printf_notification("Applied Debug Menu");
 		// 120hz
 		/*
 		LEA RAX,[0x1262238]
@@ -1899,6 +1903,7 @@ void DoPatch_BigCollection(pid_t app_pid, uint64_t text_base, uint32_t idx)
 	case (0x100 << 3):
 	{
 		write_bytes(app_pid, NO_ASLR(0x009d86a2), "41c686ba39000000");
+		printf_notification("Applied Debug Menu (Partial)");
 		// 120hz
 		/*
 		LEA RAX,[0x17f5cc0]
@@ -1994,6 +1999,7 @@ void DoPatch_BigCollection(pid_t app_pid, uint64_t text_base, uint32_t idx)
 	{
 		// Debug Menu
 		write_bytes(app_pid, NO_ASLR(0x009cf259), "41c686ba39000000");
+		printf_notification("Applied Debug Menu (Partial)");
 		// 120Hz
 		// if (g_isPatch120Hz)
 		{
@@ -2071,6 +2077,7 @@ void DoPatch_BigCollection(pid_t app_pid, uint64_t text_base, uint32_t idx)
 	{
 		// Debug Menu
 		write_bytes(app_pid, NO_ASLR(0x010e22fe), "41c686ba39000000");
+		printf_notification("Applied Debug Menu (Partial)");
 		// 120Hz
 		// if (g_isPatch120Hz)
 		{
@@ -2165,6 +2172,7 @@ void DoPatch_BigCollection(pid_t app_pid, uint64_t text_base, uint32_t idx)
 	{
 		// Debug Menu
 		write_bytes(app_pid, NO_ASLR(0x01337ac9), "41c686ba39000000");
+		printf_notification("Applied Debug Menu (Partial)");
 		// 120hz
 		// if (g_isPatch120Hz)
 		{
@@ -2265,6 +2273,7 @@ void DoPatch_TheOrder1886_102(pid_t app_pid, uint64_t text_base)
 	{
 		// TODO: Fix QTEs
 		write_bytes(app_pid, NO_ASLR(0x008507c4), "01");
+		printf_notification("Applied 60 FPS");
 	}
 	if (parseXML(TO1886_16_9))
 	{
@@ -2274,6 +2283,7 @@ void DoPatch_TheOrder1886_102(pid_t app_pid, uint64_t text_base)
 		write_bytes32(app_pid, NO_ASLR(0x0084cf07), 900);
 		// 16:9 AR
 		write_bytes32(app_pid, NO_ASLR(0x0084ce8c), 0x3fe38e39);
+		printf_notification("Applied 16:9");
 	}
 }
 
@@ -2288,6 +2298,7 @@ void DoPatch_Big4R_100(pid_t app_pid, uint64_t text_base, uint32_t idx)
 		if (parseXML(Big4R_MainDebugMenu))
 		{
 			write_bytes(app_pid, BASE_ASLR_OFFSET(0x01000000, 0x01578838), "eb2a");
+			printf_notification("Applied Debug Menu");
 		}
 		break;
 	}
@@ -2297,6 +2308,7 @@ void DoPatch_Big4R_100(pid_t app_pid, uint64_t text_base, uint32_t idx)
 		if (parseXML(Big4R_TLLDebugMenu))
 		{
 			write_bytes(app_pid, BASE_ASLR_OFFSET(0x01000000, 0x015783e8), "eb2a");
+			printf_notification("Applied Debug Menu");
 		}
 		break;
 	}
@@ -2368,6 +2380,7 @@ void DoPatch_DemonSouls(pid_t app_pid, uint64_t text_base, uint32_t idx)
 			// no fliprate
 			write_bytes(app_pid, BASE_ASLR(0x023eddb0), "31f6");
 			write_bytes(app_pid, BASE_ASLR(0x023eddb2), "ff2558609d00");
+			printf_notification("Applied 60 FPS");
 		}
 		break;
 	}
@@ -2382,12 +2395,14 @@ void DoPatch_DriveClub_128(pid_t app_pid, uint64_t text_base)
 		write_bytes(app_pid, NO_ASLR(0x01184800), "b801000000");
 		write_bytes(app_pid, NO_ASLR(0x01184725), "48b001");
 		write_bytes(app_pid, NO_ASLR(0x00a6306e), "9090");
+		printf_notification("Applied 60 FPS");
 	}
 	// Unlock All Cars + Bikes
 	if (parseXML(Driveclub_DLC_Unlock))
 	{
 		write_bytes(app_pid, NO_ASLR(0x01187caf), "9090");
 		write_bytes(app_pid, NO_ASLR(0x01187ce7), "b801000000");
+		printf_notification("Applied Unlock All Cars + Bikes");
 	}
 }
 
@@ -2397,123 +2412,124 @@ void DoPatch_TheLastGuardian_103(pid_t app_pid, uint64_t text_base)
 	if (parseXML(TLG_60FPS))
 	{
 		write_bytes(app_pid, NO_ASLR(0x0105151a), "be00000000");
-	/*
-	_start:
-		MOV RDI,qword ptr [RBP + -0x40]
-		CALL set_fliprate
-		MOV RSI,qword ptr [RBP + -0x38]
-		MOV RDI,qword ptr [RBP + -0x40]
-		BEXTR RDX,RSI,R15
-		CMP R13,RSI
-		SBB ECX,ECX
-		AND ECX,0x1
-		JMP 0x0060bebd
-	fliprate_thunk:
-		jmp 0x018bdd78
-	set_fliprate:
-		push    rbp
-		mov     rbp, rsp
-		sub     rsp, 0x10
-		mov     qword ptr [rbp - 0x8], rdi
-		mov     rax, qword ptr [rbp - 0x8]
-		mov   eax, dword ptr [rax]
-		mov     dword ptr [rbp - 0xc], eax
-		cmp     dword ptr [rbp - 0xc], 0x2F303173
-		jne     LBB1_4
-		mov     edi, dword ptr [0x05bd6b24]
-		xor esi, esi
-		call    fliprate_thunk
-		mov     rax, qword ptr [rbp - 0x8]
-		mov   eax, dword ptr [rax + 0x11]
-		mov     dword ptr [rbp - 0xc], eax
-		cmp     dword ptr [rbp - 0xc], 0x30373030
-		jne     LBB1_3
-		mov     edi, dword ptr [0x05bd6b24]
-		mov     esi, 1
-		call    fliprate_thunk
-		mov dword ptr [0x01b04014], 0xca7f00d
-		jmp     LBB1_4
-	LBB1_3:
-		mov dword ptr [0x01b04014], 0x5eaf00d
-		jmp     LBB1_4
-	LBB1_4:
-		add     rsp, 0x10
-		pop     rbp
-		ret
-	save_checkpoint_hook:
-		PUSH RBP
-		MOV RBP,RSP
-		cmp dword ptr [0x01b04014], 0xca7f00d
-		jnz orig
-		mov     edi, dword ptr [0x05bd6b24]
-		xor esi, esi
-		call    fliprate_thunk
-		lea rax, [0x01b04014]
-		mov dword ptr [rax], 0x5eaf00d
-	orig:
-		LEA RAX, [0x05c32568]
-		MOV RAX,qword ptr [RAX]
-		MOV RDI,qword ptr [RAX + 0x108]
-		CALL 0x00ecb540
-		XOR EAX,EAX
-		POP RBP
-		RET
-	*/
-	write_bytes(app_pid, NO_ASLR(0x0060b150), "e98b982c01");
-	write_bytes(app_pid, NO_ASLR(0x0060bea8), "e99f8a2c01");
-	write_bytes(app_pid, NO_ASLR(0x018d494c), "488b7dc0");
-	write_bytes(app_pid, NO_ASLR(0x018d4950), "e81f000000");
-	write_bytes(app_pid, NO_ASLR(0x018d4955), "488b75c8");
-	write_bytes(app_pid, NO_ASLR(0x018d4959), "488b7dc0");
-	write_bytes(app_pid, NO_ASLR(0x018d495d), "c4e280f7d6");
-	write_bytes(app_pid, NO_ASLR(0x018d4962), "4939f5");
-	write_bytes(app_pid, NO_ASLR(0x018d4965), "19c9");
-	write_bytes(app_pid, NO_ASLR(0x018d4967), "83e101");
-	write_bytes(app_pid, NO_ASLR(0x018d496a), "e94e75d3fe");
-	write_bytes(app_pid, NO_ASLR(0x018d496f), "e90494feff");
-	write_bytes(app_pid, NO_ASLR(0x018d4974), "55");
-	write_bytes(app_pid, NO_ASLR(0x018d4975), "4889e5");
-	write_bytes(app_pid, NO_ASLR(0x018d4978), "4883ec10");
-	write_bytes(app_pid, NO_ASLR(0x018d497c), "48897df8");
-	write_bytes(app_pid, NO_ASLR(0x018d4980), "488b45f8");
-	write_bytes(app_pid, NO_ASLR(0x018d4984), "8b00");
-	write_bytes(app_pid, NO_ASLR(0x018d4986), "8945f4");
-	write_bytes(app_pid, NO_ASLR(0x018d4989), "817df47331302f");
-	write_bytes(app_pid, NO_ASLR(0x018d4990), "7548");
-	write_bytes(app_pid, NO_ASLR(0x018d4992), "8b3d8c213004");
-	write_bytes(app_pid, NO_ASLR(0x018d4998), "31f6");
-	write_bytes(app_pid, NO_ASLR(0x018d499a), "e8d0ffffff");
-	write_bytes(app_pid, NO_ASLR(0x018d499f), "488b45f8");
-	write_bytes(app_pid, NO_ASLR(0x018d49a3), "8b4011");
-	write_bytes(app_pid, NO_ASLR(0x018d49a6), "8945f4");
-	write_bytes(app_pid, NO_ASLR(0x018d49a9), "817df430303730");
-	write_bytes(app_pid, NO_ASLR(0x018d49b0), "751c");
-	write_bytes(app_pid, NO_ASLR(0x018d49b2), "8b3d6c213004");
-	write_bytes(app_pid, NO_ASLR(0x018d49b8), "be01000000");
-	write_bytes(app_pid, NO_ASLR(0x018d49bd), "e8adffffff");
-	write_bytes(app_pid, NO_ASLR(0x018d49c2), "c70548f622000df0a70c");
-	write_bytes(app_pid, NO_ASLR(0x018d49cc), "eb0c");
-	write_bytes(app_pid, NO_ASLR(0x018d49ce), "c7053cf622000df0ea05");
-	write_bytes(app_pid, NO_ASLR(0x018d49d8), "eb00");
-	write_bytes(app_pid, NO_ASLR(0x018d49da), "4883c410");
-	write_bytes(app_pid, NO_ASLR(0x018d49de), "5d");
-	write_bytes(app_pid, NO_ASLR(0x018d49df), "c3");
-	write_bytes(app_pid, NO_ASLR(0x018d49e0), "55");
-	write_bytes(app_pid, NO_ASLR(0x018d49e1), "4889e5");
-	write_bytes(app_pid, NO_ASLR(0x018d49e4), "813d26f622000df0a70c");
-	write_bytes(app_pid, NO_ASLR(0x018d49ee), "751a");
-	write_bytes(app_pid, NO_ASLR(0x018d49f0), "8b3d2e213004");
-	write_bytes(app_pid, NO_ASLR(0x018d49f6), "31f6");
-	write_bytes(app_pid, NO_ASLR(0x018d49f8), "e872ffffff");
-	write_bytes(app_pid, NO_ASLR(0x018d49fd), "488d0510f62200");
-	write_bytes(app_pid, NO_ASLR(0x018d4a04), "c7000df0ea05");
-	write_bytes(app_pid, NO_ASLR(0x018d4a0a), "488d0557db3504");
-	write_bytes(app_pid, NO_ASLR(0x018d4a11), "488b00");
-	write_bytes(app_pid, NO_ASLR(0x018d4a14), "488bb808010000");
-	write_bytes(app_pid, NO_ASLR(0x018d4a1b), "e8206b5fff");
-	write_bytes(app_pid, NO_ASLR(0x018d4a20), "31c0");
-	write_bytes(app_pid, NO_ASLR(0x018d4a22), "5d");
-	write_bytes(app_pid, NO_ASLR(0x018d4a23), "c3");
+		/*
+		_start:
+			MOV RDI,qword ptr [RBP + -0x40]
+			CALL set_fliprate
+			MOV RSI,qword ptr [RBP + -0x38]
+			MOV RDI,qword ptr [RBP + -0x40]
+			BEXTR RDX,RSI,R15
+			CMP R13,RSI
+			SBB ECX,ECX
+			AND ECX,0x1
+			JMP 0x0060bebd
+		fliprate_thunk:
+			jmp 0x018bdd78
+		set_fliprate:
+			push    rbp
+			mov     rbp, rsp
+			sub     rsp, 0x10
+			mov     qword ptr [rbp - 0x8], rdi
+			mov     rax, qword ptr [rbp - 0x8]
+			mov   eax, dword ptr [rax]
+			mov     dword ptr [rbp - 0xc], eax
+			cmp     dword ptr [rbp - 0xc], 0x2F303173
+			jne     LBB1_4
+			mov     edi, dword ptr [0x05bd6b24]
+			xor esi, esi
+			call    fliprate_thunk
+			mov     rax, qword ptr [rbp - 0x8]
+			mov   eax, dword ptr [rax + 0x11]
+			mov     dword ptr [rbp - 0xc], eax
+			cmp     dword ptr [rbp - 0xc], 0x30373030
+			jne     LBB1_3
+			mov     edi, dword ptr [0x05bd6b24]
+			mov     esi, 1
+			call    fliprate_thunk
+			mov dword ptr [0x01b04014], 0xca7f00d
+			jmp     LBB1_4
+		LBB1_3:
+			mov dword ptr [0x01b04014], 0x5eaf00d
+			jmp     LBB1_4
+		LBB1_4:
+			add     rsp, 0x10
+			pop     rbp
+			ret
+		save_checkpoint_hook:
+			PUSH RBP
+			MOV RBP,RSP
+			cmp dword ptr [0x01b04014], 0xca7f00d
+			jnz orig
+			mov     edi, dword ptr [0x05bd6b24]
+			xor esi, esi
+			call    fliprate_thunk
+			lea rax, [0x01b04014]
+			mov dword ptr [rax], 0x5eaf00d
+		orig:
+			LEA RAX, [0x05c32568]
+			MOV RAX,qword ptr [RAX]
+			MOV RDI,qword ptr [RAX + 0x108]
+			CALL 0x00ecb540
+			XOR EAX,EAX
+			POP RBP
+			RET
+		*/
+		write_bytes(app_pid, NO_ASLR(0x0060b150), "e98b982c01");
+		write_bytes(app_pid, NO_ASLR(0x0060bea8), "e99f8a2c01");
+		write_bytes(app_pid, NO_ASLR(0x018d494c), "488b7dc0");
+		write_bytes(app_pid, NO_ASLR(0x018d4950), "e81f000000");
+		write_bytes(app_pid, NO_ASLR(0x018d4955), "488b75c8");
+		write_bytes(app_pid, NO_ASLR(0x018d4959), "488b7dc0");
+		write_bytes(app_pid, NO_ASLR(0x018d495d), "c4e280f7d6");
+		write_bytes(app_pid, NO_ASLR(0x018d4962), "4939f5");
+		write_bytes(app_pid, NO_ASLR(0x018d4965), "19c9");
+		write_bytes(app_pid, NO_ASLR(0x018d4967), "83e101");
+		write_bytes(app_pid, NO_ASLR(0x018d496a), "e94e75d3fe");
+		write_bytes(app_pid, NO_ASLR(0x018d496f), "e90494feff");
+		write_bytes(app_pid, NO_ASLR(0x018d4974), "55");
+		write_bytes(app_pid, NO_ASLR(0x018d4975), "4889e5");
+		write_bytes(app_pid, NO_ASLR(0x018d4978), "4883ec10");
+		write_bytes(app_pid, NO_ASLR(0x018d497c), "48897df8");
+		write_bytes(app_pid, NO_ASLR(0x018d4980), "488b45f8");
+		write_bytes(app_pid, NO_ASLR(0x018d4984), "8b00");
+		write_bytes(app_pid, NO_ASLR(0x018d4986), "8945f4");
+		write_bytes(app_pid, NO_ASLR(0x018d4989), "817df47331302f");
+		write_bytes(app_pid, NO_ASLR(0x018d4990), "7548");
+		write_bytes(app_pid, NO_ASLR(0x018d4992), "8b3d8c213004");
+		write_bytes(app_pid, NO_ASLR(0x018d4998), "31f6");
+		write_bytes(app_pid, NO_ASLR(0x018d499a), "e8d0ffffff");
+		write_bytes(app_pid, NO_ASLR(0x018d499f), "488b45f8");
+		write_bytes(app_pid, NO_ASLR(0x018d49a3), "8b4011");
+		write_bytes(app_pid, NO_ASLR(0x018d49a6), "8945f4");
+		write_bytes(app_pid, NO_ASLR(0x018d49a9), "817df430303730");
+		write_bytes(app_pid, NO_ASLR(0x018d49b0), "751c");
+		write_bytes(app_pid, NO_ASLR(0x018d49b2), "8b3d6c213004");
+		write_bytes(app_pid, NO_ASLR(0x018d49b8), "be01000000");
+		write_bytes(app_pid, NO_ASLR(0x018d49bd), "e8adffffff");
+		write_bytes(app_pid, NO_ASLR(0x018d49c2), "c70548f622000df0a70c");
+		write_bytes(app_pid, NO_ASLR(0x018d49cc), "eb0c");
+		write_bytes(app_pid, NO_ASLR(0x018d49ce), "c7053cf622000df0ea05");
+		write_bytes(app_pid, NO_ASLR(0x018d49d8), "eb00");
+		write_bytes(app_pid, NO_ASLR(0x018d49da), "4883c410");
+		write_bytes(app_pid, NO_ASLR(0x018d49de), "5d");
+		write_bytes(app_pid, NO_ASLR(0x018d49df), "c3");
+		write_bytes(app_pid, NO_ASLR(0x018d49e0), "55");
+		write_bytes(app_pid, NO_ASLR(0x018d49e1), "4889e5");
+		write_bytes(app_pid, NO_ASLR(0x018d49e4), "813d26f622000df0a70c");
+		write_bytes(app_pid, NO_ASLR(0x018d49ee), "751a");
+		write_bytes(app_pid, NO_ASLR(0x018d49f0), "8b3d2e213004");
+		write_bytes(app_pid, NO_ASLR(0x018d49f6), "31f6");
+		write_bytes(app_pid, NO_ASLR(0x018d49f8), "e872ffffff");
+		write_bytes(app_pid, NO_ASLR(0x018d49fd), "488d0510f62200");
+		write_bytes(app_pid, NO_ASLR(0x018d4a04), "c7000df0ea05");
+		write_bytes(app_pid, NO_ASLR(0x018d4a0a), "488d0557db3504");
+		write_bytes(app_pid, NO_ASLR(0x018d4a11), "488b00");
+		write_bytes(app_pid, NO_ASLR(0x018d4a14), "488bb808010000");
+		write_bytes(app_pid, NO_ASLR(0x018d4a1b), "e8206b5fff");
+		write_bytes(app_pid, NO_ASLR(0x018d4a20), "31c0");
+		write_bytes(app_pid, NO_ASLR(0x018d4a22), "5d");
+		write_bytes(app_pid, NO_ASLR(0x018d4a23), "c3");
+		printf_notification("Applied 60 FPS + Freeze Fix");
 	}
 	// Native 3840x2160
 	// write_bytes64(app_pid, NO_ASLR(0x01aec3e8), 0x08700f0008700f00);
@@ -2562,12 +2578,14 @@ void DoPatch_CTR_121(pid_t app_pid, uint64_t text_base, uint32_t idx)
 	{
 		write_bytes(app_pid, NO_ASLR(0x017a9f2b), "be00000000");
 		write_bytes(app_pid, NO_ASLR(0x017a9f30), "9090909090909090909090909090");
+		printf_notification("Applied 60 FPS");
 		break;
 	}
 	case 2:
 	{
 		write_bytes(app_pid, NO_ASLR(0x017a9f1b), "be00000000");
 		write_bytes(app_pid, NO_ASLR(0x017a9f20), "9090909090909090909090909090");
+		printf_notification("Applied 60 FPS");
 		break;
 	}
 	}
@@ -3778,6 +3796,7 @@ void DoPatchBF4_124(pid_t app_pid, uint64_t text_base)
 	write_bytes(app_pid, NO_ASLR(0x01c2db29), "4531c0");
 	write_bytes(app_pid, NO_ASLR(0x01c2db2c), "ffd0");
 	write_bytes(app_pid, NO_ASLR(0x01c2db2e), "e937b472ff");
+	printf_notification("Applied 120Hz Patch");
 }
 
 void DoPatchKillzone_181(pid_t app_pid, uint64_t text_base)
@@ -3862,6 +3881,7 @@ void DoPatchGravityDaze_101(pid_t app_pid, uint64_t text_base)
 	write_bytes(app_pid, NO_ASLR(0x019e781e), "4531c0");
 	write_bytes(app_pid, NO_ASLR(0x019e7821), "ffd0");
 	write_bytes(app_pid, NO_ASLR(0x019e7823), "e9bfdaa2fe");
+	printf_notification("Applied 120Hz Patch");
 }
 
 void DoPatchMEC_102(pid_t app_pid, uint64_t text_base)
@@ -3896,6 +3916,7 @@ void DoPatchMEC_102(pid_t app_pid, uint64_t text_base)
 	write_bytes(app_pid, NO_ASLR(0x02f7d4a2), "4531c0");
 	write_bytes(app_pid, NO_ASLR(0x02f7d4a5), "ffd0");
 	write_bytes(app_pid, NO_ASLR(0x02f7d4a7), "e904f221fe");
+	printf_notification("Applied 120Hz Patch");
 }
 
 void DoPatchNier103(pid_t app_pid, uint64_t text_base)
@@ -3945,6 +3966,7 @@ void DoPatchNier103(pid_t app_pid, uint64_t text_base)
 	write_bytes(app_pid, NO_ASLR(0x0106c5e8), "5d");
 	write_bytes(app_pid, NO_ASLR(0x0106c5e9), "c3");
 	*/
+	printf_notification("Applied 120Hz Patch");
 }
 
 void DoPatchDoom_112(pid_t app_pid, uint64_t text_base)
@@ -3974,7 +3996,9 @@ void DoPatchDoom_112(pid_t app_pid, uint64_t text_base)
 	write_bytes(app_pid, NO_ASLR(0x03f81f65), "e9bb6c47fd");
 	// write_string(app_pid, NO_ASLR(0x034306d1), "1000"); // offcut for second string "0" but you'd never see the description anyways
 	write_bytes(app_pid, NO_ASLR(0x024a3ad4), "488d150effb500");
+	printf_notification("Applied 120Hz Patch");
 	// no logo videos + legal screen
 	write_bytes(app_pid, NO_ASLR(0x024d87dd), "48e9b2010000");
 	write_bytes(app_pid, NO_ASLR(0x0246f1c1), "eb07");
+	printf_notification("Applied no logo videos + legal screen");
 }
