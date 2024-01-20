@@ -697,6 +697,12 @@ void *GamePatch_Thread(void *unused)
 					{
 						DoPatchDoom_112(app_pid, text_base);
 					}
+					else if ((startsWith(app_id, "CUSA10866") ||
+							  startsWith(app_id, "CUSA10851")) &&
+							 (startsWith(app_ver, "01.03")))
+					{
+						DoPatchBPR_103(app_pid, text_base);
+					}
 				}
 
 				// multiple selfs

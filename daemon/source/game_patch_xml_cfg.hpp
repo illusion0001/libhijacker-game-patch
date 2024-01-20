@@ -23,3 +23,7 @@
 #define Driveclub_DLC_Unlock "Driveclub_UnlockAllCarsBikes"
 #define TLG_60FPS "TheLastGurdian_60FPS"
 #define t2ps4_109_1080p_in120Hz "TheLastOfUs2_109_Force1080p_in_120Hz"
+#define BPR_103_120Hz "BurnoutParadise_103_120hz"
+#define BPR_103_1080p "BurnoutParadise_103_1920x1080"
+#define BPR_103_SkipLogos "BurnoutParadise_103_SkipLogos"
+#define BPR_103_SkipIntroVideo "BurnoutParadise_103_SkipIntroVideo"

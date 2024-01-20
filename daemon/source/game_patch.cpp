@@ -4002,3 +4002,51 @@ void DoPatchDoom_112(pid_t app_pid, uint64_t text_base)
 	write_bytes(app_pid, NO_ASLR(0x0246f1c1), "eb07");
 	printf_notification("Applied no logo videos + legal screen");
 }
+
+void DoPatchBPR_103(pid_t app_pid, uint64_t text_base)
+{
+	if (parseXML(BPR_103_120Hz))
+	{
+		write_bytes(app_pid, NO_ASLR(0x007739f0), "b878000000"); // 120 Max FPS (int)
+		// Enable 120hz after `SceVideoOutOpen`
+		write_bytes(app_pid, NO_ASLR(0x00b5a501), "e9fa8da300");
+		write_bytes(app_pid, NO_ASLR(0x01593300), "488d0541960600");
+		write_bytes(app_pid, NO_ASLR(0x01593307), "488b00");
+		write_bytes(app_pid, NO_ASLR(0x0159330a), "48050df0a70c", isOffsetVideoModeSupported);
+		write_bytes(app_pid, NO_ASLR(0x01593310), "418b7f20");
+		write_bytes(app_pid, NO_ASLR(0x01593314), "be0f000000");
+		write_bytes(app_pid, NO_ASLR(0x01593319), "31d2");
+		write_bytes(app_pid, NO_ASLR(0x0159331b), "31c9");
+		write_bytes(app_pid, NO_ASLR(0x0159331d), "4531c0");
+		write_bytes(app_pid, NO_ASLR(0x01593320), "ffd0");
+		write_bytes(app_pid, NO_ASLR(0x01593322), "83f801");
+		write_bytes(app_pid, NO_ASLR(0x01593325), "7522");
+		write_bytes(app_pid, NO_ASLR(0x01593327), "488d051a960600");
+		write_bytes(app_pid, NO_ASLR(0x0159332e), "488b00");
+		write_bytes(app_pid, NO_ASLR(0x01593331), "48050df0ed5e", isOffsetConfigureOutput);
+		write_bytes(app_pid, NO_ASLR(0x01593337), "418b7f20");
+		write_bytes(app_pid, NO_ASLR(0x0159333b), "be0f000000");
+		write_bytes(app_pid, NO_ASLR(0x01593340), "31d2");
+		write_bytes(app_pid, NO_ASLR(0x01593342), "31c9");
+		write_bytes(app_pid, NO_ASLR(0x01593344), "4531c0");
+		write_bytes(app_pid, NO_ASLR(0x01593347), "ffd0");
+		write_bytes(app_pid, NO_ASLR(0x01593349), "e9c6715cff");
+		printf_notification("Applied 120Hz Patch");
+	}
+	// Force 1080p mode
+	if (parseXML(BPR_103_1080p))
+	{
+		write_bytes32(app_pid, NO_ASLR(0x00b54ec4), 1920);
+		write_bytes32(app_pid, NO_ASLR(0x00b54ece), 1080);
+		printf_notification("Applied 1080p Patch");
+	}
+	if (parseXML(BPR_103_SkipLogos))
+	{
+		write_bytes(app_pid, NO_ASLR(0x00745c5d), "c6835826c20001");
+	}
+	if (parseXML(BPR_103_SkipIntroVideo))
+	{
+		write_bytes(app_pid, NO_ASLR(0x0086840a), "e912010000");
+	}
+	write_bytes(app_pid, NO_ASLR(0x00b15c97), "4c89fe");
+}

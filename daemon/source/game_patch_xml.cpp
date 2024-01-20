@@ -145,6 +145,10 @@ const char DefaultCfgData[] = ""
 					SET_XML_KEY(Driveclub_DLC_Unlock, 1)
 					SET_XML_KEY(TLG_60FPS, 0)
 					SET_XML_KEY(t2ps4_109_1080p_in120Hz, 0)
+					SET_XML_KEY(BPR_103_120Hz, 0)
+					SET_XML_KEY(BPR_103_1080p, 1)
+					SET_XML_KEY(BPR_103_SkipLogos, 1)
+					SET_XML_KEY(BPR_103_SkipIntroVideo, 0)
 					"</cfg>\n";
 #undef SET_XML_KEY
 
