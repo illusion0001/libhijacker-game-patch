@@ -791,7 +791,6 @@ void *GamePatch_Thread(void *unused)
 						(startsWith(app_ver, "01.000.000")))
 					{
 						DoPatch_DemonSouls(app_pid, text_base, 0x100);
-						printf_notification("%s (%s): 60 FPS Cinematic Mode Patched!", app_id, app_ver);
 					}
 				}
 				if ((startsWith(app_id, "PPSA05684") ||

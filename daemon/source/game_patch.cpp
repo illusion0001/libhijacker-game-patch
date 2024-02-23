@@ -2382,6 +2382,18 @@ void DoPatch_DemonSouls(pid_t app_pid, uint64_t text_base, uint32_t idx)
 			write_bytes(app_pid, BASE_ASLR(0x023eddb2), "ff2558609d00");
 			printf_notification("Applied 60 FPS");
 		}
+		if (parseXML(DemonSouls_DebugMenu))
+		{
+			write_bytes(app_pid, BASE_ASLR_OFFSET(0x35b4c000, 0x35b4c0bf), "cc");
+			write_bytes(app_pid, BASE_ASLR_OFFSET(0x35b4c000, 0x35b4c0c0), "488b03");
+			write_bytes(app_pid, BASE_ASLR_OFFSET(0x35b4c000, 0x35b4c0c3), "483b4308");
+			write_bytes(app_pid, BASE_ASLR_OFFSET(0x35b4c000, 0x35b4c0c7), "c60532b7530302");
+			write_bytes(app_pid, BASE_ASLR_OFFSET(0x35b4c000, 0x35b4c0ce), "eb13");
+			write_bytes(app_pid, BASE_ASLR_OFFSET(0x35b4c000, 0x35b4c0e3), "e9cd4bae00");
+			// Preserve `bpe::CommandLine::DispatchCmds`
+			write_bytes(app_pid, BASE_ASLR_OFFSET(0x35b4c000, 0x36630cae), "e90db451ff");
+			printf_notification("Applied Debug Menu");
+		}
 		break;
 	}
 	}

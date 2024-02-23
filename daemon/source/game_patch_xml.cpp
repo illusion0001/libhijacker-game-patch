@@ -144,6 +144,7 @@ const char DefaultCfgData[] = ""
 					SET_XML_KEY(Big4R_MainDebugMenu, 0)
 					SET_XML_KEY(Big4R_TLLDebugMenu, 0)
 					SET_XML_KEY(DemonSouls_UnlockFPS, 0)
+					SET_XML_KEY(DemonSouls_DebugMenu, 0)
 					SET_XML_KEY(Driveclub_60FPS, 1)
 					SET_XML_KEY(Driveclub_DLC_Unlock, 1)
 					SET_XML_KEY(TLG_60FPS, 0)

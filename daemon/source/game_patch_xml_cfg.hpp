@@ -19,6 +19,7 @@
 #define Big4R_MainDebugMenu "Uncharted_4_Remaster_DebugMenu"
 #define Big4R_TLLDebugMenu "Uncharted_TheLostLegacy_Remaster_DebugMenu"
 #define DemonSouls_UnlockFPS "DemonSouls_UnlockFPS"
+#define DemonSouls_DebugMenu "DemonSouls_DebugMenu"
 #define Driveclub_60FPS "Driveclub_60FPS"
 #define Driveclub_DLC_Unlock "Driveclub_UnlockAllCarsBikes"
 #define TLG_60FPS "TheLastGurdian_60FPS"
