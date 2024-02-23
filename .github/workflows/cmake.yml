@@ -13,12 +13,11 @@ concurrency:
   group: ${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 
-permissions:
-  contents: write
-
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
 
     - name: Setup environment
@@ -70,6 +69,8 @@ jobs:
       run: bash ./build.sh
 
     - name: Upload artifacts
+    # if: github.event_name != 'workflow_dispatch'
+      if: false
       uses: actions/upload-artifact@main
       with:
         name: libhijacker_${{ env.commit_ver }}-${{ env.commit_hash }}
