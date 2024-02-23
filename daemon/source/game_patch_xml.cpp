@@ -3,6 +3,7 @@
 #include <stdint.h>
 
 #include "game_patch_memory.hpp"
+#include "notify.hpp"
 
 // Include the `game_patch_fliprate_list.xml` as a symbol
 __asm__(
@@ -11,7 +12,7 @@ __asm__(
 	"DefaultXml_FliprateList:\n"
 	".incbin \".." XML_PATH_LIST "\"\n");
 
-extern "C" char DefaultXml_FliprateList[];
+extern "C" const char DefaultXml_FliprateList[];
 
 int makeDefaultXml_List()
 {
@@ -24,6 +25,7 @@ int makeDefaultXml_List()
 		fputs(DefaultXml_FliprateList, new_f);
 		fflush(new_f);
 		fclose(new_f);
+		printf_notification("Created default config file:\n" XML_PATH_LIST);
 	}
 	return 0;
 }
@@ -38,7 +40,7 @@ int Xml_parseTitleID(const char *titleId)
 	uint64_t length = 0;
 	FILE *f = fopen(XML_PATH_LIST, "rb");
 	// int ret = 0;
-	printf("File: " XML_PATH_LIST "\n");
+	printf("File: " XML_PATH_LIST " exist at 0x%p\n", f);
 	if (f)
 	{
 		fseek(f, 0, SEEK_END);
@@ -48,6 +50,7 @@ int Xml_parseTitleID(const char *titleId)
 		if (buffer)
 		{
 			fread(buffer, 1, length, f);
+			printf("Memory at 0x%p\n", buffer);
 		}
 		fclose(f);
 	}
@@ -163,6 +166,7 @@ int makeDefaultXml_Cfg()
 		fputs(DefaultCfgData, new_f);
 		fflush(new_f);
 		fclose(new_f);
+		printf_notification("Created default config file:\n" XML_PATH);
 	}
 	return 0;
 }
@@ -175,6 +179,7 @@ int parseXML(const char *xml_key)
 	FILE *f = fopen(XML_PATH, "rb");
 	int ret = 0;
 
+	printf("File " XML_PATH " exist at 0x%p\n", f);
 	if (f)
 	{
 		fseek(f, 0, SEEK_END);
@@ -184,6 +189,7 @@ int parseXML(const char *xml_key)
 		if (buffer)
 		{
 			fread(buffer, 1, length, f);
+			printf("Memory at 0x%p\n", buffer);
 		}
 		fclose(f);
 	}
