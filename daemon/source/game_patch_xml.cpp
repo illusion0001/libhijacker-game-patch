@@ -70,7 +70,6 @@ int Xml_parseTitleID(const char *titleId)
 		while (idNode != NULL)
 		{
 			const char *idValue = mxmlGetOpaque(idNode);
-
 			if (idValue != NULL)
 			{
 				// printf("TitleID: %s\n", idValue);
@@ -78,6 +77,7 @@ int Xml_parseTitleID(const char *titleId)
 				{
 					found_id = 1;
 					printf("%s match !! found_id=0x%08x\n", titleId, found_id);
+					break;
 				}
 			}
 			idNode = mxmlFindElement(idNode, titleIDNode, "ID", NULL, NULL, MXML_NO_DESCEND);
