@@ -786,7 +786,9 @@ void *GamePatch_Thread(void *unused)
 				// eboot.bin games
 				if (startsWith(process_name_c_str, "eboot.bin"))
 				{
-					if ((startsWith(app_id, "PPSA01341") ||
+					if ((startsWith(app_id, "PPSA01339") ||
+						 startsWith(app_id, "PPSA01340") ||
+						 startsWith(app_id, "PPSA01341") ||
 						 startsWith(app_id, "PPSA01342")) &&
 						(startsWith(app_ver, "01.000.000")))
 					{
