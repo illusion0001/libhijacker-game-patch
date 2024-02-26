@@ -39,7 +39,6 @@ int Xml_parseTitleID(const char *titleId)
 	char *buffer = NULL;
 	uint64_t length = 0;
 	FILE *f = fopen(XML_PATH_LIST, "rb");
-	// int ret = 0;
 	printf("File: " XML_PATH_LIST " exist at 0x%p\n", f);
 	if (f)
 	{
@@ -58,11 +57,12 @@ int Xml_parseTitleID(const char *titleId)
 
 	if (tree == NULL)
 	{
-		return 1;
+		return 0;
 	}
 
 	mxml_node_t *titleIDNode = mxmlFindElement(tree, tree, "TitleID", NULL, NULL, MXML_DESCEND);
 
+	int found_id = 0;
 	if (titleIDNode != NULL)
 	{
 		mxml_node_t *idNode = mxmlFindElement(titleIDNode, tree, "ID", NULL, NULL, MXML_DESCEND);
@@ -76,7 +76,8 @@ int Xml_parseTitleID(const char *titleId)
 				// printf("TitleID: %s\n", idValue);
 				if (strncmp(titleId, idValue, __builtin_strlen("CUSAxxxxx")) == 0)
 				{
-					printf("%s match !!\n", titleId);
+					found_id = 1;
+					printf("%s match !! found_id=0x%08x\n", titleId, found_id);
 				}
 			}
 			idNode = mxmlFindElement(idNode, titleIDNode, "ID", NULL, NULL, MXML_NO_DESCEND);
@@ -91,7 +92,7 @@ int Xml_parseTitleID(const char *titleId)
 	{
 		mxmlDelete(tree);
 	}
-	return 0;
+	return found_id;
 }
 
 int simple_get_bool(const char *val)
