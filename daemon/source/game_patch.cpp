@@ -2396,6 +2396,20 @@ void DoPatch_DemonSouls(pid_t app_pid, uint64_t text_base, uint32_t idx)
 		}
 		break;
 	}
+	case 0x104:
+	{
+		if (parseXML(DemonSouls104_DebugMenu))
+		{
+			write_bytes(app_pid, BASE_ASLR_OFFSET(0x584a8000, 0x58cfbb49), "e937010000");
+			// Preserve `bpe::CommandLine::DispatchCmds`
+			write_bytes(app_pid, BASE_ASLR_OFFSET(0x584a8000, 0x58cfbc85), "e8b676ffff");
+			write_bytes(app_pid, BASE_ASLR_OFFSET(0x584a8000, 0x58cfbc8a), "e9e4000000");
+			write_bytes(app_pid, BASE_ASLR_OFFSET(0x584a8000, 0x58cfbd73), "c60526058b0202");
+			write_bytes(app_pid, BASE_ASLR_OFFSET(0x584a8000, 0x58cfbd7a), "e9cffdffff");
+			printf_notification("Applied Debug Menu");
+		}
+		break;
+	}
 	}
 }
 

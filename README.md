@@ -79,6 +79,8 @@ nc -q0 (ps5 ip) 9020 bin/spawner.elf
 - Demon Souls v1.00
   - 60 FPS Unlock in Cinematic Mode
   - Debug Menu
+- Demon Souls v1.04
+  - Debug Menu
 - Uncharted: Legacy of Thieves Collection v1.00
   - Debug Menu
 
@@ -129,6 +131,7 @@ Contains keys to toggle hardcoded patches.
     <Uncharted_TheLostLegacy_Remaster_DebugMenu>0</Uncharted_TheLostLegacy_Remaster_DebugMenu>
     <DemonSouls_UnlockFPS>0</DemonSouls_UnlockFPS>
     <DemonSouls_DebugMenu>0</DemonSouls_DebugMenu>
+    <DemonSouls104_DebugMenu>0</DemonSouls104_DebugMenu>
     <Driveclub_60FPS>1</Driveclub_60FPS>
     <Driveclub_UnlockAllCarsBikes>1</Driveclub_UnlockAllCarsBikes>
     <TheLastGurdian_60FPS>0</TheLastGurdian_60FPS>

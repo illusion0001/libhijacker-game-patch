@@ -789,10 +789,16 @@ void *GamePatch_Thread(void *unused)
 					if ((startsWith(app_id, "PPSA01339") ||
 						 startsWith(app_id, "PPSA01340") ||
 						 startsWith(app_id, "PPSA01341") ||
-						 startsWith(app_id, "PPSA01342")) &&
-						(startsWith(app_ver, "01.000.000")))
+						 startsWith(app_id, "PPSA01342")))
 					{
-						DoPatch_DemonSouls(app_pid, text_base, 0x100);
+						if (startsWith(app_ver, "01.000.000"))
+						{
+							DoPatch_DemonSouls(app_pid, text_base, 0x100);
+						}
+						else if (startsWith(app_ver, "01.004.000"))
+						{
+							DoPatch_DemonSouls(app_pid, text_base, 0x104);
+						}
 					}
 				}
 				if ((startsWith(app_id, "PPSA05684") ||
