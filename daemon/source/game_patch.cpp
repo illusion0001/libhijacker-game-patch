@@ -1625,35 +1625,42 @@ void DoPatch_BigCollection(pid_t app_pid, uint64_t text_base, uint32_t idx)
 	case (0x100 << 1):
 	{
 		write_bytes(app_pid, NO_ASLR(0x00d98997), "01");
-		write_bytes(app_pid, NO_ASLR(0x008a0d42), "41c686ba39000000");
-		write_bytes(app_pid, NO_ASLR(0x006d00ae), "909090909090");
-		write_bytes(app_pid, NO_ASLR(0x004de0db), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x004de11c), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x004de19b), "e9f80c0000");
-		write_bytes(app_pid, NO_ASLR(0x004dee98), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x004df5b1), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x0066df04), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x0066e158), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x004df732), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x004df793), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x004df7f4), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x004df855), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x004df956), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x004df9b7), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x004dfa50), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x004dfa96), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x004dfaa8), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x004dfaba), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x004dfb1b), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x004dfb7c), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x004dfbb5), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x004dfe10), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x004dfe73), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x004e002a), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x004fe7b4), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x00500b3e), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x006a3dff), "b801000000");
-		printf_notification("Applied Debug Menu");
+		if (parseXML(UCC_DebugMenu))
+		{
+			// Rebind L3 + Triangle to Disable FPS
+			write_bytes(app_pid, NO_ASLR(0x006cf8b0), "4180bfe947000001");
+			write_bytes(app_pid, NO_ASLR(0x00fe3f41), "01");
+
+			write_bytes(app_pid, NO_ASLR(0x008a0d42), "41c686ba39000000");
+			write_bytes(app_pid, NO_ASLR(0x006d00ae), "909090909090");
+			write_bytes(app_pid, NO_ASLR(0x004de0db), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x004de11c), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x004de19b), "e9f80c0000");
+			write_bytes(app_pid, NO_ASLR(0x004dee98), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x004df5b1), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x0066df04), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x0066e158), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x004df732), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x004df793), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x004df7f4), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x004df855), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x004df956), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x004df9b7), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x004dfa50), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x004dfa96), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x004dfaa8), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x004dfaba), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x004dfb1b), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x004dfb7c), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x004dfbb5), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x004dfe10), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x004dfe73), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x004e002a), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x004fe7b4), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x00500b3e), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x006a3dff), "b801000000");
+			printf_notification("Applied Debug Menu");
+		}
 		// 120hz
 		/*
 		LEA RAX,[0xd874a0]
@@ -1747,68 +1754,75 @@ void DoPatch_BigCollection(pid_t app_pid, uint64_t text_base, uint32_t idx)
 	}
 	case (0x100 << 2):
 	{
-		write_bytes(app_pid, NO_ASLR(0x00a373aa), "41c686ba39000000");
-		write_bytes(app_pid, NO_ASLR(0x005c06bf), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x005c06ff), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x00941c93), "9090909090");
-		write_bytes(app_pid, NO_ASLR(0x005c0723), "9090909090");
-		write_bytes(app_pid, NO_ASLR(0x005c0c60), "9090909090");
-		write_bytes(app_pid, NO_ASLR(0x007760d2), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x007760f6), "9090909090");
-		write_bytes(app_pid, NO_ASLR(0x007762a6), "9090909090");
-		write_bytes(app_pid, NO_ASLR(0x007762e3), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x00776317), "9090909090");
-		write_bytes(app_pid, NO_ASLR(0x00777699), "9090909090");
-		write_bytes(app_pid, NO_ASLR(0x005c0d3d), "e92d000000");
-		write_bytes(app_pid, NO_ASLR(0x005c0dc6), "9090909090");
-		write_bytes(app_pid, NO_ASLR(0x005c0dcb), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x00638db2), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x00638dd6), "9090909090");
-		write_bytes(app_pid, NO_ASLR(0x0063bf08), "9090909090");
-		write_bytes(app_pid, NO_ASLR(0x0063c1e8), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x0063c20c), "9090909090");
-		write_bytes(app_pid, NO_ASLR(0x0063c4bd), "9090909090");
-		write_bytes(app_pid, NO_ASLR(0x00824d3a), "9090909090");
-		write_bytes(app_pid, NO_ASLR(0x00825840), "c3");
-		write_bytes(app_pid, NO_ASLR(0x00825840), "c3");
-		write_bytes(app_pid, NO_ASLR(0x0082580a), "9090909090");
-		write_bytes(app_pid, NO_ASLR(0x005c0e2b), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x005c0e4b), "9090909090");
-		write_bytes(app_pid, NO_ASLR(0x005c0ea7), "9090909090");
-		write_bytes(app_pid, NO_ASLR(0x005be650), "c3");
-		write_bytes(app_pid, NO_ASLR(0x005c0eac), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x005c0ed0), "9090909090");
-		write_bytes(app_pid, NO_ASLR(0x005c1250), "9090909090");
-		write_bytes(app_pid, NO_ASLR(0x005c1255), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x005c1279), "9090909090");
-		write_bytes(app_pid, NO_ASLR(0x005c132c), "9090909090");
-		write_bytes(app_pid, NO_ASLR(0x005c1331), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x005c1351), "9090909090");
-		write_bytes(app_pid, NO_ASLR(0x005c13ad), "9090909090");
-		write_bytes(app_pid, NO_ASLR(0x005c13b2), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x005c1441), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x005c1461), "9090909090");
-		write_bytes(app_pid, NO_ASLR(0x005c146e), "9090909090");
-		write_bytes(app_pid, NO_ASLR(0x005c1473), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x005c1493), "9090909090");
-		write_bytes(app_pid, NO_ASLR(0x005c14a0), "9090909090");
-		write_bytes(app_pid, NO_ASLR(0x005c14a5), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x005c14dd), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x005c1931), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x005c1955), "9090909090");
-		write_bytes(app_pid, NO_ASLR(0x005c1ca4), "9090909090");
-		write_bytes(app_pid, NO_ASLR(0x005c1ca9), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x005c373d), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x005c3761), "9090909090");
-		write_bytes(app_pid, NO_ASLR(0x005c3a44), "9090909090");
-		write_bytes(app_pid, NO_ASLR(0x005c3a49), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x00402c93), "9090909090");
-		write_bytes(app_pid, NO_ASLR(0x00402cb7), "9090909090");
-		write_bytes(app_pid, NO_ASLR(0x00402d5e), "9090909090");
-		write_bytes(app_pid, NO_ASLR(0x00402d90), "31c0c3");
-		write_bytes(app_pid, NO_ASLR(0x0054c0a3), "b801000000");
-		write_bytes(app_pid, NO_ASLR(0x008f56d0), "b801000000");
-		printf_notification("Applied Debug Menu");
+		if (parseXML(UCC_DebugMenu))
+		{
+			// Rebind L3 + Triangle to Disable FPS
+			write_bytes(app_pid, NO_ASLR(0x0054c4fd), "80b92248000001");
+			write_bytes(app_pid, NO_ASLR(0x013d91ba), "01");
+
+			write_bytes(app_pid, NO_ASLR(0x00a373aa), "41c686ba39000000");
+			write_bytes(app_pid, NO_ASLR(0x005c06bf), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x005c06ff), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x00941c93), "9090909090");
+			write_bytes(app_pid, NO_ASLR(0x005c0723), "9090909090");
+			write_bytes(app_pid, NO_ASLR(0x005c0c60), "9090909090");
+			write_bytes(app_pid, NO_ASLR(0x007760d2), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x007760f6), "9090909090");
+			write_bytes(app_pid, NO_ASLR(0x007762a6), "9090909090");
+			write_bytes(app_pid, NO_ASLR(0x007762e3), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x00776317), "9090909090");
+			write_bytes(app_pid, NO_ASLR(0x00777699), "9090909090");
+			write_bytes(app_pid, NO_ASLR(0x005c0d3d), "e92d000000");
+			write_bytes(app_pid, NO_ASLR(0x005c0dc6), "9090909090");
+			write_bytes(app_pid, NO_ASLR(0x005c0dcb), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x00638db2), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x00638dd6), "9090909090");
+			write_bytes(app_pid, NO_ASLR(0x0063bf08), "9090909090");
+			write_bytes(app_pid, NO_ASLR(0x0063c1e8), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x0063c20c), "9090909090");
+			write_bytes(app_pid, NO_ASLR(0x0063c4bd), "9090909090");
+			write_bytes(app_pid, NO_ASLR(0x00824d3a), "9090909090");
+			write_bytes(app_pid, NO_ASLR(0x00825840), "c3");
+			write_bytes(app_pid, NO_ASLR(0x00825840), "c3");
+			write_bytes(app_pid, NO_ASLR(0x0082580a), "9090909090");
+			write_bytes(app_pid, NO_ASLR(0x005c0e2b), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x005c0e4b), "9090909090");
+			write_bytes(app_pid, NO_ASLR(0x005c0ea7), "9090909090");
+			write_bytes(app_pid, NO_ASLR(0x005be650), "c3");
+			write_bytes(app_pid, NO_ASLR(0x005c0eac), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x005c0ed0), "9090909090");
+			write_bytes(app_pid, NO_ASLR(0x005c1250), "9090909090");
+			write_bytes(app_pid, NO_ASLR(0x005c1255), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x005c1279), "9090909090");
+			write_bytes(app_pid, NO_ASLR(0x005c132c), "9090909090");
+			write_bytes(app_pid, NO_ASLR(0x005c1331), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x005c1351), "9090909090");
+			write_bytes(app_pid, NO_ASLR(0x005c13ad), "9090909090");
+			write_bytes(app_pid, NO_ASLR(0x005c13b2), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x005c1441), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x005c1461), "9090909090");
+			write_bytes(app_pid, NO_ASLR(0x005c146e), "9090909090");
+			write_bytes(app_pid, NO_ASLR(0x005c1473), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x005c1493), "9090909090");
+			write_bytes(app_pid, NO_ASLR(0x005c14a0), "9090909090");
+			write_bytes(app_pid, NO_ASLR(0x005c14a5), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x005c14dd), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x005c1931), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x005c1955), "9090909090");
+			write_bytes(app_pid, NO_ASLR(0x005c1ca4), "9090909090");
+			write_bytes(app_pid, NO_ASLR(0x005c1ca9), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x005c373d), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x005c3761), "9090909090");
+			write_bytes(app_pid, NO_ASLR(0x005c3a44), "9090909090");
+			write_bytes(app_pid, NO_ASLR(0x005c3a49), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x00402c93), "9090909090");
+			write_bytes(app_pid, NO_ASLR(0x00402cb7), "9090909090");
+			write_bytes(app_pid, NO_ASLR(0x00402d5e), "9090909090");
+			write_bytes(app_pid, NO_ASLR(0x00402d90), "31c0c3");
+			write_bytes(app_pid, NO_ASLR(0x0054c0a3), "b801000000");
+			write_bytes(app_pid, NO_ASLR(0x008f56d0), "b801000000");
+			printf_notification("Applied Debug Menu");
+		}
 		// 120hz
 		/*
 		LEA RAX,[0x1262238]
@@ -1902,8 +1916,15 @@ void DoPatch_BigCollection(pid_t app_pid, uint64_t text_base, uint32_t idx)
 	}
 	case (0x100 << 3):
 	{
-		write_bytes(app_pid, NO_ASLR(0x009d86a2), "41c686ba39000000");
-		printf_notification("Applied Debug Menu (Partial)");
+		if (parseXML(UCC_DebugMenu))
+		{
+			// Rebind L3 + Triangle to Disable FPS
+			write_bytes(app_pid, NO_ASLR(0x0056218d), "80b9ff4b000001");
+			write_bytes(app_pid, NO_ASLR(0x01e21f90), "01");
+
+			write_bytes(app_pid, NO_ASLR(0x009d86a2), "41c686ba39000000");
+			printf_notification("Applied Debug Menu (Partial)");
+		}
 		// 120hz
 		/*
 		LEA RAX,[0x17f5cc0]
@@ -1998,8 +2019,15 @@ void DoPatch_BigCollection(pid_t app_pid, uint64_t text_base, uint32_t idx)
 	case (0x102 << 1):
 	{
 		// Debug Menu
-		write_bytes(app_pid, NO_ASLR(0x009cf259), "41c686ba39000000");
-		printf_notification("Applied Debug Menu (Partial)");
+		if (parseXML(UCC_DebugMenu))
+		{
+			// Rebind L3 + Triangle to Disable FPS
+			write_bytes(app_pid, NO_ASLR(0x006cfea0), "4180bfe947000001");
+			write_bytes(app_pid, NO_ASLR(0x00fe3f41), "01");
+
+			write_bytes(app_pid, NO_ASLR(0x009cf259), "41c686ba39000000");
+			printf_notification("Applied Debug Menu (Partial)");
+		}
 		// 120Hz
 		// if (g_isPatch120Hz)
 		{
@@ -2076,8 +2104,15 @@ void DoPatch_BigCollection(pid_t app_pid, uint64_t text_base, uint32_t idx)
 	case (0x102 << 2):
 	{
 		// Debug Menu
-		write_bytes(app_pid, NO_ASLR(0x010e22fe), "41c686ba39000000");
-		printf_notification("Applied Debug Menu (Partial)");
+		if (parseXML(UCC_DebugMenu))
+		{
+			// Rebind L3 + Triangle to Disable FPS
+			write_bytes(app_pid, NO_ASLR(0x007f8f4b), "4180bc242248000001");
+			write_bytes(app_pid, NO_ASLR(0x015640b2), "01");
+
+			write_bytes(app_pid, NO_ASLR(0x010e22fe), "41c686ba39000000");
+			printf_notification("Applied Debug Menu (Partial)");
+		}
 		// 120Hz
 		// if (g_isPatch120Hz)
 		{
@@ -2171,8 +2206,15 @@ void DoPatch_BigCollection(pid_t app_pid, uint64_t text_base, uint32_t idx)
 	case (0x102 << 3):
 	{
 		// Debug Menu
-		write_bytes(app_pid, NO_ASLR(0x01337ac9), "41c686ba39000000");
-		printf_notification("Applied Debug Menu (Partial)");
+		if (parseXML(UCC_DebugMenu))
+		{
+			// Rebind L3 + Triangle to Disable FPS
+			write_bytes(app_pid, NO_ASLR(0x0096cb8b), "4180bc24ff4b000001");
+			write_bytes(app_pid, NO_ASLR(0x01f3ee60), "01");
+
+			write_bytes(app_pid, NO_ASLR(0x01337ac9), "41c686ba39000000");
+			printf_notification("Applied Debug Menu (Partial)");
+		}
 		// 120hz
 		// if (g_isPatch120Hz)
 		{

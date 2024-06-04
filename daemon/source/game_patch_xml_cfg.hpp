@@ -29,3 +29,4 @@
 #define BPR_103_1080p "BurnoutParadise_103_1920x1080"
 #define BPR_103_SkipLogos "BurnoutParadise_103_SkipLogos"
 #define BPR_103_SkipIntroVideo "BurnoutParadise_103_SkipIntroVideo"
+#define UCC_DebugMenu "UCC_DebugMenu"

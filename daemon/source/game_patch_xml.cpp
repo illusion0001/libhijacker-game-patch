@@ -155,6 +155,7 @@ const char DefaultCfgData[] = ""
 					SET_XML_KEY(BPR_103_1080p, 1)
 					SET_XML_KEY(BPR_103_SkipLogos, 1)
 					SET_XML_KEY(BPR_103_SkipIntroVideo, 0)
+					SET_XML_KEY(UCC_DebugMenu, 0)
 					"</cfg>\n";
 #undef SET_XML_KEY
 
