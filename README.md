@@ -68,6 +68,7 @@ nc -q0 (ps5 ip) 9020 bin/spawner.elf
 - Uncharted: The Nathan Drake Collection Debug Menu (v1.00)
 - Uncharted 4: A Thief's End 60 FPS (v1.33)
 - Uncharted: The Lost Legacy 60 FPS (v1.09)
+- Just Cause 4 v1.05: 60 FPS
 - Just Cause 4 v1.32: 60 FPS
 - Shadow of the Colossus: 1440p at 60FPS + Debug Menu
 - Silent Hills: P.T at 60FPS
@@ -140,6 +141,7 @@ Contains keys to toggle hardcoded patches.
     <BurnoutParadise_103_1920x1080>1</BurnoutParadise_103_1920x1080>
     <BurnoutParadise_103_SkipLogos>1</BurnoutParadise_103_SkipLogos>
     <BurnoutParadise_103_SkipIntroVideo>0</BurnoutParadise_103_SkipIntroVideo>
+    <UCC_DebugMenu>0</UCC_DebugMenu>
 </cfg>
 ```
 
