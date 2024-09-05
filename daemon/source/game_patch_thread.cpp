@@ -617,8 +617,10 @@ void *GamePatch_Thread(void *unused)
 						write_bytes(app_pid, NO_ASLR(0x020e9880), "31f6");
 						write_bytes(app_pid, NO_ASLR(0x020e9882), "ff25804e4600");
 						// Debug Menu
+						/*
 						write_bytes(app_pid, NO_ASLR(0x005c8d97), "c7c101000000");
 						write_bytes(app_pid, NO_ASLR(0x005c8d9d), "41b401");
+						*/
 						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
 					}
 					else if ((startsWith(app_id, "CUSA07875") ||
@@ -633,9 +635,11 @@ void *GamePatch_Thread(void *unused)
 						write_bytes(app_pid, NO_ASLR(0x022193f0), "31f6");
 						write_bytes(app_pid, NO_ASLR(0x022193f2), "ff25b8484800");
 						// Debug Menu
+						/*
 						write_bytes(app_pid, NO_ASLR(0x005c8fc3), "31c9");
 						write_bytes(app_pid, NO_ASLR(0x005c8fc5), "0f1f4000");
 						write_bytes(app_pid, NO_ASLR(0x005c8fd6), "31d2");
+						*/
 						printf_notification("%s (%s): 60 FPS Patched!", app_id, app_ver);
 					}
 					else if ((startsWith(app_id, "CUSA00663") ||
